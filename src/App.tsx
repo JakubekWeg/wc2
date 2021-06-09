@@ -1,12 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
-import { SimpleCircle } from './ecs/entity-types'
+import { ArcherEntity } from './ecs/entity-types'
 import { GameInstance } from './game/game-instance'
+import GameSettings from './game/game-settings'
 import { Renderer } from './game/renderer'
 
+const settings = {
+	mapWidth: 40,
+	mapHeight: 20,
+	tileSizeInPixels: 32
+} as GameSettings
+
 function App() {
-	const [renderer] = useState(new Renderer())
-	const [gameInstance] = useState(new GameInstance())
+	const [renderer] = useState(new Renderer(settings))
+	const [gameInstance] = useState(new GameInstance(settings))
 	const [width, setWidth] = useState(window.innerWidth)
 	const [height, setHeight] = useState(window.innerHeight)
 
@@ -49,9 +56,20 @@ function App() {
 
 	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
 		gameInstance.dispatchNextTick((world) => {
-			const entity = world.spawnEntity(SimpleCircle)
-			entity.x = ev.clientX
-			entity.y = ev.clientY
+			// {
+			// 	const entity = world.spawnEntity(ArcherEntity)
+			// 	entity.scaleX = 1
+			// 	entity.occupiedTiles.push({x: 0, y: 0})
+			// }
+			{
+				const entity = world.spawnEntity(ArcherEntity)
+				entity.destinationDrawX = -18
+				entity.destinationDrawY = -18
+				entity.occupiedTiles.push({x: 0, y: 0})
+			}
+			// const entity = world.spawnEntity(SimpleCircle)
+			// entity.x = ev.clientX
+			// entity.y = ev.clientY
 		})
 	}, [gameInstance])
 

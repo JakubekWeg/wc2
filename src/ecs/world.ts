@@ -24,6 +24,7 @@ interface EntityType {
 }
 
 export class World {
+	private currentTick: number = 0
 	private nextEntityId: number = 1
 	private readonly allEntities = new Map<number, Entity>()
 	private readonly modificationListeners = new Map<ComponentNameType, ModificationListener<any>[]>()
@@ -122,9 +123,9 @@ export class World {
 		this.entityIdsToRemove.push(id)
 	}
 
-	executeTick(func: () => void) {
+	executeTick(func: (currentTick: number) => void) {
 		this.executingTick = true
-		func()
+		func(this.currentTick++)
 		while (this.entitiesAboutToAdd.length > 0 || this.entityIdsToRemove.length > 0) {
 			for (let i = 0; i < this.entitiesAboutToAdd.length; i++) {
 				const [entity, type] = this.entitiesAboutToAdd[i]
