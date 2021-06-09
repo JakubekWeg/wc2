@@ -1,12 +1,69 @@
-import React from 'react';
-import './App.css';
+import React, { useCallback, useEffect, useState } from 'react'
+import './App.css'
+import { SimpleCircle } from './ecs/entity-types'
+import { GameInstance } from './game/game-instance'
+import { Renderer } from './game/renderer'
 
 function App() {
-  return (
-    <div className="App">
+	const [renderer] = useState(new Renderer())
+	const [gameInstance] = useState(new GameInstance())
+	const [width, setWidth] = useState(window.innerWidth)
+	const [height, setHeight] = useState(window.innerHeight)
 
-    </div>
-  );
+	useEffect(() => {
+		gameInstance.startGame()
+		return () => gameInstance.stopGame()
+	}, [gameInstance])
+
+	useEffect(() => {
+		renderer.setGameInstance(gameInstance)
+		renderer.setSize(width, height)
+	}, [renderer, width, height, gameInstance])
+
+	useEffect(() => {
+		const resizeCallback = () => {
+			const w = window.innerWidth | 0
+			const h = window.innerHeight | 0
+			setWidth(w)
+			setHeight(h)
+			renderer.setSize(w, h)
+		}
+		window.addEventListener('resize', resizeCallback, {passive: true})
+		return () => window.removeEventListener('resize', resizeCallback)
+	}, [setWidth, setHeight, renderer])
+
+	useEffect(() => {
+		const focusCallback = () => renderer.setPageFocused(true)
+		const blurCallback = () => renderer.setPageFocused(false)
+		window.addEventListener('focus', focusCallback, {passive: true})
+		window.addEventListener('blur', blurCallback, {passive: true})
+		return () => {
+			window.removeEventListener('focus', focusCallback)
+			window.removeEventListener('blur', blurCallback)
+		}
+	}, [renderer])
+
+	const canvasRefCallback = useCallback((canvas: HTMLCanvasElement) => {
+		renderer.setCanvas(canvas)
+	}, [renderer])
+
+	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+		gameInstance.dispatchNextTick((world) => {
+			const entity = world.spawnEntity(SimpleCircle)
+			entity.x = ev.clientX
+			entity.y = ev.clientY
+		})
+	}, [gameInstance])
+
+	return (
+		<div className="App">
+			<canvas ref={canvasRefCallback}
+			        onClick={onClicked}
+			        width={width}
+			        height={height}
+			        style={{width: `${width}px`, height: `${height}px`}}/>
+		</div>
+	)
 }
 
-export default App;
+export default App

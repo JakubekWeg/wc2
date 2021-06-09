@@ -4,3 +4,7 @@
   min-height: 100vh;
   color: white;
 }
+body {
+  margin: 0;
+  overflow: hidden;
+}
