@@ -93,8 +93,8 @@ function App() {
 				const dy = ev.clientY / 32 | 0
 				const {x: sx, y: sy} = spawnedEntity.occupiedTiles[0]
 				const path = findPathDirections(sx, sy, dx, dy, gameInstance.walkableTester)
+				console.log(path, spawnedEntity.occupiedTiles[0], {dx, dy})
 				if (path != null) {
-					console.log(path, spawnedEntity.occupiedTiles[0], {dx, dy})
 					spawnedEntity.pathDirections = path
 				}
 				// spawnedEntity.pathDirections = [
