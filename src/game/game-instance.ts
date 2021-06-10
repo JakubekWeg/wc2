@@ -1,11 +1,12 @@
 import {
-	GraphicCircleComponent,
+	FacingDirection,
+	facingDirectionToVector,
 	SpriteDrawableComponent,
 	TickComponent,
 	TilesIncumbent,
 	WalkableComponent,
 } from '../ecs/components'
-import { ArcherEntity, Entity, Farm, SimpleCircle } from '../ecs/entity-types'
+import { ArcherEntity, Entity, Farm } from '../ecs/entity-types'
 import TileSystem from '../ecs/tiles-system'
 import World, { createSimpleListIndex } from '../ecs/world'
 import GameSettings from './game-settings'
@@ -14,7 +15,6 @@ export class GameInstance {
 	public readonly tiles = new TileSystem(this.settings)
 	private executeNextTickList: ((world: World) => void)[] = []
 	private readonly ecs = new World()
-	public readonly graphicEntitiesGetter = createSimpleListIndex<GraphicCircleComponent>(this.ecs, ['GraphicComponent'])
 	public readonly spriteEntities = createSimpleListIndex<SpriteDrawableComponent>(this.ecs, ['SpriteDrawableComponent'])
 	public readonly tickUpdateEntities = createSimpleListIndex<TickComponent>(this.ecs, ['TickComponent'])
 	public readonly walkingEntities = createSimpleListIndex<WalkableComponent & TilesIncumbent & SpriteDrawableComponent>(this.ecs, ['SpriteDrawableComponent', 'WalkableComponent', 'TilesIncumbent'])
@@ -42,7 +42,6 @@ export class GameInstance {
 			},
 		})
 
-		this.ecs.registerEntityType(SimpleCircle)
 		this.ecs.registerEntityType(ArcherEntity)
 		this.ecs.registerEntityType(Farm)
 		this.ecs.lockTypes()
@@ -63,6 +62,8 @@ export class GameInstance {
 		}))
 	}
 
+	public readonly walkableTester = (x: number, y: number) => this.tiles.isTileWalkableNoThrow(x, y)
+
 	tick(): void {
 		try {
 			const world = this.ecs
@@ -73,19 +74,47 @@ export class GameInstance {
 				}
 				this.executeNextTickList.length = 0
 
+				const moveEntitySpriteForward = (sprite: SpriteDrawableComponent & WalkableComponent, direction: FacingDirection) => {
+					if (++sprite.currentAnimationFrame >= sprite.walkingAnimationFrames.length)
+						sprite.currentAnimationFrame = 0
+					sprite.sourceDrawY = sprite.walkingAnimationFrames[sprite.currentAnimationFrame]
+					const step = 4
+					const [x, y] = facingDirectionToVector(direction)
+					sprite.destinationDrawX += x * step
+					sprite.destinationDrawY += y * step
+				}
 				for (const entity of this.walkingEntities()) {
-					entity.walkProgress++
-					entity.destinationDrawY += 4
-					if (entity.walkProgress === 8) {
-						for (const tile of entity.occupiedTiles) {
-							const {x, y} = tile
-							this.tiles.updateRegistrySafe(x, y + 1, entity)
-							this.tiles.updateRegistrySafe(x, y, undefined)
-							tile.y++
-						}
+					if (entity.walkProgress === 0) {
+						// consider start walking
+						const first: FacingDirection | undefined = entity.pathDirections.shift()
+						if (first !== undefined) {
+							entity.walkDirection = first
+							entity.sourceDrawX = first * 72
+							if (entity.occupiedTiles.length !== 1)
+								throw new Error('Unable to move entity that occupies not one tile')
 
-						console.log(0)
-						entity.walkProgress = 0
+							const tile = entity.occupiedTiles[0]
+							const {x, y} = tile
+							const [ox, oy] = facingDirectionToVector(first)
+							this.tiles.updateRegistrySafe(x + ox, y + oy, entity)
+							this.tiles.updateRegistrySafe(x, y, undefined)
+
+							tile.x = x + ox
+							tile.y = y + oy
+							entity.walkProgress = 1
+							moveEntitySpriteForward(entity, first)
+						} else {
+							if (++entity.currentAnimationFrame >= entity.standingAnimationFrames.length)
+								entity.currentAnimationFrame = 0
+							entity.sourceDrawY = entity.standingAnimationFrames[entity.currentAnimationFrame]
+						}
+					} else {
+						// walk in progress
+						moveEntitySpriteForward(entity, entity.walkDirection)
+						if (++entity.walkProgress === 8) {
+							// finish walking
+							entity.walkProgress = 0
+						}
 					}
 				}
 
@@ -108,7 +137,7 @@ export class GameInstance {
 	startGame() {
 		if (this.isRunning) throw new Error('Game is already running')
 		this.isRunning = true
-		this.lastIntervalId = setInterval(() => this.tick(), 100) as any
+		this.lastIntervalId = setInterval(() => this.tick(), 70) as any
 	}
 
 	stopGame() {

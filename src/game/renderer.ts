@@ -2,18 +2,24 @@
 
 // const log = createLogger('Renderer')
 
+import { facingDirectionToVector } from '../ecs/components'
 import { GameInstance } from './game-instance'
 import GameSettings from './game-settings'
 import { registry } from './resources-manager'
 
+export interface DebugOptions {
+	showTilesOccupation?: boolean
+	showPaths?: boolean
+}
+
 export class Renderer {
+	private debugOptions: DebugOptions = {}
 	private enabled: boolean = false
 	private game?: GameInstance
 	private canvas?: HTMLCanvasElement
 	private context?: CanvasRenderingContext2D
 	private width: number = 0
 	private height: number = 0
-	private lastFrameMillis = 0
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
@@ -28,6 +34,10 @@ export class Renderer {
 
 	public setGameInstance(game?: GameInstance) {
 		this.game = game
+	}
+
+	public updateDebugOptions(options: DebugOptions) {
+		this.debugOptions = {...this.debugOptions, ...options}
 	}
 
 	// public setCanvas(canvas?: HTMLCanvasElement) {
@@ -74,21 +84,9 @@ export class Renderer {
 					}
 				}
 
-				// context.drawImage(registry[2], 32 * 2, 32 * 2)
+				// context.drawImage(registry[0], 32 * 6, 32 * 6)
 
-				for (const entity of game.graphicEntitiesGetter()) {
-					context.fillStyle = entity.color
-					context.beginPath()
-					context.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2)
-					context.closePath()
-					context.fill()
-				}
-
-				const now = Date.now()
-				const delta = now - this.lastFrameMillis
-				this.lastFrameMillis = now
 				for (const entity of game.spriteEntities()) {
-					entity.updateBeforeRender(now)
 					const size = entity.spriteSize
 					context.drawImage(registry[entity.imageIndex],
 						entity.sourceDrawX,
@@ -98,18 +96,39 @@ export class Renderer {
 						entity.destinationDrawY,
 						size, size)
 				}
-				context.resetTransform()
 
-				const tileSizeInPixels = this.settings.tileSizeInPixels
-				for (let i = 0; i < this.settings.mapWidth; i++) {
-					for (let j = 0; j < this.settings.mapHeight; j++) {
-						const walkable = game.tiles.isTileWalkable(i, j)
-						context.fillStyle = walkable ? '#00FF0077' : '#FF000077'
-						context.fillRect(
-							(i + 0.3) * tileSizeInPixels,
-							(j + 0.3) * tileSizeInPixels,
-							tileSizeInPixels * 0.4,
-							tileSizeInPixels * 0.4)
+				if (this.debugOptions.showTilesOccupation) {
+					const tileSizeInPixels = 32
+					for (let i = 0; i < this.settings.mapWidth; i++) {
+						for (let j = 0; j < this.settings.mapHeight; j++) {
+							const walkable = game.tiles.isTileWalkableNoThrow(i, j)
+							context.fillStyle = walkable ? '#00FF0077' : '#FF000077'
+							context.fillRect(
+								(i + 0.3) * tileSizeInPixels,
+								(j + 0.3) * tileSizeInPixels,
+								tileSizeInPixels * 0.4,
+								tileSizeInPixels * 0.4)
+						}
+					}
+				}
+
+				if (this.debugOptions.showPaths) {
+					for (const entity of game.walkingEntities()) {
+						if (entity.pathDirections.length > 0) {
+							context.beginPath()
+							context.lineWidth = 2
+							let lastX = entity.occupiedTiles[0].x * 32 + 16
+							let lastY = entity.occupiedTiles[0].y * 32 + 16
+							context.moveTo(lastX, lastY)
+							for (const dir of entity.pathDirections) {
+								const [ox, oy] = facingDirectionToVector(dir)
+								lastX += ox * 32
+								lastY += oy * 32
+								context.lineTo(lastX, lastY)
+							}
+							context.stroke()
+							context.closePath()
+						}
 					}
 				}
 			}

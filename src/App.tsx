@@ -1,15 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
+import { TilesIncumbent, WalkableComponent } from './ecs/components'
 import { ArcherEntity } from './ecs/entity-types'
 import { GameInstance } from './game/game-instance'
 import GameSettings from './game/game-settings'
-import { Renderer } from './game/renderer'
+import { findPathDirections } from './game/path-finder'
+import { DebugOptions, Renderer } from './game/renderer'
 
-const settings = {
+const settings: GameSettings = {
 	mapWidth: 40,
 	mapHeight: 20,
-	tileSizeInPixels: 32
-} as GameSettings
+}
+
+const debugOptions: DebugOptions = {
+	showTilesOccupation: true,
+	showPaths: true,
+}
 
 function App() {
 	const [renderer] = useState(new Renderer(settings))
@@ -23,6 +29,7 @@ function App() {
 	}, [gameInstance])
 
 	useEffect(() => {
+		renderer.updateDebugOptions(debugOptions)
 		renderer.setGameInstance(gameInstance)
 		renderer.setSize(width, height)
 	}, [renderer, width, height, gameInstance])
@@ -42,11 +49,24 @@ function App() {
 	useEffect(() => {
 		const focusCallback = () => renderer.setPageFocused(true)
 		const blurCallback = () => renderer.setPageFocused(false)
+		const keyPressCallback = (ev: KeyboardEvent) => {
+			switch (ev.code) {
+				case 'Digit1':
+					debugOptions.showTilesOccupation = !debugOptions.showTilesOccupation
+					break
+				case 'Digit2':
+					debugOptions.showPaths = !debugOptions.showPaths
+					break
+			}
+			renderer.updateDebugOptions(debugOptions)
+		}
 		window.addEventListener('focus', focusCallback, {passive: true})
 		window.addEventListener('blur', blurCallback, {passive: true})
+		window.addEventListener('keypress', keyPressCallback, {passive: false})
 		return () => {
 			window.removeEventListener('focus', focusCallback)
 			window.removeEventListener('blur', blurCallback)
+			window.removeEventListener('keypress', keyPressCallback)
 		}
 	}, [renderer])
 
@@ -61,11 +81,27 @@ function App() {
 			// 	entity.scaleX = 1
 			// 	entity.occupiedTiles.push({x: 0, y: 0})
 			// }
-			{
+			const spawnedEntity = world.getSpawnedEntity(5) as any as (WalkableComponent & TilesIncumbent)
+			if (spawnedEntity == null) {
 				const entity = world.spawnEntity(ArcherEntity)
 				entity.destinationDrawX = -18
 				entity.destinationDrawY = -18
 				entity.occupiedTiles.push({x: 0, y: 0})
+			} else {
+
+				const dx = ev.clientX / 32 | 0
+				const dy = ev.clientY / 32 | 0
+				const {x: sx, y: sy} = spawnedEntity.occupiedTiles[0]
+				const path = findPathDirections(sx, sy, dx, dy, gameInstance.walkableTester)
+				if (path != null) {
+					console.log(path, spawnedEntity.occupiedTiles[0], {dx, dy})
+					spawnedEntity.pathDirections = path
+				}
+				// spawnedEntity.pathDirections = [
+				// 	FacingDirection.South,
+				// 	FacingDirection.SouthEast,
+				// 	FacingDirection.NorthEast,
+				// ]
 			}
 			// const entity = world.spawnEntity(SimpleCircle)
 			// entity.x = ev.clientX

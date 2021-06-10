@@ -1,3 +1,4 @@
+import { FacingDirection } from '../ecs/components'
 import SortedList from './sorted-list'
 
 /**
@@ -29,6 +30,7 @@ interface Node extends Position {
 	 */
 	costF: number
 	parent?: Node
+	directionToGetFromParent?: FacingDirection
 }
 
 /**
@@ -117,4 +119,89 @@ export const findPath = (sx: number, sy: number,
 }
 
 
-export default findPath
+/**
+ * Finds the shortest path between two points, doesn't include cross tile moves for example from [0,0]->[1,1]
+ * Returns list of directions or null if failed to find a path
+ * @param sx x coordinate of start
+ * @param sy y coordinate of start
+ * @param dx x coordinate of destination
+ * @param dy y coordinate of destination
+ * @param tester callback which will be executed to check if tile is walkable or not
+ * @returns list of directions between points start and destination, returns null if failed to determine path
+ */
+export const findPathDirections = (sx: number, sy: number,
+                                   dx: number, dy: number,
+                                   tester: WalkableTester): FacingDirection[] | null => {
+
+	const calculateCost = (x1: number, y1: number,
+	                       x2: number, y2: number) => (Math.abs(x1 - x2) + Math.abs(y1 - y2)) * 10
+
+	const calculateCostG = (x: number, y: number) => calculateCost(x, y, sx, sy)
+	const calculateCostH = (x: number, y: number) => calculateCost(x, y, dx, dy)
+
+	const createNode = (x: number, y: number, dir?: FacingDirection): Node => {
+		const costG = calculateCostG(x, y)
+		const costH = calculateCostH(x, y)
+		return {
+			x, y, costH, costG,
+			costF: costG + costH,
+			directionToGetFromParent: dir,
+		}
+	}
+
+
+	const fCostComparator = (o1: Node, o2: Node) => o1.costF < o2.costF
+
+	const openNodes: SortedList<Node> = new SortedList<Node>(fCostComparator)
+	const closedNodes: SortedList<Node> = new SortedList<Node>(fCostComparator)
+
+
+	const executeWithWalkableNeighboursNotInClosed = (x: number, y: number, callback: (n: Node) => void) => {
+		x--
+		if (tester(x, y) && !closedNodes.has(n => x === n.x && y === n.y))
+			callback(createNode(x, y, FacingDirection.West))
+		x++
+		y--
+		if (tester(x, y) && !closedNodes.has(n => x === n.x && y === n.y))
+			callback(createNode(x, y,FacingDirection.North))
+		x++
+		y++
+		if (tester(x, y) && !closedNodes.has(n => x === n.x && y === n.y))
+			callback(createNode(x, y,FacingDirection.East))
+		x--
+		y++
+		if (tester(x, y) && !closedNodes.has(n => x === n.x && y === n.y))
+			callback(createNode(x, y,FacingDirection.South))
+	}
+
+	openNodes.add(createNode(sx, sy))
+
+	while (true) {
+		const current = openNodes.getAndRemoveFirst()
+		if (!current) {
+			// unable to find path :/
+			return null
+		}
+		closedNodes.add(current)
+
+		if (current.x === dx && current.y === dy) {
+			// found path!
+			const stack: FacingDirection[] = []
+			let tmp: Node | undefined = current
+			while (tmp != null) {
+				stack.unshift(tmp.directionToGetFromParent!)
+				tmp = tmp.parent
+			}
+			stack.shift()
+			return stack
+		}
+
+		executeWithWalkableNeighboursNotInClosed(current.x, current.y, (neighbour) => {
+			if (!openNodes.has(e => e.x === neighbour.x && e.y === neighbour.y)) {
+				neighbour.parent = current
+				openNodes.add(neighbour)
+			}
+		})
+
+	}
+}

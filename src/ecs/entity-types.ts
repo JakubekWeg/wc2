@@ -1,6 +1,6 @@
 import {
 	ComponentNameType,
-	GraphicCircleComponent,
+	FacingDirection,
 	SpriteDrawableComponent,
 	TickComponent,
 	TilePosition,
@@ -13,30 +13,10 @@ export class Entity {
 	public readonly id: number = 0
 }
 
-export class SimpleCircle
-	extends Entity
-	implements GraphicCircleComponent {
-
-	static components = new Set<ComponentNameType>(['GraphicComponent'])
-	color: string = 'red'
-	x: number = 0
-	y: number = 0
-	size: number = 50
-}
-
-const archerFrames: number [] = [
-	0,
-	72,
-	2 * 72,
-	0,
-	3 * 72,
-	4 * 72,
-]
-
-
 export class ArcherEntity
 	extends Entity
-	implements TilesIncumbent, SpriteDrawableComponent, TickComponent, WalkableComponent {
+	implements TilesIncumbent, SpriteDrawableComponent,
+		TickComponent, WalkableComponent {
 	static components = new Set<ComponentNameType>(['SpriteDrawableComponent', 'TilesIncumbent', 'TickComponent', 'WalkableComponent'])
 
 	occupiedTilesSize = 1
@@ -44,27 +24,32 @@ export class ArcherEntity
 	imageIndex = 0
 	destinationDrawX = 0
 	destinationDrawY = 0
-	sourceDrawX = 72 * 7
 	spriteSize = 72
 	sourceDrawY = 0
-	walkProgress: number = 0
+	walkProgress = 0
+	sourceDrawX = 72 * FacingDirection.North
+	walkDirection = FacingDirection.North
+	currentWalkDestination = undefined
+	pathDirections: FacingDirection[] = []
 
-	private currentFrame: number = 0
-	private changeFrameIn: number = 0
-
-	updateBeforeRender(now: number) {
-	}
+	walkingAnimationFrames = [
+		0,
+		72,
+		72,
+		2 * 72,
+		2 * 72,
+		0,
+		4 * 72,
+		4 * 72,
+		3 * 72,
+		3 * 72,
+		4 * 72,
+		4 * 72,
+	]
+	standingAnimationFrames = [0]
+	currentAnimationFrame = 0
 
 	update(tick: number) {
-		if (this.changeFrameIn === 0) {
-			if (this.currentFrame === 5)
-				this.currentFrame = 0
-			else
-				this.currentFrame += 1
-			this.sourceDrawY = archerFrames[this.currentFrame]
-			this.changeFrameIn = 2
-		}
-		this.changeFrameIn--
 	}
 }
 
@@ -79,7 +64,4 @@ export class Farm extends Entity
 	sourceDrawX = 0
 	sourceDrawY = 0
 	spriteSize = 64
-
-	updateBeforeRender(delta: number): void {
-	}
 }

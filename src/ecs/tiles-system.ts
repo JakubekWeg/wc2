@@ -35,8 +35,10 @@ export default class TileSystem {
 		return this.tiles[y * this.sizeY + x]
 	}
 
-	public isTileWalkable(x: number, y: number): boolean {
-		return !this.get(x, y).occupiedBy
+	public isTileWalkableNoThrow(x: number, y: number): boolean {
+		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+			return false
+		return !this.tiles[y * this.sizeY + x].occupiedBy
 	}
 
 	public updateRegistrySafe(x: number,
