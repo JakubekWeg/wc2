@@ -1,11 +1,23 @@
 import { ComponentNameType } from './components'
 import { Entity } from './entity-types'
 
+/**
+ * Index base class, interface for receiving entity creation and deletion events
+ */
 export interface Index<T extends Entity = Entity> {
+	/**
+	 * List of components that this index should be notified when entity with all of those components is created
+	 */
 	readonly components: ComponentNameType[]
 
+	/**
+	 * Called after entity creation
+	 */
 	entityAdded(entity: T): void
 
+	/**
+	 * Called after entity deletion
+	 */
 	entityRemoved(entity: T): void
 }
 
@@ -23,6 +35,9 @@ interface EntityType {
 	triggers: Index[]
 }
 
+/**
+ * Entities container
+ */
 export class World {
 	private currentTick: number = 0
 	private nextEntityId: number = 1
@@ -36,6 +51,11 @@ export class World {
 	private prototypesLocked: boolean = false
 	private executingTick: boolean = false
 
+	/**
+	 * Registers new entity prototype that contains components
+	 * This method can only be called before locking prototypes
+	 * @throws Error if world is locked or entity prototype with this name is registered
+	 */
 	registerEntityType<T extends Entity>(instance: new () => T): void {
 		if (this.prototypesLocked) throw new Error('World is locked')
 		const name = instance.name
@@ -49,6 +69,11 @@ export class World {
 		})
 	}
 
+	/**
+	 * Registers new index
+	 * This method can only be called before locking prototypes
+	 * @throws Error if world is locked
+	 */
 	registerIndex<T extends Entity>(index: Index<T>): Index<T> {
 		if (this.prototypesLocked) throw new Error('World is locked')
 		this.allIndexes.push(index)
@@ -71,6 +96,10 @@ export class World {
 		return obj
 	}
 
+	/**
+	 * This method prepares world to be ready for entity creations
+	 * After this method you can no longer invoke registerIndex or registerEntityType
+	 */
 	lockTypes() {
 		if (this.prototypesLocked) throw new Error('World is locked')
 		this.prototypesLocked = true
@@ -92,6 +121,11 @@ export class World {
 		}
 	}
 
+	/**
+	 * Queues entity to be added, this method doesn't call indexes
+	 * This method can only be called after locking prototypes and only during game logic execution
+	 * @throws Error if world is not locked, game is not executing or prototype is not registered
+	 */
 	spawnEntity<T extends Entity>(creator: new () => T): T {
 		if (!this.prototypesLocked) throw new Error('World is not locked')
 		if (!this.executingTick) throw new Error('Game logic is not executing now')
@@ -107,6 +141,11 @@ export class World {
 		return result
 	}
 
+	/**
+	 * Finds an entity using provided id
+	 * This will return undefined if the entity hasn't been published to indexes (at the end of the tick)
+	 * @returns undefined if entity not found or the entity if found
+	 */
 	getSpawnedEntity(id: number): Entity | undefined {
 		return this.allEntities.get(id)
 	}
@@ -119,10 +158,18 @@ export class World {
 				listener.entityModified(entity)
 	}
 
+	/**
+	 * Schedules entity deletion, this method doesn't call indexes
+	 */
 	removeEntity(id: number) {
 		this.entityIdsToRemove.push(id)
 	}
 
+	/**
+	 * Executes next tick in the simulation
+	 * After the function is called the pending entities are added and removed
+	 * When adding or removing entities the indexes are notified, each index may add or remove another entity
+	 */
 	executeTick(func: (currentTick: number) => void) {
 		this.executingTick = true
 		func(this.currentTick++)
@@ -158,18 +205,22 @@ export class World {
 export default World
 
 export const createSimpleListIndex = <T>(world: World,
-                                      components: ComponentNameType[]): (() => IterableIterator<Entity & T>) => {
+                                         components: ComponentNameType[])
+	: (() => IterableIterator<Entity & T>) => {
 	const entities = new Map<number, Entity & T>()
+
 	class SimpleListIndex implements Index {
 		readonly components: ComponentNameType[] = components
 
 		entityAdded(entity: Entity & T): void {
 			entities.set(entity.id, entity)
 		}
+
 		entityRemoved(entity: Entity): void {
 			entities.delete(entity.id)
 		}
 	}
+
 	world.registerIndex(new SimpleListIndex())
 	return () => entities.values()
 }

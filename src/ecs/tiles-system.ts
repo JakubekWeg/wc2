@@ -13,6 +13,10 @@ export class Tile {
 	}
 }
 
+
+/**
+ * Index of tiles data, stores information about entities that occupy certain tiles
+ */
 export default class TileSystem {
 	private readonly sizeX: number
 	private readonly sizeY: number
@@ -29,24 +33,52 @@ export default class TileSystem {
 		}
 	}
 
+	/**
+	 * Returns tile at that position, throws if invalid coords
+	 */
 	public get(x: number, y: number): Tile {
 		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
 			throw new Error(`Invalid tile index x=${x} y=${y}`)
 		return this.tiles[y * this.sizeY + x]
 	}
 
+	/**
+	 * Returns true if tile at this position is walkable
+	 * Returns false if tile is occupied or coords are invalid
+	 */
 	public isTileWalkableNoThrow(x: number, y: number): boolean {
 		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
 			return false
 		return !this.tiles[y * this.sizeY + x].occupiedBy
 	}
 
-	public updateRegistrySafe(x: number,
-	                          y: number,
-	                          occupiedBy?: Entity & TilesIncumbent): void {
+	/**
+	 * Updates occupation field inside index
+	 * Throws if attempt to occupy a field that is being occupied by a different entity
+	 */
+	public updateRegistryThrow(x: number,
+	                           y: number,
+	                           occupiedBy?: Entity & TilesIncumbent): void {
 		const tile = this.get(x, y)
 		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
 			throw new Error(`Attempt to make tile occupied, but there is someone who already occupies it x=${x} y=${y} now=${tile.occupiedBy.id} new=${occupiedBy.id}`)
 		tile.occupiedBy = occupiedBy
+	}
+
+
+	/**
+	 * Updates occupation field inside index
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity
+	 * Returns true if field was updated successfully
+	 * Never throws
+	 */
+	public updateRegistryCheck(x: number,
+	                           y: number,
+	                           occupiedBy?: Entity & TilesIncumbent): boolean {
+		const tile = this.get(x, y)
+		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
+			return false
+		tile.occupiedBy = occupiedBy
+		return true
 	}
 }

@@ -6,9 +6,12 @@ export interface TilePosition {
 	y: number
 }
 
+/**
+ * Component for entities that occupy tiles
+ */
 export interface TilesIncumbent {
 	occupiedTiles: TilePosition[]
-	occupiedTilesSize: number
+	readonly occupiedTilesSize: number
 }
 
 export enum FacingDirection {
@@ -63,16 +66,22 @@ export const facingDirectionToVector = (dir: FacingDirection): [number, number] 
 	return tmpDirectionVector
 }
 
+/**
+ * Component for entities that may change its position and may change their occupation tile
+ * Works only for entities with occupiedTilesSize = 1
+ */
 export interface WalkableComponent {
 	walkProgress: number
 	walkDirection: FacingDirection
-	currentWalkDestination?: TilePosition
 	pathDirections: FacingDirection[]
 	walkingAnimationFrames: number[]
 	standingAnimationFrames: number[]
 	currentAnimationFrame: number
 }
 
+/**
+ * Component for entities that can be drawn on the screen
+ */
 export interface SpriteDrawableComponent {
 	sourceDrawX: number
 	sourceDrawY: number

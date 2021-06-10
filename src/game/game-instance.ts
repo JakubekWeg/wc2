@@ -31,12 +31,12 @@ export class GameInstance {
 			listensForChangesInComponent: 'TilesIncumbent',
 			entityAdded(entity: Entity & TilesIncumbent) {
 				for (const {x, y} of entity.occupiedTiles)
-					tiles.updateRegistrySafe(x, y, entity)
+					tiles.updateRegistryThrow(x, y, entity)
 
 			},
 			entityRemoved(entity: Entity & TilesIncumbent) {
 				for (const {x, y} of entity.occupiedTiles)
-					tiles.updateRegistrySafe(x, y, undefined)
+					tiles.updateRegistryThrow(x, y, undefined)
 			},
 			entityModified(entity: Entity & TilesIncumbent) {
 			},
@@ -96,13 +96,20 @@ export class GameInstance {
 							const tile = entity.occupiedTiles[0]
 							const {x, y} = tile
 							const [ox, oy] = facingDirectionToVector(first)
-							this.tiles.updateRegistrySafe(x + ox, y + oy, entity)
-							this.tiles.updateRegistrySafe(x, y, undefined)
 
-							tile.x = x + ox
-							tile.y = y + oy
-							entity.walkProgress = 1
-							moveEntitySpriteForward(entity, first)
+							// check if can reserve next tile
+							if (this.tiles.updateRegistryCheck(x + ox, y + oy, entity)) {
+								// if ok then start walking animation
+								this.tiles.updateRegistryThrow(x, y, undefined)
+
+								tile.x = x + ox
+								tile.y = y + oy
+								entity.walkProgress = 1
+								moveEntitySpriteForward(entity, first)
+							} else {
+								// tile is now occupied by someone else
+								entity.pathDirections.length = 0
+							}
 						} else {
 							if (++entity.currentAnimationFrame >= entity.standingAnimationFrames.length)
 								entity.currentAnimationFrame = 0

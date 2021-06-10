@@ -19,7 +19,7 @@ export class ArcherEntity
 		TickComponent, WalkableComponent {
 	static components = new Set<ComponentNameType>(['SpriteDrawableComponent', 'TilesIncumbent', 'TickComponent', 'WalkableComponent'])
 
-	occupiedTilesSize = 1
+	readonly occupiedTilesSize = 1
 	occupiedTiles: TilePosition[] = []
 	imageIndex = 0
 	destinationDrawX = 0
@@ -56,7 +56,7 @@ export class ArcherEntity
 export class Farm extends Entity
 	implements TilesIncumbent, SpriteDrawableComponent {
 	static components = new Set<ComponentNameType>(['SpriteDrawableComponent', 'TilesIncumbent'])
-	occupiedTilesSize = 2
+	readonly occupiedTilesSize = 2
 	occupiedTiles: TilePosition[] = []
 	imageIndex = 2
 	destinationDrawX = 0
