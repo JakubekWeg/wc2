@@ -1,68 +1,112 @@
 import {
-	FacingDirection,
-	facingDirectionToVector,
+	AnimatedSpriteDrawableComponent,
+	MovableSpriteDrawableComponent,
 	SpriteDrawableComponent,
-	TickComponent,
 	TilesIncumbent,
 	WalkableComponent,
 } from '../ecs/components'
-import { ArcherEntity, Entity, Farm } from '../ecs/entity-types'
+import { Entity, Farm, TrollAxeThrower } from '../ecs/entity-types'
 import TileSystem from '../ecs/tiles-system'
 import World, { createSimpleListIndex } from '../ecs/world'
+import { ChunkIndexer } from './chunk-indexer'
 import GameSettings from './game-settings'
+import { initSystemsForInstance } from './systems'
+
+const TICKS_PER_SECOND = 5
+export const MILLIS_BETWEEN_TICKS = 1000 / TICKS_PER_SECOND
+
+export interface System {
+	onTick(tick: number): void
+}
 
 export class GameInstance {
 	public readonly tiles = new TileSystem(this.settings)
+	public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	private executeNextTickList: ((world: World) => void)[] = []
 	private readonly ecs = new World()
 	public readonly spriteEntities = createSimpleListIndex<SpriteDrawableComponent>(this.ecs, ['SpriteDrawableComponent'])
-	public readonly tickUpdateEntities = createSimpleListIndex<TickComponent>(this.ecs, ['TickComponent'])
-	public readonly walkingEntities = createSimpleListIndex<WalkableComponent & TilesIncumbent & SpriteDrawableComponent>(this.ecs, ['SpriteDrawableComponent', 'WalkableComponent', 'TilesIncumbent'])
+	public readonly walkingEntities = createSimpleListIndex<WalkableComponent & TilesIncumbent & MovableSpriteDrawableComponent & AnimatedSpriteDrawableComponent>(this.ecs,
+		['MovableSpriteDrawableComponent', 'WalkableComponent', 'TilesIncumbent', 'AnimatedSpriteDrawableComponent'])
+	public readonly dynamicSpriteEntities = createSimpleListIndex<MovableSpriteDrawableComponent>(this.ecs, ['MovableSpriteDrawableComponent'])
+	public readonly animatedEntities = createSimpleListIndex<AnimatedSpriteDrawableComponent>(this.ecs, ['AnimatedSpriteDrawableComponent'])
+
+	private readonly allSystems: System[] = []
+
 	private isRunning: boolean = false
 	private lastIntervalId: number = -1
 
-	constructor(private readonly settings: GameSettings) {
+	constructor(public readonly settings: GameSettings) {
 		// @ts-ignore
 		window.game = this
 
 		const tiles = this.tiles
-		this.ecs.registerIndexAndListener({
+		this.ecs.registerIndexAndListener(this.chunkEntityIndex)
+		this.ecs.registerIndex({
 			components: ['TilesIncumbent'],
-			listensForChangesInComponent: 'TilesIncumbent',
 			entityAdded(entity: Entity & TilesIncumbent) {
-				for (const {x, y} of entity.occupiedTiles)
-					tiles.updateRegistryThrow(x, y, entity)
-
+				for (let left = entity.occupiedTilesWest,
+					     size = entity.occupiedTilesSize,
+					     right = left + size;
+				     left < right; left++) {
+					for (let top = entity.occupiedTilesNorth,
+						     bottom = top + size;
+					     top < bottom; top++) {
+						tiles.updateRegistryThrow(left, top, entity)
+					}
+				}
 			},
 			entityRemoved(entity: Entity & TilesIncumbent) {
-				for (const {x, y} of entity.occupiedTiles)
-					tiles.updateRegistryThrow(x, y, undefined)
-			},
-			entityModified(entity: Entity & TilesIncumbent) {
-			},
+				for (let left = entity.occupiedTilesWest,
+					     size = entity.occupiedTilesSize,
+					     right = left + size;
+				     left < right; left++) {
+					for (let top = entity.occupiedTilesNorth,
+						     bottom = top + size;
+					     top < bottom; top++) {
+						tiles.updateRegistryThrow(left, top, undefined)
+					}
+				}
+			}
 		})
 
-		this.ecs.registerEntityType(ArcherEntity)
 		this.ecs.registerEntityType(Farm)
+		this.ecs.registerEntityType(TrollAxeThrower)
 		this.ecs.lockTypes()
+		initSystemsForInstance(this, this.ecs)
 
 		this.dispatchNextTick((world => {
 			const createFarm = (left: number, top: number) => {
 				const farm = world.spawnEntity(Farm)
 				farm.destinationDrawX = 32 * left
 				farm.destinationDrawY = 32 * top
-				for (let i = 0; i < farm.occupiedTilesSize; i++)
-					for (let j = 0; j < farm.occupiedTilesSize; j++)
-						farm.occupiedTiles.push({x: left + j, y: top + i})
+				farm.occupiedTilesWest = left
+				farm.occupiedTilesNorth = top
+
 			}
-			createFarm(2, 2)
-			createFarm(4, 2)
-			createFarm(3, 4)
-			createFarm(8, 3)
+			// createFarm(2, 2)
+			// createFarm(4, 2)
+			// createFarm(3, 4)
+			// createFarm(8, 3)
+			const spawnUnit = (left: number, top: number) => {
+				const entity = world.spawnEntity(TrollAxeThrower)
+				entity.destinationDrawX = left * 32 - 18
+				entity.destinationDrawY = top * 32 - 18
+				entity.occupiedTilesWest = left
+				entity.occupiedTilesNorth = top
+			}
+			// spawnUnit(0, 0)
+			// spawnUnit(5, 5)
+			// spawnUnit(6, 7)
+			spawnUnit(5,5)
+			spawnUnit(6,5)
 		}))
 	}
 
 	public readonly walkableTester = (x: number, y: number) => this.tiles.isTileWalkableNoThrow(x, y)
+
+	addSystem(s: System): void {
+		this.allSystems.push(s)
+	}
 
 	tick(): void {
 		try {
@@ -74,62 +118,9 @@ export class GameInstance {
 				}
 				this.executeNextTickList.length = 0
 
-				const moveEntitySpriteForward = (sprite: SpriteDrawableComponent & WalkableComponent, direction: FacingDirection) => {
-					if (++sprite.currentAnimationFrame >= sprite.walkingAnimationFrames.length)
-						sprite.currentAnimationFrame = 0
-					sprite.sourceDrawY = sprite.walkingAnimationFrames[sprite.currentAnimationFrame]
-					const step = 4
-					const [x, y] = facingDirectionToVector(direction)
-					sprite.destinationDrawX += x * step
-					sprite.destinationDrawY += y * step
+				for (let s of this.allSystems) {
+					s.onTick(tick)
 				}
-				for (const entity of this.walkingEntities()) {
-					if (entity.walkProgress === 0) {
-						// consider start walking
-						const first: FacingDirection | undefined = entity.pathDirections.shift()
-						if (first !== undefined) {
-							entity.walkDirection = first
-							entity.sourceDrawX = first * 72
-							if (entity.occupiedTiles.length !== 1)
-								throw new Error('Unable to move entity that occupies not one tile')
-
-							const tile = entity.occupiedTiles[0]
-							const {x, y} = tile
-							const [ox, oy] = facingDirectionToVector(first)
-
-							// check if can reserve next tile
-							if (this.tiles.updateRegistryCheck(x + ox, y + oy, entity)) {
-								// if ok then start walking animation
-								this.tiles.updateRegistryThrow(x, y, undefined)
-
-								tile.x = x + ox
-								tile.y = y + oy
-								entity.walkProgress = 1
-								moveEntitySpriteForward(entity, first)
-							} else {
-								// tile is now occupied by someone else
-								entity.pathDirections.length = 0
-							}
-						} else {
-							if (++entity.currentAnimationFrame >= entity.standingAnimationFrames.length)
-								entity.currentAnimationFrame = 0
-							entity.sourceDrawY = entity.standingAnimationFrames[entity.currentAnimationFrame]
-						}
-					} else {
-						// walk in progress
-						moveEntitySpriteForward(entity, entity.walkDirection)
-						if (++entity.walkProgress === 8) {
-							// finish walking
-							entity.walkProgress = 0
-						}
-					}
-				}
-
-				for (const entity of this.tickUpdateEntities()) {
-					entity.update(tick)
-				}
-
-
 			})
 		} catch (e) {
 			console.error('Critical error, stopping simulation', e)
@@ -144,7 +135,7 @@ export class GameInstance {
 	startGame() {
 		if (this.isRunning) throw new Error('Game is already running')
 		this.isRunning = true
-		this.lastIntervalId = setInterval(() => this.tick(), 70) as any
+		this.lastIntervalId = setInterval(() => this.tick(), MILLIS_BETWEEN_TICKS) as any
 	}
 
 	stopGame() {

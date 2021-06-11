@@ -62,9 +62,13 @@ export class World {
 		if (this.allEntityTypes.has(name))
 			throw new Error('Entity type ' + name + ' has already been registered')
 
+		const components = (instance as any).components
+		if (!components || Array.isArray(components) || (components as Set<any>).size === 0)
+			throw new Error('Attempt to register type ' + name + ' with no components, didn\'t you forget something?')
+
 		this.allEntityTypes.set(name, {
 			constructor: instance,
-			componentNames: (instance as any).components,
+			componentNames: components,
 			triggers: [],
 		})
 	}

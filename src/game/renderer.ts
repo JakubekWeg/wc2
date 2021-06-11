@@ -2,7 +2,7 @@
 
 // const log = createLogger('Renderer')
 
-import { facingDirectionToVector } from '../ecs/components'
+import { facingDirectionToVector } from '../ecs/facing-direction'
 import { GameInstance } from './game-instance'
 import GameSettings from './game-settings'
 import { registry } from './resources-manager'
@@ -10,6 +10,7 @@ import { registry } from './resources-manager'
 export interface DebugOptions {
 	showTilesOccupation?: boolean
 	showPaths?: boolean
+	showChunkBoundaries?: boolean
 }
 
 export class Renderer {
@@ -20,6 +21,8 @@ export class Renderer {
 	private context?: CanvasRenderingContext2D
 	private width: number = 0
 	private height: number = 0
+	private lastFrameTime: number = Date.now()
+	private lastAnimationTime: number = Date.now()
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
@@ -40,11 +43,6 @@ export class Renderer {
 		this.debugOptions = {...this.debugOptions, ...options}
 	}
 
-	// public setCanvas(canvas?: HTMLCanvasElement) {
-	// 	this.canvas = canvas
-	// 	this.reinitialize()
-	// }
-
 	public setSize(width: number,
 	               height: number) {
 		this.width = width
@@ -59,6 +57,10 @@ export class Renderer {
 	private nextFrame() {
 		if (!this.enabled) return
 		requestAnimationFrame(this.nextFrameBind)
+		const now = Date.now()
+		const delta = now - this.lastFrameTime
+		this.lastFrameTime = now
+
 		if (!this.hasFocus) {
 			const context = this.context
 			if (context != null) {
@@ -70,6 +72,8 @@ export class Renderer {
 		const context = this.context
 		if (context != null) {
 			const game = this.game
+			if (context == null)
+				return
 			if (game == null) {
 				context.fillStyle = 'red'
 				context.fillRect(0, 0, this.width, this.height)
@@ -84,10 +88,32 @@ export class Renderer {
 					}
 				}
 
+				if (now - this.lastAnimationTime > 40) {
+					this.lastAnimationTime = now
+					for (const entity of game.animatedEntities()) {
+						if (++entity.currentFrame === entity.currentFrames.length)
+							entity.currentFrame = 0
+						entity.sourceDrawY = entity.currentFrames[entity.currentFrame]
+					}
+				}
+
 				// context.drawImage(registry[0], 32 * 6, 32 * 6)
 
 				for (const entity of game.spriteEntities()) {
 					const size = entity.spriteSize
+					context.drawImage(registry[entity.imageIndex],
+						entity.sourceDrawX,
+						entity.sourceDrawY,
+						size, size,
+						entity.destinationDrawX | 0,
+						entity.destinationDrawY | 0,
+						size, size)
+				}
+
+				for (const entity of game.dynamicSpriteEntities()) {
+					const size = entity.spriteSize
+					entity.destinationDrawX += entity.spriteVelocityX * delta
+					entity.destinationDrawY += entity.spriteVelocityY * delta
 					context.drawImage(registry[entity.imageIndex],
 						entity.sourceDrawX,
 						entity.sourceDrawY,
@@ -117,8 +143,8 @@ export class Renderer {
 						if (entity.pathDirections.length > 0) {
 							context.beginPath()
 							context.lineWidth = 2
-							let lastX = entity.occupiedTiles[0].x * 32 + 16
-							let lastY = entity.occupiedTiles[0].y * 32 + 16
+							let lastX = entity.occupiedTilesWest * 32 + 16
+							let lastY = entity.occupiedTilesNorth * 32 + 16
 							context.moveTo(lastX, lastY)
 							for (const dir of entity.pathDirections) {
 								const [ox, oy] = facingDirectionToVector(dir)
@@ -128,6 +154,34 @@ export class Renderer {
 							}
 							context.stroke()
 							context.closePath()
+						}
+					}
+				}
+
+				if (this.debugOptions.showChunkBoundaries) {
+					context.lineWidth = 2
+					const {mapWidth, mapHeight, chunkSize} = game.settings
+					const chunksX = Math.ceil(mapWidth / chunkSize)
+					const chunksY = Math.ceil(mapHeight / chunkSize)
+					const margin = 4
+					context.font = '12px Roboto'
+					context.fillStyle = 'black'
+					for (let i = 0; i < chunksX; i++) {
+						for (let j = 0; j < chunksY; j++) {
+							const count = game
+								.chunkEntityIndex
+								.getChunkByChunkCoords(i, j)
+								.getEntitiesCount()
+
+							context.fillText(`${count}`,
+								i * 32 * chunkSize + 2 * margin,
+								j * 32 * chunkSize + 4 * margin)
+
+							context.strokeRect(
+								i * 32 * chunkSize + margin,
+								j * 32 * chunkSize + margin,
+								chunkSize * 32 - margin * 2,
+								chunkSize * 32 - margin * 2)
 						}
 					}
 				}

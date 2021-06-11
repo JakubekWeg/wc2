@@ -28,7 +28,8 @@ const newEntry = (name: string, type: TextureType) => {
 	}
 }
 
-newEntry('troll_axethrower', 'unit')
+newEntry('elven_archer', 'unit')
 newEntry('winter', 'tileset')
 newEntry('pig_farm', 'tileset')
+newEntry('troll_axethrower', 'unit')
 

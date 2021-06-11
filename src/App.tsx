@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import { TilesIncumbent, WalkableComponent } from './ecs/components'
-import { ArcherEntity } from './ecs/entity-types'
 import { GameInstance } from './game/game-instance'
 import GameSettings from './game/game-settings'
 import { findPathDirections } from './game/path-finder'
@@ -10,11 +9,13 @@ import { DebugOptions, Renderer } from './game/renderer'
 const settings: GameSettings = {
 	mapWidth: 40,
 	mapHeight: 20,
+	chunkSize: 4,
 }
 
 const debugOptions: DebugOptions = {
 	showTilesOccupation: true,
-	showPaths: true,
+	showPaths: false,
+	showChunkBoundaries: true
 }
 
 function App() {
@@ -57,6 +58,9 @@ function App() {
 				case 'Digit2':
 					debugOptions.showPaths = !debugOptions.showPaths
 					break
+				case 'Digit3':
+					debugOptions.showChunkBoundaries = !debugOptions.showChunkBoundaries
+					break
 			}
 			renderer.updateDebugOptions(debugOptions)
 		}
@@ -75,25 +79,18 @@ function App() {
 	}, [renderer])
 
 	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+		ev.preventDefault()
 		gameInstance.dispatchNextTick((world) => {
-			// {
-			// 	const entity = world.spawnEntity(ArcherEntity)
-			// 	entity.scaleX = 1
-			// 	entity.occupiedTiles.push({x: 0, y: 0})
-			// }
-			const spawnedEntity = world.getSpawnedEntity(5) as any as (WalkableComponent & TilesIncumbent)
+			const spawnedEntity = world.getSpawnedEntity(ev.button ? 2: 1) as any as (WalkableComponent & TilesIncumbent)
 			if (spawnedEntity == null) {
-				const entity = world.spawnEntity(ArcherEntity)
-				entity.destinationDrawX = -18
-				entity.destinationDrawY = -18
-				entity.occupiedTiles.push({x: 0, y: 0})
+				console.log('entity not exists')
 			} else {
 
 				const dx = ev.clientX / 32 | 0
 				const dy = ev.clientY / 32 | 0
-				const {x: sx, y: sy} = spawnedEntity.occupiedTiles[0]
+				const sx = spawnedEntity.occupiedTilesWest
+				const sy = spawnedEntity.occupiedTilesNorth
 				const path = findPathDirections(sx, sy, dx, dy, gameInstance.walkableTester)
-				console.log(path, spawnedEntity.occupiedTiles[0], {dx, dy})
 				if (path != null) {
 					spawnedEntity.pathDirections = path
 				}
@@ -103,6 +100,32 @@ function App() {
 				// 	FacingDirection.NorthEast,
 				// ]
 			}
+			// const entity = world.spawnEntity(TrollAxeThrower)
+			// entity.destinationDrawX = -18
+			// entity.destinationDrawY = -18
+			// entity.sourceDrawX = FacingDirection.South * 72
+			// entity.spriteVelocityY = 0.02
+			// entity.occupiedTiles.push({x: 0, y: 0})
+			// const spawnedEntity = world.getSpawnedEntity(5) as any as (WalkableComponent & TilesIncumbent)
+			// if (spawnedEntity == null) {
+			// 	const entity = world.spawnEntity(TrollAxeThrower)
+			// 	entity.occupiedTiles.push({x: 0, y: 0})
+			// } else {
+			//
+			// 	const dx = ev.clientX / 32 | 0
+			// 	const dy = ev.clientY / 32 | 0
+			// 	const {x: sx, y: sy} = spawnedEntity.occupiedTiles[0]
+			// 	const path = findPathDirections(sx, sy, dx, dy, gameInstance.walkableTester)
+			// 	console.log(path, spawnedEntity.occupiedTiles[0], {dx, dy})
+			// 	if (path != null) {
+			// 		spawnedEntity.pathDirections = path
+			// 	}
+			// 	// spawnedEntity.pathDirections = [
+			// 	// 	FacingDirection.South,
+			// 	// 	FacingDirection.SouthEast,
+			// 	// 	FacingDirection.NorthEast,
+			// 	// ]
+			// }
 			// const entity = world.spawnEntity(SimpleCircle)
 			// entity.x = ev.clientX
 			// entity.y = ev.clientY
@@ -113,6 +136,7 @@ function App() {
 		<div className="App">
 			<canvas ref={canvasRefCallback}
 			        onClick={onClicked}
+			        onContextMenu={onClicked}
 			        width={width}
 			        height={height}
 			        style={{width: `${width}px`, height: `${height}px`}}/>

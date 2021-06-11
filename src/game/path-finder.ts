@@ -1,4 +1,4 @@
-import { FacingDirection } from '../ecs/components'
+import { FacingDirection } from '../ecs/facing-direction'
 import SortedList from './sorted-list'
 
 /**
