@@ -113,38 +113,47 @@ export class ChunkIndexer implements Index <ChunkIndexableEntity>, ModificationL
 	}
 
 	getNearbyEntities(posX: number, posY: number, size: number): Set<Entity> {
-		const results = new Set<Entity>()
-
-		const westTile = posX - size
-		const northTile = posY - size
-		const eastTile = posX + size + 1
-		const southTile = posY + size + 1
-
-		const chunkSize = this.chunkSize
-		const mostWestChunk = westTile / chunkSize | 0
-		const mostEastChunk = (eastTile / chunkSize | 0) + 1
-		const mostNorthChunk = northTile / chunkSize | 0
-		const mostSouthChunk = (southTile / chunkSize | 0) + 1
+		throw new Error('Not implemented')
+		// const results = new Set<Entity>()
+		//
+		// const westTile = posX - size
+		// const northTile = posY - size
+		// const eastTile = posX + size + 1
+		// const southTile = posY + size + 1
+		//
+		// const chunkSize = this.chunkSize
+		// const mostWestChunk = westTile / chunkSize | 0
+		// const mostEastChunk = (eastTile / chunkSize | 0) + 1
+		// const mostNorthChunk = northTile / chunkSize | 0
+		// const mostSouthChunk = (southTile / chunkSize | 0) + 1
 		// console.log({mostWestChunk, mostEastChunk, mostNorthChunk, mostSouthChunk})
 		// console.log({westTile, eastTile, northTile, southTile})
-
-		for (let x = mostWestChunk; x < mostEastChunk; x++) {
-			for (let y = mostNorthChunk; y < mostSouthChunk; y++) {
-				const key = ChunkIndexer.chunkCoordsToChunkKey(x, y)
-				const chunk = this.chunks.get(key)
-				if (chunk != null)
-					for (const entity of chunk.getAllEntities()) {
-						// console.log(entity.occupiedTilesWest, entity.occupiedTilesWest + entity.occupiedTilesSize, entity.occupiedTilesNorth, entity.occupiedTilesNorth + entity.occupiedTilesSize)
-						if (entity.occupiedTilesWest >= westTile
-							&& entity.occupiedTilesWest + entity.occupiedTilesSize <= eastTile
-							&& entity.occupiedTilesNorth >= northTile
-							&& entity.occupiedTilesNorth + entity.occupiedTilesSize <= southTile) {
-							results.add(entity)
-						}
-					}
-			}
-		}
-		return results
+		//
+		// for (let x = mostWestChunk; x < mostEastChunk; x++) {
+		// 	for (let y = mostNorthChunk; y < mostSouthChunk; y++) {
+		// 		const key = ChunkIndexer.chunkCoordsToChunkKey(x, y)
+		// 		const chunk = this.chunks.get(key)
+		// 		if (chunk != null)
+		// 			for (const entity of chunk.getAllEntities()) {
+		// 				// console.log(entity)
+		// 				// // console.log(entity.occupiedTilesWest, entity.occupiedTilesWest + entity.occupiedTilesSize, entity.occupiedTilesNorth, entity.occupiedTilesNorth + entity.occupiedTilesSize)
+		// 				// // if (entity.occupiedTilesWest >= westTile
+		// 				// // 	&& entity.occupiedTilesWest + entity.occupiedTilesSize <= eastTile
+		// 				// // 	&& entity.occupiedTilesNorth >= northTile
+		// 				// // 	&& entity.occupiedTilesNorth + entity.occupiedTilesSize <= southTile) {
+		// 				// // 	results.add(entity)
+		// 				// // }
+		// 				// const entityMostWest = entity.occupiedTilesWest
+		// 				// const entityMostEast = entity.occupiedTilesWest + entity.occupiedTilesSize
+		// 				// const entityMostNorth = entity.occupiedTilesNorth
+		// 				// const entityMostSouth = entity.occupiedTilesNorth + entity.occupiedTilesSize
+		// 				// if (entityMostEast >= westTile ){
+		// 				// 	results.add(entity)
+		// 				// }
+		// 			}
+		// 	}
+		// }
+		// return results
 	}
 
 	private coordsToChunkKey(x: number, y: number): number {

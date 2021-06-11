@@ -13,9 +13,10 @@ const settings: GameSettings = {
 }
 
 const debugOptions: DebugOptions = {
-	showTilesOccupation: true,
+	showTilesOccupation: false,
 	showPaths: false,
-	showChunkBoundaries: true
+	showChunkBoundaries: false,
+	showTileListenersCount: true
 }
 
 function App() {
@@ -37,8 +38,8 @@ function App() {
 
 	useEffect(() => {
 		const resizeCallback = () => {
-			const w = window.innerWidth | 0
-			const h = window.innerHeight | 0
+			const w = window.innerWidth / 2 | 0
+			const h = window.innerHeight / 2 | 0
 			setWidth(w)
 			setHeight(h)
 			renderer.setSize(w, h)
@@ -61,6 +62,9 @@ function App() {
 				case 'Digit3':
 					debugOptions.showChunkBoundaries = !debugOptions.showChunkBoundaries
 					break
+				case 'Digit4':
+					debugOptions.showTileListenersCount = !debugOptions.showTileListenersCount
+					break
 			}
 			renderer.updateDebugOptions(debugOptions)
 		}
@@ -81,13 +85,13 @@ function App() {
 	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
 		ev.preventDefault()
 		gameInstance.dispatchNextTick((world) => {
-			const spawnedEntity = world.getSpawnedEntity(ev.button ? 2: 1) as any as (WalkableComponent & TilesIncumbent)
+			const spawnedEntity = world.getSpawnedEntity(ev.button ? 2 : 1) as any as (WalkableComponent & TilesIncumbent)
 			if (spawnedEntity == null) {
 				console.log('entity not exists')
 			} else {
 
-				const dx = ev.clientX / 32 | 0
-				const dy = ev.clientY / 32 | 0
+				const dx = ev.clientX / 2 / 32 | 0
+				const dy = ev.clientY / 2  / 32 | 0
 				const sx = spawnedEntity.occupiedTilesWest
 				const sy = spawnedEntity.occupiedTilesNorth
 				const path = findPathDirections(sx, sy, dx, dy, gameInstance.walkableTester)
@@ -139,7 +143,7 @@ function App() {
 			        onContextMenu={onClicked}
 			        width={width}
 			        height={height}
-			        style={{width: `${width}px`, height: `${height}px`}}/>
+			        style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>
 		</div>
 	)
 }

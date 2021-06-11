@@ -1,11 +1,12 @@
 import {
-	AnimatedSpriteDrawableComponent,
-	MovableSpriteDrawableComponent,
+	AnimatedSpriteDrawableComponent, AttackingComponent,
+	MovableSpriteDrawableComponent, ProjectileSource,
 	SpriteDrawableComponent,
+	TileListenerComponent,
 	TilesIncumbent,
 	WalkableComponent,
 } from '../ecs/components'
-import { Entity, Farm, TrollAxeThrower } from '../ecs/entity-types'
+import { ArrowProjectile, Entity, Farm, GuardTower, TrollAxeThrower } from '../ecs/entity-types'
 import TileSystem from '../ecs/tiles-system'
 import World, { createSimpleListIndex } from '../ecs/world'
 import { ChunkIndexer } from './chunk-indexer'
@@ -24,9 +25,10 @@ export class GameInstance {
 	public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	private executeNextTickList: ((world: World) => void)[] = []
 	private readonly ecs = new World()
+	public readonly attackingEntities = createSimpleListIndex<AttackingComponent & ProjectileSource>(this.ecs, ['AttackingComponent'])
 	public readonly spriteEntities = createSimpleListIndex<SpriteDrawableComponent>(this.ecs, ['SpriteDrawableComponent'])
-	public readonly walkingEntities = createSimpleListIndex<WalkableComponent & TilesIncumbent & MovableSpriteDrawableComponent & AnimatedSpriteDrawableComponent>(this.ecs,
-		['MovableSpriteDrawableComponent', 'WalkableComponent', 'TilesIncumbent', 'AnimatedSpriteDrawableComponent'])
+	public readonly walkingEntities = createSimpleListIndex<WalkableComponent & TileListenerComponent & TilesIncumbent & MovableSpriteDrawableComponent & AnimatedSpriteDrawableComponent>(this.ecs,
+		['MovableSpriteDrawableComponent', 'WalkableComponent', 'TilesIncumbent', 'AnimatedSpriteDrawableComponent', 'TileListenerComponent'])
 	public readonly dynamicSpriteEntities = createSimpleListIndex<MovableSpriteDrawableComponent>(this.ecs, ['MovableSpriteDrawableComponent'])
 	public readonly animatedEntities = createSimpleListIndex<AnimatedSpriteDrawableComponent>(this.ecs, ['AnimatedSpriteDrawableComponent'])
 
@@ -66,11 +68,13 @@ export class GameInstance {
 						tiles.updateRegistryThrow(left, top, undefined)
 					}
 				}
-			}
+			},
 		})
 
+		this.ecs.registerEntityType(GuardTower)
 		this.ecs.registerEntityType(Farm)
 		this.ecs.registerEntityType(TrollAxeThrower)
+		this.ecs.registerEntityType(ArrowProjectile)
 		this.ecs.lockTypes()
 		initSystemsForInstance(this, this.ecs)
 
@@ -83,7 +87,17 @@ export class GameInstance {
 				farm.occupiedTilesNorth = top
 
 			}
-			// createFarm(2, 2)
+
+			const createTower = (left: number, top: number) => {
+				const tower = world.spawnEntity(GuardTower)
+				tower.destinationDrawX = 32 * left
+				tower.destinationDrawY = 32 * top
+				tower.occupiedTilesWest = left
+				tower.occupiedTilesNorth = top
+				tower.centerX = tower.destinationDrawX + 32
+				tower.centerY = tower.destinationDrawY + 32
+				this.tiles.addListenersForRect(left - 3, top - 3, 8, tower)
+			}
 			// createFarm(4, 2)
 			// createFarm(3, 4)
 			// createFarm(8, 3)
@@ -93,12 +107,15 @@ export class GameInstance {
 				entity.destinationDrawY = top * 32 - 18
 				entity.occupiedTilesWest = left
 				entity.occupiedTilesNorth = top
+				// this.tiles.addListenersForRect(left - 4, top - 4, 8, entity)
 			}
 			// spawnUnit(0, 0)
 			// spawnUnit(5, 5)
 			// spawnUnit(6, 7)
-			spawnUnit(5,5)
-			spawnUnit(6,5)
+			// spawnUnit(5, 5)
+			spawnUnit(6, 5)
+			// createFarm(2, 2)
+			createTower(6, 3)
 		}))
 	}
 

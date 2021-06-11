@@ -190,6 +190,7 @@ export class World {
 				const id = this.entityIdsToRemove[i]
 				const entity = this.allEntities.get(id)
 				if (entity != null) {
+					entity.removed = true
 					this.allEntities.delete(id)
 					const type = this.allEntityTypes.get(entity.constructor.name)
 					if (type != null) {

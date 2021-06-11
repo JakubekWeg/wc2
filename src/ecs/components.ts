@@ -1,5 +1,7 @@
 import { Chunk } from '../game/chunk-indexer'
+import { Entity } from './entity-types'
 import { FacingDirection } from './facing-direction'
+import { Tile } from './tiles-system'
 
 export type ComponentNameType =
 	'TilesIncumbent'
@@ -9,6 +11,9 @@ export type ComponentNameType =
 	| 'AnimatedSpriteDrawableComponent'
 	| 'ActionHolderComponent'
 	| 'CallableIfNearbyEntityDetectedComponent'
+	| 'TileListenerComponent'
+	| 'AttackingComponent'
+	| 'ProjectileSource'
 
 
 export interface TilePosition {
@@ -95,4 +100,18 @@ export interface CallableIfNearbyEntityDetectedComponent {
 	occupiedTilesWest: number
 	occupiedTilesNorth: number
 	readonly occupiedTilesSize: number
+}
+
+export interface TileListenerComponent {
+	subscribedToTiles: Set<Tile>
+	onListenedTileOccupationChanged: (listener: Entity & TileListenerComponent, tile: Tile, entity?: (Entity & TilesIncumbent)) => void
+}
+
+export interface AttackingComponent {
+	target?: Entity & TilesIncumbent
+}
+
+export interface ProjectileSource {
+	centerX: number
+	centerY: number
 }

@@ -3,6 +3,7 @@
 // const log = createLogger('Renderer')
 
 import { facingDirectionToVector } from '../ecs/facing-direction'
+import { TileImpl } from '../ecs/tiles-system'
 import { GameInstance } from './game-instance'
 import GameSettings from './game-settings'
 import { registry } from './resources-manager'
@@ -11,6 +12,7 @@ export interface DebugOptions {
 	showTilesOccupation?: boolean
 	showPaths?: boolean
 	showChunkBoundaries?: boolean
+	showTileListenersCount?: boolean
 }
 
 export class Renderer {
@@ -59,6 +61,7 @@ export class Renderer {
 		requestAnimationFrame(this.nextFrameBind)
 		const now = Date.now()
 		const delta = now - this.lastFrameTime
+		// if (delta < 50) return
 		this.lastFrameTime = now
 
 		if (!this.hasFocus) {
@@ -72,8 +75,6 @@ export class Renderer {
 		const context = this.context
 		if (context != null) {
 			const game = this.game
-			if (context == null)
-				return
 			if (game == null) {
 				context.fillStyle = 'red'
 				context.fillRect(0, 0, this.width, this.height)
@@ -97,7 +98,7 @@ export class Renderer {
 					}
 				}
 
-				// context.drawImage(registry[0], 32 * 6, 32 * 6)
+				context.drawImage(registry[0], 0, 32 * 6)
 
 				for (const entity of game.spriteEntities()) {
 					const size = entity.spriteSize
@@ -139,6 +140,7 @@ export class Renderer {
 				}
 
 				if (this.debugOptions.showPaths) {
+					context.strokeStyle = '#000000'
 					for (const entity of game.walkingEntities()) {
 						if (entity.pathDirections.length > 0) {
 							context.beginPath()
@@ -185,6 +187,38 @@ export class Renderer {
 						}
 					}
 				}
+
+				if (this.debugOptions.showTileListenersCount) {
+					const {mapWidth, mapHeight} = game.settings
+					for (let i = 0; i < mapWidth; i++) {
+						for (let j = 0; j < mapHeight; j++) {
+							const tile = game.tiles.get(i, j) as TileImpl
+							const count = tile.getListenersCount()
+							if (count > 0) {
+								context.fillStyle = '#0000FF44'
+								context?.fillRect(i * 32, j * 32, 32, 32)
+							}
+							context.fillStyle = 'black'
+							context.fillText(`${count}`,
+								i * 32 + 12,
+								j * 32 + 20)
+							// let any = false
+							// for (const listener of tile.getListeners()) {
+							// 	any = true
+							// 	const sprite = (listener as unknown as SpriteDrawableComponent);
+							// 	if (sprite.spriteSize !== undefined) {
+							// 		context.beginPath()
+							// 		context.lineWidth = 2
+							// 		context.moveTo(i * 32, j * 32)
+							// 		context.lineTo(sprite.destinationDrawX + 36, sprite.destinationDrawY + 36)
+							// 		context.closePath()
+							// 		context.stroke()
+							//
+							// 	}
+							// }
+						}
+					}
+				}
 			}
 		}
 	}
@@ -194,8 +228,10 @@ export class Renderer {
 		this.enabled = !!this.canvas && this.width > 0 && this.height > 0
 		this.context = this.canvas?.getContext('2d', {
 			alpha: false,
-			desynchronized: true,
 		}) ?? undefined
+		if (this.context) {
+			this.context.imageSmoothingEnabled = false
+		}
 
 		if (this.enabled && !wasEnabled) {
 			cancelAnimationFrame(this.animationHandle)

@@ -49,3 +49,12 @@ export const facingDirectionToVector = (dir: FacingDirection): [number, number] 
 	}
 	return tmpDirectionVector
 }
+
+export const facingDirectionFromAngle = (angle: number): FacingDirection => {
+	angle = (angle + Math.PI) / Math.PI / 2 + 0.125 / 2
+	if (angle > 1)
+		angle -= 1
+	angle = Math.abs(8 - angle * 8 | 0)
+	angle = (angle + 4) % 8
+	return angle
+}

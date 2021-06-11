@@ -1,4 +1,5 @@
-import { FacingDirection, facingDirectionToVector } from '../ecs/facing-direction'
+import { ArrowProjectile } from '../ecs/entity-types'
+import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../ecs/facing-direction'
 import World from '../ecs/world'
 import { GameInstance, MILLIS_BETWEEN_TICKS, System } from './game-instance'
 
@@ -13,18 +14,19 @@ const walkingSystem = (game: GameInstance, ecs: World): System => (new class imp
 				if (entity.pathDirections.length === 0) {
 					entity.currentFrame = 0
 					entity.currentFrames = entity.standingAnimationFrames
-					const entities = Array.from(game.chunkEntityIndex
-						.getNearbyEntities(entity.occupiedTilesWest, entity.occupiedTilesNorth, 1))
-						.filter(e => e !== entity)
-					console.log(entities)
+					this.tiles.addListenersForRect(entity.occupiedTilesWest - 1, entity.occupiedTilesNorth - 1, 3, entity)
+					// const entities = Array.from(game.chunkEntityIndex
+					// 	.getNearbyEntities(entity.occupiedTilesWest, entity.occupiedTilesNorth, 2))
+					// 	.filter(e => e !== entity)
+					// console.log(entities)
 				}
 				entity.walkProgress = 0
 				entity.spriteVelocityX = 0
 				entity.spriteVelocityY = 0
 				const x = entity.occupiedTilesWest
 				const y = entity.occupiedTilesNorth
-				entity.destinationDrawX = x * 32 - 18
-				entity.destinationDrawY = y * 32 - 18
+				entity.destinationDrawX = x * 32 - 18 | 0
+				entity.destinationDrawY = y * 32 - 18 | 0
 			}
 
 			if (entity.walkProgress === 0) {
@@ -41,7 +43,9 @@ const walkingSystem = (game: GameInstance, ecs: World): System => (new class imp
 					const [ox, oy] = facingDirectionToVector(first)
 
 					// check if can reserve next tile
+					this.tiles.removeListenerFromAllTiles(entity)
 					if (this.tiles.updateRegistryCheck(x + ox, y + oy, entity)) {
+
 						// if ok then start walking animation
 						this.tiles.updateRegistryThrow(x, y, undefined)
 
@@ -58,6 +62,7 @@ const walkingSystem = (game: GameInstance, ecs: World): System => (new class imp
 						entity.pathDirections.length = 0
 						entity.currentFrame = 0
 						entity.currentFrames = entity.standingAnimationFrames
+						this.tiles.addListenersForRect(entity.occupiedTilesWest, entity.occupiedTilesNorth, 2, entity)
 					}
 				} else {
 					// walking is not requested, stand still
@@ -71,11 +76,31 @@ const walkingSystem = (game: GameInstance, ecs: World): System => (new class imp
 
 export const initSystemsForInstance = (game: GameInstance, ecs: World) => {
 	game.addSystem(walkingSystem(game, ecs))
-	game.addSystem(detectAndReactToNearbyEntitiesSystem(game))
+	game.addSystem(attackSystem(game, ecs))
 }
 
-const detectAndReactToNearbyEntitiesSystem = (game: GameInstance): System => (new class implements System {
+const attackSystem = (game: GameInstance, ecs: World): System => (new class implements System {
 	onTick(tick: number): void {
+		for (const entity of game.attackingEntities()) {
+			if (entity.target != undefined) {
+				if (entity.target.removed)
+					entity.target = undefined
+				else {
+					const x = entity.target.occupiedTilesWest * 32 + 16 - entity.centerX
+					const y = entity.target.occupiedTilesNorth * 32 + 16 - entity.centerY
 
+					const arrow = ecs.spawnEntity(ArrowProjectile)
+					arrow.destinationDrawX = entity.centerX - arrow.spriteSize / 2
+					arrow.destinationDrawY = entity.centerY - arrow.spriteSize / 2
+
+					arrow.spriteVelocityX = x / 100
+					arrow.spriteVelocityY = y / 100
+					const alfa = Math.atan2(x, y)
+					const facingDirection = facingDirectionFromAngle(alfa)
+					arrow.sourceDrawX = facingDirection * arrow.spriteSize
+					// entity.target = undefined
+				}
+			}
+		}
 	}
 })
