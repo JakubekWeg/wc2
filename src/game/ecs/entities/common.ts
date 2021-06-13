@@ -15,6 +15,21 @@ export const standardWalkingAnimationFrames: AnimationFrames = [
 	4 * 72,
 ]
 
+export const standardAttackingAnimationFrames: AnimationFrames = [
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	5 * 72, 5 * 72,
+	5 * 72, 5 * 72,
+	5 * 72, 5 * 72,
+	5 * 72, 5 * 72,
+	6 * 72, 6 * 72,
+]
+
 export const standardStandingAnimationFrames: AnimationFrames = [0, 0]
 
-export const doNothingCallback = () => {}
+export const doNothingCallback = () => {
+}

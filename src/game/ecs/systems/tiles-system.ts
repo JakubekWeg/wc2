@@ -111,11 +111,11 @@ export default class TileSystem {
 	public addListenersForRect(x: number, y: number, w: number, h: number,
 	                           listener: Entity & TileListenerComponent) {
 		if (x < 0) {
-			w -= -x;
+			w -= -x
 			x = 0
 		}
 		if (y < 0) {
-			h -= -y;
+			h -= -y
 			y = 0
 		}
 		const right = Math.min(x + w, this.sizeX)
@@ -125,6 +125,32 @@ export default class TileSystem {
 				this.tiles[j * this.sizeX + i].addListener(listener)
 			}
 		}
+	}
+
+	public addListenersForRectAndGet<T extends Entity & TilesIncumbentComponent>
+	(x: number, y: number, w: number, h: number,
+	 listener: Entity & TileListenerComponent,
+	 filter: (obj: T) => boolean): Set<T> {
+		const entities = new Set<T>()
+		if (x < 0) {
+			w -= -x
+			x = 0
+		}
+		if (y < 0) {
+			h -= -y
+			y = 0
+		}
+		const right = Math.min(x + w, this.sizeX)
+		const bottom = Math.min(y + h, this.sizeY)
+		for (let i = x; i < right; i++) {
+			for (let j = y; j < bottom; j++) {
+				const tile = this.tiles[j * this.sizeX + i]
+				tile.addListener(listener)
+				if (tile.occupiedBy != null && filter(tile.occupiedBy as T))
+					entities.add(tile.occupiedBy as T)
+			}
+		}
+		return entities
 	}
 
 	public removeListenerFromAllTiles(listener: Entity & TileListenerComponent) {

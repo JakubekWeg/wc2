@@ -3,7 +3,7 @@ import { facingDirectionFromAngle } from '../../misc/facing-direction'
 import { registry } from '../../misc/resources-manager'
 import {
 	ComponentNameType,
-	DamageableComponent,
+	DamageableComponent, PossibleAttackTarget,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
 	SelfLifecycleObserverComponent,
@@ -16,7 +16,6 @@ import { Tile } from '../systems/tiles-system'
 import { Entity } from '../world'
 import { ArrowImpl } from './arrow'
 
-export type TowerTarget = Entity & TilesIncumbentComponent & DamageableComponent
 
 export class GuardTowerImpl extends Entity
 	implements PredefinedDrawableComponent, TilesIncumbentComponent, TileListenerComponent, SelfLifecycleObserverComponent, StateMachineHolderComponent, DamageableComponent {
@@ -37,20 +36,20 @@ export class GuardTowerImpl extends Entity
 	hitBoxCenterX: number = 0
 	hitBoxCenterY: number = 0
 
-	public entitiesWithinRange: Set<TowerTarget> = new Set()
-	reloading: number = 0
+	public entitiesWithinRange: Set<PossibleAttackTarget> = new Set()
+	public reloading: number = 0
 
 	onListenedTileOccupationChanged(listener: Entity & TileListenerComponent,
 	                                tile: Tile,
 	                                occupiedByPrevious: (Entity & TilesIncumbentComponent) | undefined,
 	                                occupiedByNow: (Entity & TilesIncumbentComponent) | undefined): void {
 		if (occupiedByPrevious != null)
-			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as TowerTarget)
+			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
 
 		if (occupiedByNow != null) {
-			const teamId = (occupiedByNow as unknown as TowerTarget).myTeamId
+			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myTeamId
 			if (teamId !== undefined && teamId !== this.myTeamId) {
-				this.entitiesWithinRange.add(occupiedByNow as TowerTarget)
+				this.entitiesWithinRange.add(occupiedByNow as PossibleAttackTarget)
 			}
 		}
 	}
@@ -82,7 +81,7 @@ export class GuardTowerImpl extends Entity
 	updateState(ctx: UpdateContext) {
 		if (--this.reloading <= 0) {
 			this.reloading = 5
-			const entity: TowerTarget = this.entitiesWithinRange.values().next().value
+			const entity: PossibleAttackTarget = this.entitiesWithinRange.values().next().value
 			if (entity == null) return
 			// shoot it!
 			const arrow = ctx.world.spawnEntity(ArrowImpl)

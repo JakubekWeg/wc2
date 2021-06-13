@@ -13,6 +13,7 @@ export type ComponentNameType =
 	| 'SelfLifecycleObserverComponent'
 	| 'DelayedHideComponent'
 	| 'DamageableComponent'
+	| 'PlayerCommandTakerComponent'
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 
@@ -95,6 +96,7 @@ export interface TilesIncumbentComponent {
 
 export type TeamId = number
 
+export type PossibleAttackTarget = Entity & TilesIncumbentComponent & DamageableComponent
 /**
  * Component for entities that can accept damage and do belong to a team
  */
@@ -106,8 +108,8 @@ export interface DamageableComponent {
 
 export type TileOccupationChangedCallback = (listener: Entity & TileListenerComponent,
                                              tile: Tile,
-                                             occupiedByFrom: (Entity & TilesIncumbentComponent) | undefined,
-                                             occupiedByTo: (Entity & TilesIncumbentComponent) | undefined) => void
+                                             occupiedByPrevious: (Entity & TilesIncumbentComponent) | undefined,
+                                             occupiedByNow: (Entity & TilesIncumbentComponent) | undefined) => void
 
 /**
  * Component for entities that receive tile updates
@@ -125,4 +127,21 @@ export interface SelfLifecycleObserverComponent {
 	entityCreated(game: GameInstance): void
 
 	entityRemoved(game: GameInstance): void
+}
+
+
+export type PlayerCommandType = 'go'
+export interface PlayerCommand {
+	type: PlayerCommandType
+	targetX: number
+	targetY: number
+}
+
+/**
+ * Component for entities that may be ordered by player to do certain action like go, stop, attack etc
+ */
+export interface PlayerCommandTakerComponent {
+	canAcceptCommands: true,
+
+	accept(command: PlayerCommand, game: GameInstance): void
 }
