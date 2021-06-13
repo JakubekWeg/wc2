@@ -1,12 +1,12 @@
-import { cursorTo } from 'readline'
-import GameSettings from '../game/game-settings'
-import { TileListenerComponent, TilesIncumbent } from './components'
-import { Entity } from './entity-types'
+import { GameInstance } from '../../game-instance'
+import GameSettings from '../../misc/game-settings'
+import { TileListenerComponent, TilesIncumbentComponent } from '../components'
+import World, { Entity } from '../world'
 
 export interface Tile {
 	readonly x: number,
 	readonly y: number,
-	readonly occupiedBy?: Entity & TilesIncumbent
+	readonly occupiedBy?: Entity & TilesIncumbentComponent
 
 	addListener(listener: Entity & TileListenerComponent): void
 
@@ -14,7 +14,7 @@ export interface Tile {
 }
 
 export class TileImpl implements Tile {
-	public occupiedBy?: Entity & TilesIncumbent
+	public occupiedBy?: Entity & TilesIncumbentComponent
 	private listeners = new Set<Entity & TileListenerComponent>()
 
 	constructor(public readonly x: number,
@@ -25,14 +25,16 @@ export class TileImpl implements Tile {
 	getListeners() {
 		return this.listeners.values()
 	}
+
 	getListenersCount() {
 		return this.listeners.size
 	}
 
-	forceSetOccupiedByAndCallListeners(occupiedBy?: Entity & TilesIncumbent) {
+	forceSetOccupiedByAndCallListeners(occupiedBy?: Entity & TilesIncumbentComponent) {
+		const last = this.occupiedBy
 		this.occupiedBy = occupiedBy
 		for (const listener of this.listeners) {
-			listener.onListenedTileOccupationChanged(listener, this, occupiedBy)
+			listener.onListenedTileOccupationChanged(listener, this, last, occupiedBy)
 		}
 	}
 
@@ -56,7 +58,9 @@ export default class TileSystem {
 	private readonly sizeY: number
 	private readonly tiles: TileImpl[] = []
 
-	constructor(private readonly settings: GameSettings) {
+	constructor(private readonly settings: GameSettings,
+	            private readonly game: GameInstance,
+	            private readonly world: World) {
 		this.sizeX = settings.mapWidth
 		this.sizeY = settings.mapHeight
 		this.tiles.length = this.sizeX * this.sizeY
@@ -65,17 +69,57 @@ export default class TileSystem {
 				this.tiles[i * this.sizeX + j] = new TileImpl(j, i)
 			}
 		}
+		game.entityEnteredTileEvent.listen((event) => {
+			for (let i = 0; i < event.entity.tileOccupySize; i++) {
+				for (let j = 0; j < event.entity.tileOccupySize; j++) {
+					this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, event.entity)
+				}
+			}
+		})
+		game.entityLeftTileEvent.listen((event) => {
+			for (let i = 0; i < event.entity.tileOccupySize; i++) {
+				for (let j = 0; j < event.entity.tileOccupySize; j++) {
+					this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, undefined)
+				}
+			}
+		})
+		world.registerIndex({
+			components: ['TilesIncumbentComponent'],
+			entityAdded(entity: Entity & TilesIncumbentComponent) {
+				game.entityEnteredTileEvent.publish({
+					entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
+				})
+			},
+			entityRemoved(entity: Entity & TilesIncumbentComponent) {
+				game.entityEnteredTileEvent.publish({
+					entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
+				})
+			},
+		})
+		const self = this
+		world.registerIndex({
+			components: ['TileListenerComponent'],
+			entityAdded(_: Entity & TileListenerComponent) {
+			},
+			entityRemoved(entity: Entity & TileListenerComponent) {
+				self.removeListenerFromAllTiles(entity)
+			},
+		})
 	}
 
 
-	public addListenersForRect(x: number, y: number, size: number,
-	                            listener: Entity & TileListenerComponent) {
-		if (x < 0)
+	public addListenersForRect(x: number, y: number, w: number, h: number,
+	                           listener: Entity & TileListenerComponent) {
+		if (x < 0) {
+			w -= -x;
 			x = 0
-		if (y < 0)
+		}
+		if (y < 0) {
+			h -= -y;
 			y = 0
-		const right = Math.min(x + size, this.sizeX)
-		const bottom = Math.min(y + size, this.sizeY)
+		}
+		const right = Math.min(x + w, this.sizeX)
+		const bottom = Math.min(y + h, this.sizeY)
 		for (let i = x; i < right; i++) {
 			for (let j = y; j < bottom; j++) {
 				this.tiles[j * this.sizeX + i].addListener(listener)
@@ -114,7 +158,7 @@ export default class TileSystem {
 	 */
 	public updateRegistryThrow(x: number,
 	                           y: number,
-	                           occupiedBy?: Entity & TilesIncumbent): void {
+	                           occupiedBy?: Entity & TilesIncumbentComponent): void {
 		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
 			throw new Error(`Invalid tile index x=${x} y=${y}`)
 		const tile = this.tiles[y * this.sizeX + x]
@@ -132,7 +176,7 @@ export default class TileSystem {
 	 */
 	public updateRegistryCheck(x: number,
 	                           y: number,
-	                           occupiedBy?: Entity & TilesIncumbent): boolean {
+	                           occupiedBy?: Entity & TilesIncumbentComponent): boolean {
 		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
 			throw new Error(`Invalid tile index x=${x} y=${y}`)
 		const tile = this.tiles[y * this.sizeX + x]

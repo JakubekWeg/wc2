@@ -2,11 +2,14 @@
 
 // const log = createLogger('Renderer')
 
-import { facingDirectionToVector } from '../ecs/facing-direction'
-import { TileImpl } from '../ecs/tiles-system'
+import { TilesIncumbentComponent } from './ecs/components'
+import { doNothingCallback } from './ecs/entities/common'
+import { TileImpl } from './ecs/systems/tiles-system'
+import { Entity } from './ecs/world'
 import { GameInstance } from './game-instance'
-import GameSettings from './game-settings'
-import { registry } from './resources-manager'
+import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
+import GameSettings from './misc/game-settings'
+import { registry } from './misc/resources-manager'
 
 export interface DebugOptions {
 	showTilesOccupation?: boolean
@@ -15,7 +18,15 @@ export interface DebugOptions {
 	showTileListenersCount?: boolean
 }
 
+export interface DebugPath {
+	current: number
+	entityFor: Entity & TilesIncumbentComponent,
+	path: FacingDirection[]
+}
+
 export class Renderer {
+	public static DEBUG_PATHS: Set<DebugPath> = new Set()
+
 	private debugOptions: DebugOptions = {}
 	private enabled: boolean = false
 	private game?: GameInstance
@@ -39,6 +50,7 @@ export class Renderer {
 
 	public setGameInstance(game?: GameInstance) {
 		this.game = game
+		Renderer.DEBUG_PATHS.clear()
 	}
 
 	public updateDebugOptions(options: DebugOptions) {
@@ -61,7 +73,7 @@ export class Renderer {
 		requestAnimationFrame(this.nextFrameBind)
 		const now = Date.now()
 		const delta = now - this.lastFrameTime
-		// if (delta < 50) return
+		// if (delta < 100) return
 		this.lastFrameTime = now
 
 		if (!this.hasFocus) {
@@ -82,6 +94,7 @@ export class Renderer {
 				// context.fillStyle = '#333'
 				context.fillStyle = '#6a3a00'
 				context.fillRect(0, 0, this.width, this.height)
+
 				const tileSet = registry[1]
 				for (let i = 0; i < 20; i++) {
 					for (let j = 0; j < 20; j++) {
@@ -89,40 +102,58 @@ export class Renderer {
 					}
 				}
 
+				for (let e of game.delayedHideEntities()) {
+					if (e.hideMeAtMillis <= now)
+						e.render = doNothingCallback
+				}
+
+				for (const e of game.movingEntities()) {
+					e.destinationDrawX += e.spriteVelocityX * delta
+					e.destinationDrawY += e.spriteVelocityY * delta
+				}
+
+				for (const e of game.drawableEntities()) {
+					e.render(context)
+				}
+
+
 				if (now - this.lastAnimationTime > 40) {
 					this.lastAnimationTime = now
-					for (const entity of game.animatedEntities()) {
-						if (++entity.currentFrame === entity.currentFrames.length)
-							entity.currentFrame = 0
-						entity.sourceDrawY = entity.currentFrames[entity.currentFrame]
+					for (const entity of game.animatedDrawableEntities()) {
+						if (++entity.currentAnimationFrame >= entity.currentAnimation.length)
+							entity.currentAnimationFrame = 0
+						entity.sourceDrawY = entity.currentAnimation[entity.currentAnimationFrame]
 					}
 				}
 
-				context.drawImage(registry[0], 0, 32 * 6)
 
-				for (const entity of game.spriteEntities()) {
-					const size = entity.spriteSize
-					context.drawImage(registry[entity.imageIndex],
-						entity.sourceDrawX,
-						entity.sourceDrawY,
-						size, size,
-						entity.destinationDrawX | 0,
-						entity.destinationDrawY | 0,
-						size, size)
-				}
+				// if (now - this.lastAnimationTime > 40) {
+				// 	this.lastAnimationTime = now
+				// 	for (const entity of game.animatedEntities()) {
+				// 		if (++entity.currentFrame === entity.currentFrames.length)
+				// 			entity.currentFrame = 0
+				// 		entity.sourceDrawY = entity.currentFrames[entity.currentFrame]
+				// 	}
+				// }
 
-				for (const entity of game.dynamicSpriteEntities()) {
-					const size = entity.spriteSize
-					entity.destinationDrawX += entity.spriteVelocityX * delta
-					entity.destinationDrawY += entity.spriteVelocityY * delta
-					context.drawImage(registry[entity.imageIndex],
-						entity.sourceDrawX,
-						entity.sourceDrawY,
-						size, size,
-						entity.destinationDrawX,
-						entity.destinationDrawY,
-						size, size)
-				}
+				// context.drawImage(registry[0], 0, 32 * 6)
+				//
+				// for (const entity of game.dynamicSpriteEntities()) {
+				// 	entity.destinationDrawX += entity.spriteVelocityX * delta
+				// 	entity.destinationDrawY += entity.spriteVelocityY * delta
+				// }
+				//
+				// for (const entity of game.spriteEntities()) {
+				// 	const size = entity.spriteSize
+				// 	context.drawImage(registry[entity.imageIndex],
+				// 		entity.sourceDrawX,
+				// 		entity.sourceDrawY,
+				// 		size, size,
+				// 		entity.destinationDrawX | 0,
+				// 		entity.destinationDrawY | 0,
+				// 		size, size)
+				// }
+
 
 				if (this.debugOptions.showTilesOccupation) {
 					const tileSizeInPixels = 32
@@ -141,53 +172,70 @@ export class Renderer {
 
 				if (this.debugOptions.showPaths) {
 					context.strokeStyle = '#000000'
-					for (const entity of game.walkingEntities()) {
-						if (entity.pathDirections.length > 0) {
-							context.beginPath()
-							context.lineWidth = 2
-							let lastX = entity.occupiedTilesWest * 32 + 16
-							let lastY = entity.occupiedTilesNorth * 32 + 16
-							context.moveTo(lastX, lastY)
-							for (const dir of entity.pathDirections) {
-								const [ox, oy] = facingDirectionToVector(dir)
-								lastX += ox * 32
-								lastY += oy * 32
-								context.lineTo(lastX, lastY)
-							}
-							context.stroke()
-							context.closePath()
+					for (const path of Renderer.DEBUG_PATHS) {
+
+						context.beginPath()
+						context.lineWidth = 2
+						let lastX = path.entityFor.mostWestTile * 32 + 16
+						let lastY = path.entityFor.mostNorthTile * 32 + 16
+						context.moveTo(lastX, lastY)
+						for (let i = path.current, s = path.path.length; i < s; i++) {
+							const dir = path.path[i]
+							const [ox, oy] = facingDirectionToVector(dir)
+							lastX += ox * 32
+							lastY += oy * 32
+							context.lineTo(lastX, lastY)
 						}
+						context.stroke()
+						context.closePath()
 					}
+					// for (const entity of game.walkingEntities()) {
+					// 	if (entity.pathDirections.length > 0) {
+					// 		context.beginPath()
+					// 		context.lineWidth = 2
+					// 		let lastX = entity.occupiedTilesWest * 32 + 16
+					// 		let lastY = entity.occupiedTilesNorth * 32 + 16
+					// 		context.moveTo(lastX, lastY)
+					// 		for (const dir of entity.pathDirections) {
+					// 			const [ox, oy] = facingDirectionToVector(dir)
+					// 			lastX += ox * 32
+					// 			lastY += oy * 32
+					// 			context.lineTo(lastX, lastY)
+					// 		}
+					// 		context.stroke()
+					// 		context.closePath()
+					// 	}
+					// }
 				}
-
-				if (this.debugOptions.showChunkBoundaries) {
-					context.lineWidth = 2
-					const {mapWidth, mapHeight, chunkSize} = game.settings
-					const chunksX = Math.ceil(mapWidth / chunkSize)
-					const chunksY = Math.ceil(mapHeight / chunkSize)
-					const margin = 4
-					context.font = '12px Roboto'
-					context.fillStyle = 'black'
-					for (let i = 0; i < chunksX; i++) {
-						for (let j = 0; j < chunksY; j++) {
-							const count = game
-								.chunkEntityIndex
-								.getChunkByChunkCoords(i, j)
-								.getEntitiesCount()
-
-							context.fillText(`${count}`,
-								i * 32 * chunkSize + 2 * margin,
-								j * 32 * chunkSize + 4 * margin)
-
-							context.strokeRect(
-								i * 32 * chunkSize + margin,
-								j * 32 * chunkSize + margin,
-								chunkSize * 32 - margin * 2,
-								chunkSize * 32 - margin * 2)
-						}
-					}
-				}
-
+				//
+				// if (this.debugOptions.showChunkBoundaries) {
+				// 	context.lineWidth = 2
+				// 	const {mapWidth, mapHeight, chunkSize} = game.settings
+				// 	const chunksX = Math.ceil(mapWidth / chunkSize)
+				// 	const chunksY = Math.ceil(mapHeight / chunkSize)
+				// 	const margin = 4
+				// 	context.font = '12px Roboto'
+				// 	context.fillStyle = 'black'
+				// 	for (let i = 0; i < chunksX; i++) {
+				// 		for (let j = 0; j < chunksY; j++) {
+				// 			const count = game
+				// 				.chunkEntityIndex
+				// 				.getChunkByChunkCoords(i, j)
+				// 				.getEntitiesCount()
+				//
+				// 			context.fillText(`${count}`,
+				// 				i * 32 * chunkSize + 2 * margin,
+				// 				j * 32 * chunkSize + 4 * margin)
+				//
+				// 			context.strokeRect(
+				// 				i * 32 * chunkSize + margin,
+				// 				j * 32 * chunkSize + margin,
+				// 				chunkSize * 32 - margin * 2,
+				// 				chunkSize * 32 - margin * 2)
+				// 		}
+				// 	}
+				// }
+				//
 				if (this.debugOptions.showTileListenersCount) {
 					const {mapWidth, mapHeight} = game.settings
 					for (let i = 0; i < mapWidth; i++) {

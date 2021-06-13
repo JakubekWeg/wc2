@@ -1,5 +1,4 @@
 import { ComponentNameType } from './components'
-import { Entity } from './entity-types'
 
 /**
  * Index base class, interface for receiving entity creation and deletion events
@@ -35,16 +34,23 @@ interface EntityType {
 	triggers: Index[]
 }
 
+export type EntityId = number
+export class Entity {
+	static components: Set<ComponentNameType> = new Set<ComponentNameType>()
+	public readonly id: EntityId = 0
+	// public removed: boolean = false
+}
+
 /**
  * Entities container
  */
 export class World {
 	private currentTick: number = 0
 	private nextEntityId: number = 1
-	private readonly allEntities = new Map<number, Entity>()
+	private readonly allEntities = new Map<EntityId, Entity>()
 	private readonly modificationListeners = new Map<ComponentNameType, ModificationListener<any>[]>()
 	private readonly entitiesAboutToAdd: [Entity, EntityType][] = []
-	private readonly entityIdsToRemove: number[] = []
+	private readonly entityIdsToRemove: EntityId[] = []
 	private readonly allIndexes: Index<any>[] = []
 	private readonly allEntityTypes = new Map<string, EntityType>()
 
@@ -150,7 +156,7 @@ export class World {
 	 * This will return undefined if the entity hasn't been published to indexes (at the end of the tick)
 	 * @returns undefined if entity not found or the entity if found
 	 */
-	getSpawnedEntity(id: number): Entity | undefined {
+	getSpawnedEntity(id: EntityId): Entity | undefined {
 		return this.allEntities.get(id)
 	}
 
@@ -165,7 +171,7 @@ export class World {
 	/**
 	 * Schedules entity deletion, this method doesn't call indexes
 	 */
-	removeEntity(id: number) {
+	removeEntity(id: EntityId) {
 		this.entityIdsToRemove.push(id)
 	}
 
@@ -190,7 +196,6 @@ export class World {
 				const id = this.entityIdsToRemove[i]
 				const entity = this.allEntities.get(id)
 				if (entity != null) {
-					entity.removed = true
 					this.allEntities.delete(id)
 					const type = this.allEntityTypes.get(entity.constructor.name)
 					if (type != null) {
@@ -212,7 +217,7 @@ export default World
 export const createSimpleListIndex = <T>(world: World,
                                          components: ComponentNameType[])
 	: (() => IterableIterator<Entity & T>) => {
-	const entities = new Map<number, Entity & T>()
+	const entities = new Map<EntityId, Entity & T>()
 
 	class SimpleListIndex implements Index {
 		readonly components: ComponentNameType[] = components
