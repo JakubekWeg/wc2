@@ -80,32 +80,11 @@ export class GuardTowerImpl extends Entity
 
 	updateState(ctx: UpdateContext) {
 		if (--this.reloading <= 0) {
-			this.reloading = 5
+			this.reloading = 10
 			const entity: PossibleAttackTarget = this.entitiesWithinRange.values().next().value
 			if (entity == null) return
 			// shoot it!
-			const arrow = ctx.world.spawnEntity(ArrowImpl)
-			const startPosX = this.hitBoxCenterX * 32
-			const startPosY = this.hitBoxCenterY * 32
-			const endPosX = entity.hitBoxCenterX * 32
-			const endPosY = entity.hitBoxCenterY * 32
-
-			arrow.destinationDrawX = startPosX - arrow.spriteSize / 2
-			arrow.destinationDrawY = startPosY - arrow.spriteSize / 2
-
-			const x = endPosX - startPosX
-			const y = endPosY - startPosY
-			const alfa = Math.atan2(x, y)
-			const facingDirection = facingDirectionFromAngle(alfa)
-			arrow.sourceDrawX = facingDirection * arrow.spriteSize
-
-			const distance = Math.sqrt(x * x + y * y)
-			const ARROW_SPEED_PER_TICK = 200
-			const ticksToTravel = (distance / ARROW_SPEED_PER_TICK)
-			const travelDurationMillis = ticksToTravel * MILLIS_BETWEEN_TICKS
-			arrow.spriteVelocityX = x / (travelDurationMillis | 0)
-			arrow.spriteVelocityY = y / (travelDurationMillis | 0)
-			arrow.hideMeAtMillis = travelDurationMillis + Date.now()
+			ArrowImpl.spawn(ctx.world, this, entity)
 		}
 	}
 }

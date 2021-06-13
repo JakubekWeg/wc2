@@ -35,7 +35,6 @@ export class Renderer {
 	private width: number = 0
 	private height: number = 0
 	private lastFrameTime: number = Date.now()
-	private lastAnimationTime: number = Date.now()
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
@@ -114,16 +113,6 @@ export class Renderer {
 
 				for (const e of game.drawableEntities()) {
 					e.render(context)
-				}
-
-
-				if (now - this.lastAnimationTime > 40) {
-					this.lastAnimationTime = now
-					for (const entity of game.animatedDrawableEntities()) {
-						if (++entity.currentAnimationFrame >= entity.currentAnimation.length)
-							entity.currentAnimationFrame = 0
-						entity.sourceDrawY = entity.currentAnimation[entity.currentAnimationFrame]
-					}
 				}
 
 

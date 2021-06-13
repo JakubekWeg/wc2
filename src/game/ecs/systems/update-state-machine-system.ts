@@ -9,14 +9,14 @@ export class UpdateStateMachineSystem implements System {
 	}
 
 	onTick(tick: number): void {
-		const ctx = {
-			currentTick: tick,
-			game: this.instance,
-			world: this.world
-		} as UpdateContext
+		// const ctx = {
+		// 	currentTick: tick,
+		// 	game: this.instance,
+		// 	world: this.world
+		// } as UpdateContext
 
 		for (const entity of this.entities()) {
-			entity.updateState(ctx)
+			entity.updateState(this.instance)
 		}
 	}
 }

@@ -1,5 +1,5 @@
 import {
-	AnimatableDrawableComponent, DelayedHideComponent,
+	DelayedHideComponent,
 	DrawableBaseComponent,
 	MovingDrawableComponent,
 	TilesIncumbentComponent,
@@ -9,15 +9,16 @@ import { ArrowImpl } from './ecs/entities/arrow'
 import { FarmImpl } from './ecs/entities/farm'
 import { GuardTowerImpl } from './ecs/entities/tower'
 import createEventProcessor from './ecs/game-event-processor'
+import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system'
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
 import TileSystem from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
 import World, { createSimpleListIndex, Entity } from './ecs/world'
 import GameSettings from './misc/game-settings'
-import { WalkableTester } from './misc/path-finder'
 
 const TICKS_PER_SECOND = 5
 export const MILLIS_BETWEEN_TICKS = 1000 / TICKS_PER_SECOND
+const ANIMATIONS_PER_TICK = 2
 
 export interface System {
 	onTick(tick: number): void
@@ -40,15 +41,19 @@ export class GameInstance {
 	public readonly eventProcessor = createEventProcessor()
 	public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
 	public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
+	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
 	// public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
-	private executeNextTickList: ((world: World) => void)[] = []
 	private readonly ecs = new World()
+	public get world(){
+		return this.ecs;
+	}
 	public readonly tiles = new TileSystem(this.settings, this, this.ecs)
 	public readonly drawableEntities = createSimpleListIndex<DrawableBaseComponent>(this.ecs, ['DrawableBaseComponent'])
 	public readonly movingEntities = createSimpleListIndex<MovingDrawableComponent>(this.ecs, ['MovingDrawableComponent'])
-	public readonly animatedDrawableEntities = createSimpleListIndex<AnimatableDrawableComponent>(this.ecs, ['AnimatableDrawableComponent'])
 	public readonly delayedHideEntities = createSimpleListIndex<DelayedHideComponent>(this.ecs, ['DelayedHideComponent'])
 	private readonly allSystems: System[] = []
+	private nextTickIsOnlyForAnimations: number = 0
+	private readonly advanceAnimationsSystem = new AdvanceAnimationsSystem(this.ecs)
 	private isRunning: boolean = false
 	private lastIntervalId: number = -1
 
@@ -56,6 +61,7 @@ export class GameInstance {
 		// @ts-ignore
 		window.game = this
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
+		this.addSystem(this.advanceAnimationsSystem)
 		this.ecs.registerIndex(new LifecycleNotifierSystem(this))
 		this.ecs.registerEntityType(ArrowImpl)
 		this.ecs.registerEntityType(ArcherImpl)
@@ -71,6 +77,14 @@ export class GameInstance {
 				archer.myTeamId = 1
 			}
 
+			{
+				const archer = world.spawnEntity(ArcherImpl)
+				archer.destinationDrawX = -18 + 32 * 4
+				archer.destinationDrawY = -18
+				archer.mostWestTile = 4
+				archer.myTeamId = 2
+			}
+
 			const createFarm = (left: number, top: number) => {
 				const farm = world.spawnEntity(FarmImpl)
 				farm.destinationDrawX = 32 * left
@@ -78,7 +92,7 @@ export class GameInstance {
 				farm.mostWestTile = left
 				farm.mostNorthTile = top
 			}
-			// createFarm(4, 4)
+			createFarm(4, 4)
 			// createFarm(0, 4)
 
 			const createTower = (left: number, top: number) => {
@@ -90,50 +104,13 @@ export class GameInstance {
 				tower.mostWestTile = left
 				tower.mostNorthTile = top
 			}
-			createTower(2, 2)
+			// createTower(2, 2)
 		})
 
-		// initSystemsForInstance(this, this.ecs)
-
-		// this.dispatchNextTick((world => {
-		// 	const createFarm = (left: number, top: number) => {
-		// 		const farm = world.spawnEntity(Farm)
-		// 		farm.destinationDrawX = 32 * left
-		// 		farm.destinationDrawY = 32 * top
-		// 		farm.occupiedTilesWest = left
-		// 		farm.occupiedTilesNorth = top
-		//
-		// 	}
-		//
-		// 	const createTower = (left: number, top: number) => {
-		// 		const tower = world.spawnEntity(GuardTower)
-		// 		tower.destinationDrawX = 32 * left
-		// 		tower.destinationDrawY = 32 * top
-		// 		tower.occupiedTilesWest = left
-		// 		tower.occupiedTilesNorth = top
-		// 		tower.centerX = tower.destinationDrawX + 32
-		// 		tower.centerY = tower.destinationDrawY + 32
-		// 		this.tiles.addListenersForRect(left - 3, top - 3, 8, tower)
-		// 	}
-		// 	// createFarm(4, 2)
-		// 	// createFarm(3, 4)
-		// 	// createFarm(8, 3)
-		// 	const spawnUnit = (left: number, top: number) => {
-		// 		const entity = world.spawnEntity(TrollAxeThrower)
-		// 		entity.destinationDrawX = left * 32 - 18
-		// 		entity.destinationDrawY = top * 32 - 18
-		// 		entity.occupiedTilesWest = left
-		// 		entity.occupiedTilesNorth = top
-		// 		// this.tiles.addListenersForRect(left - 4, top - 4, 8, entity)
-		// 	}
-		// 	// spawnUnit(0, 0)
-		// 	// spawnUnit(5, 5)
-		// 	// spawnUnit(6, 7)
-		// 	// spawnUnit(5, 5)
-		// 	spawnUnit(6, 5)
-		// 	// createFarm(2, 2)
-		// 	createTower(6, 3)
-		// }))
+		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
+		this.entityEnteredTileEvent.listen(() => {
+			// console.log('enter', Date.now() / 100 % 100000 | 0)
+		})
 	}
 
 	public readonly walkableTester = (x: number, y: number) => this.tiles.isTileWalkableNoThrow(x, y)
@@ -142,19 +119,22 @@ export class GameInstance {
 		this.allSystems.push(s)
 	}
 
+	// lastTick: number = 0
 	tick(): void {
 		try {
+			if (--this.nextTickIsOnlyForAnimations > 0) {
+				this.advanceAnimationsSystem.onTick(0)
+				return
+			}
+			// console.log(Date.now() - this.lastTick)
+			// this.lastTick = Date.now()
+			this.nextTickIsOnlyForAnimations = ANIMATIONS_PER_TICK
 			const world = this.ecs
 			world.executeTick((tick: number) => {
-				for (let i = 0; i < this.executeNextTickList.length; i++) {
-					const element = this.executeNextTickList[i]
-					element(world)
-				}
-				this.executeNextTickList.length = 0
-
 				for (let s of this.allSystems) {
 					s.onTick(tick)
 				}
+
 				this.eventProcessor.dispatchAll()
 			})
 		} catch (e) {
@@ -164,13 +144,14 @@ export class GameInstance {
 	}
 
 	dispatchNextTick(action: (world: World) => void) {
-		this.executeNextTickList.push(action)
+		// this.executeNextTickList.push(action)
+		this.nextTickExecutionEvent.publish(action)
 	}
 
 	startGame() {
 		if (this.isRunning) throw new Error('Game is already running')
 		this.isRunning = true
-		this.lastIntervalId = setInterval(() => this.tick(), MILLIS_BETWEEN_TICKS) as any
+		this.lastIntervalId = setInterval(() => this.tick(), MILLIS_BETWEEN_TICKS / ANIMATIONS_PER_TICK) as any
 	}
 
 	stopGame() {

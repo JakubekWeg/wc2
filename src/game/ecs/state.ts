@@ -35,11 +35,13 @@ export const createState = <EntityType>(entity: EntityType,
 }
 
 export interface State2 {
+	// onPush(): void
+	onPop(): void
 	update(ctx: UpdateContext): void
 }
 
 export interface State2Controller<S extends State2> {
-	push(newState: S): void
+	push<T extends S>(newState: T): T
 
 	pop(): void
 
@@ -56,16 +58,21 @@ export const createState2 = <S extends State2>(first: (controller: State2Control
 	const stack: State2[] = []
 	const c = {
 		pop() {
-			stack.shift()
+			// @ts-ignore
+			stack.shift().onPop()
 		},
-		push(newState: S) {
+		push<T extends S>(newState: T) {
 			stack.unshift(newState)
+			// newState.onPush()
+			return newState
 		},
 		clear() {
 			stack.length = 0
 		},
 		replace(newState: S) {
+			stack[0].onPop()
 			stack[0] = newState
+			// newState.onPush()
 		},
 		get() {
 			return stack[0]

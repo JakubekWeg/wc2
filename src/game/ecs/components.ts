@@ -1,7 +1,7 @@
 import { GameInstance } from '../game-instance'
 import { AnimationFrames } from './entities/common'
 import { Tile } from './systems/tiles-system'
-import World, { Entity } from './world'
+import { Entity } from './world'
 
 export type ComponentNameType =
 	'DrawableBaseComponent'
@@ -69,11 +69,10 @@ export interface AnimatableDrawableComponent extends PredefinedDrawableComponent
 /**
  * Object passed to each and every state update
  */
-export interface UpdateContext {
-	readonly game: GameInstance
-	readonly world: World
-	readonly currentTick: number
-}
+// export interface UpdateContext {
+// 	readonly game: GameInstance
+// }
+export type UpdateContext = GameInstance
 
 export type UpdateStateMachineFunction = (ctx: UpdateContext) => void
 
@@ -97,6 +96,7 @@ export interface TilesIncumbentComponent {
 export type TeamId = number
 
 export type PossibleAttackTarget = Entity & TilesIncumbentComponent & DamageableComponent
+
 /**
  * Component for entities that can accept damage and do belong to a team
  */
@@ -131,6 +131,7 @@ export interface SelfLifecycleObserverComponent {
 
 
 export type PlayerCommandType = 'go'
+
 export interface PlayerCommand {
 	type: PlayerCommandType
 	targetX: number

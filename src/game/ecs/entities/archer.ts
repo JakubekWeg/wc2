@@ -13,6 +13,7 @@ import {
 	PossibleAttackTarget,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
+	SelfLifecycleObserverComponent,
 	StateMachineHolderComponent,
 	TileListenerComponent,
 	TilesIncumbentComponent,
@@ -23,8 +24,8 @@ import { Tile } from '../systems/tiles-system'
 import { Entity } from '../world'
 import { ArrowImpl } from './arrow'
 import {
-	AnimationFrames,
-	standardAttackingAnimationFrames,
+	AnimationFrames, isInRectRange,
+	standardArcherAttackingAnimationFrames,
 	standardStandingAnimationFrames,
 	standardWalkingAnimationFrames,
 } from './common'
@@ -32,114 +33,107 @@ import {
 
 interface ArcherState extends State2 {
 	handleCommand(command: PlayerCommand, game: GameInstance): void
+	entityLeftRange?(which: Entity): void
+	entityEnteredRange?(which: Entity): void
 }
 
-const idleState = (entity: ArcherImpl, controller: State2Controller<ArcherState>) => ({
-	handleCommand(command: PlayerCommand, game: GameInstance) {
-		switch (command.type) {
-			case 'go':
-				const sx = entity.mostWestTile
-				const sy = entity.mostNorthTile
-				const dx = command.targetX
-				const dy = command.targetY
-				const path = findPathDirections(sx, sy, dx, dy, game.walkableTester)
-				if (path != null)
-					controller.push(havingPathState(path, entity, controller))
-				break
-			default:
-				console.warn('Entity', entity, 'cannot handle command with type', command.type)
-				break
-		}
-	},
-	update(ctx: UpdateContext) {
-		const target: PossibleAttackTarget = entity.entitiesWithinRange.values().next().value
-		if (target == null) return
-		controller.push(attackingState(entity, controller, target))
-		// // shoot it!
-		// const arrow = ctx.world.spawnEntity(ArrowImpl)
-		// const startPosX = entity.hitBoxCenterX * 32
-		// const startPosY = entity.hitBoxCenterY * 32
-		// const endPosX = target.hitBoxCenterX * 32
-		// const endPosY = target.hitBoxCenterY * 32
-		//
-		// arrow.destinationDrawX = startPosX - arrow.spriteSize / 2
-		// arrow.destinationDrawY = startPosY - arrow.spriteSize / 2
-		//
-		// const x = endPosX - startPosX
-		// const y = endPosY - startPosY
-		// const alfa = Math.atan2(x, y)
-		// const facingDirection = facingDirectionFromAngle(alfa)
-		// arrow.sourceDrawX = facingDirection * arrow.spriteSize
-		//
-		// const distance = Math.sqrt(x * x + y * y)
-		// const ARROW_SPEED_PER_TICK = 200
-		// const ticksToTravel = (distance / ARROW_SPEED_PER_TICK)
-		// const travelDurationMillis = ticksToTravel * MILLIS_BETWEEN_TICKS
-		// arrow.spriteVelocityX = x / (travelDurationMillis | 0)
-		// arrow.spriteVelocityY = y / (travelDurationMillis | 0)
-		// arrow.hideMeAtMillis = travelDurationMillis + Date.now()
-	},
-} as ArcherState)
+const idleState = (entity: ArcherImpl, controller: State2Controller<ArcherState>): ArcherState => {
+	return {
+		onPop() {
+		},
+		update(_: UpdateContext) {
+			const target: PossibleAttackTarget = entity.entitiesWithinRange.values().next().value
+			if (target != null)
+				controller.push(attackingState(entity, controller, target))
+		},
+		handleCommand(command: PlayerCommand, game: GameInstance) {
+			switch (command.type) {
+				case 'go':
+					const sx = entity.mostWestTile
+					const sy = entity.mostNorthTile
+					const dx = command.targetX
+					const dy = command.targetY
+					const path = findPathDirections(sx, sy, dx, dy, game.walkableTester)
+					if (path != null) {
+						controller.push(goingPath(path, entity, controller, game)).update(game)
+					}
+					break
+				default:
+					console.warn('Entity', entity, 'cannot handle command with type', command.type)
+					break
+			}
+		},
+	}
+}
 
-const havingPathState = (path: FacingDirection[],
-                         entity: ArcherImpl,
-                         controller: State2Controller<ArcherState>): ArcherState => {
+const commandDelayer = (game: GameInstance, controller: State2Controller<ArcherState>, delay: number): ArcherState => {
+	let delayedCommand: PlayerCommand
+	return {
+		onPop() {
+			if (delayedCommand != null)
+				controller.get().handleCommand(delayedCommand, game)
+		},
+		handleCommand(command: PlayerCommand, _: GameInstance) {
+			delayedCommand = command
+		},
+		update(_: UpdateContext) {
+			if (delay > 0)
+				delay--
+			else
+				controller.pop()
+		},
+	}
+}
+
+const goingPath = (path: FacingDirection[], entity: ArcherImpl, controller: State2Controller<ArcherState>, game: GameInstance): ArcherState => {
 	const debugObject = {
 		current: 0,
 		entityFor: entity,
 		path: path,
 	} as DebugPath
 
+	game.tiles.removeListenerFromAllTiles(entity)
+	entity.currentAnimation = entity.walkingAnimation
 	Renderer.DEBUG_PATHS.add(debugObject)
+	let delayedCommand: PlayerCommand
 	return {
-		handleCommand(command: PlayerCommand, game: GameInstance) {
-			controller.pop()
+		onPop() {
+			entity.resumeTileListeners(game)
 			Renderer.DEBUG_PATHS.delete(debugObject)
-			controller.get().handleCommand(command, game)
-			entity.entitiesWithinRange = game.tiles.addListenersForRectAndGet(entity.mostWestTile - 4, entity.mostNorthTile - 4, 9, 9, entity, (obj => {
-				const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
-				return teamId !== undefined && teamId !== entity.myTeamId
-			}))
+			entity.currentAnimation = entity.standingAnimation
+			entity.currentAnimationFrame = 0
+			entity.sourceDrawY = 0
+			entity.spriteVelocityX = entity.spriteVelocityY = 0
 		},
-		update(ctx: UpdateContext) {
-			if (debugObject.current < path.length) {
-				ctx.game.tiles.removeListenerFromAllTiles(entity)
+		update(game: UpdateContext) {
+			if (debugObject.current < path.length && !delayedCommand) {
 				entity.currentAnimation = entity.walkingAnimation
-				entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
-				entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
-				controller.push(walkingState(entity, path[debugObject.current], controller, ctx))
+				controller.push(goingTile(path[debugObject.current], entity, controller, game)).update(game)
 				debugObject.current++
 			} else {
-				entity.entitiesWithinRange = ctx.game.tiles.addListenersForRectAndGet(entity.mostWestTile - 4, entity.mostNorthTile - 4, 9, 9, entity, (obj => {
-					const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
-					return teamId !== undefined && teamId !== entity.myTeamId
-				}))
-				Renderer.DEBUG_PATHS.delete(debugObject)
 				controller.pop()
-				entity.currentAnimation = entity.standingAnimation
-				entity.currentAnimationFrame = 0
-				entity.sourceDrawY = 0
-				entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
-				entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
-				entity.spriteVelocityX = entity.spriteVelocityY = 0
+				if (delayedCommand != null)
+					controller.get().handleCommand(delayedCommand, game)
 			}
+		},
+		handleCommand(command: PlayerCommand, _: GameInstance) {
+			delayedCommand = command
 		},
 	}
 }
 
-const walkingState = (entity: ArcherImpl,
-                      dir: FacingDirection,
-                      controller: State2Controller<ArcherState>,
-                      ctx: UpdateContext): ArcherState => {
-	let walkingProgress = 1
+const goingTile = (dir: FacingDirection, entity: ArcherImpl, controller: State2Controller<ArcherState>, game: GameInstance): ArcherState => {
+	let progress = 0
 	entity.sourceDrawX = dir * 72
 	const [ox, oy] = facingDirectionToVector(dir)
 
-	const ticksToMoveThisField = ((ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.6 | 0) : (11 - entity.unitMovingSpeed))
+	const ticksToMoveThisField = (ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.5 | 0) : (11 - entity.unitMovingSpeed)
+	entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
+	entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
 	entity.spriteVelocityX = ox * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 	entity.spriteVelocityY = oy * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 
-	ctx.game.entityLeftTileEvent.publish({
+	game.entityLeftTileEvent.publish({
 		mostWestTile: entity.mostWestTile,
 		mostNorthTile: entity.mostNorthTile,
 		entity,
@@ -148,24 +142,34 @@ const walkingState = (entity: ArcherImpl,
 	entity.mostWestTile += ox
 	entity.mostNorthTile += oy
 
-	ctx.game.entityEnteredTileEvent.publish({
+	game.entityEnteredTileEvent.publish({
 		mostWestTile: entity.mostWestTile,
 		mostNorthTile: entity.mostNorthTile,
 		entity,
 	})
-
 	let delayedCommand: PlayerCommand
 	return {
-		handleCommand(command: PlayerCommand) {
-			// delay this command
-			delayedCommand = command
+		onPop() {
 		},
-		update(ctx: UpdateContext) {
-			if (++walkingProgress >= ticksToMoveThisField) {
+		update(game: UpdateContext) {
+			if (++progress >= ticksToMoveThisField) {
 				controller.pop()
-				if (delayedCommand != null)
-					controller.get().handleCommand(delayedCommand, ctx.game)
+				const state = controller.get()
+				if (delayedCommand) {
+					state.handleCommand(delayedCommand, game)
+					if (controller.get() === state || true) {
+						state.update(game)
+					}
+				}
 			}
+		},
+		handleCommand(command: PlayerCommand, _: GameInstance) {
+			if (delayedCommand == null) {
+				controller.pop()
+				controller.push(commandDelayer(game, controller, 0))
+				controller.push(this)
+			}
+			delayedCommand = command
 		},
 	}
 }
@@ -174,38 +178,60 @@ const attackingState = (entity: ArcherImpl,
                         controller: State2Controller<ArcherState>,
                         target: PossibleAttackTarget): ArcherState => {
 	let reloading = 5
+
+	const setUpAttackingEntityRotation = () => {
+		const startPosX = entity.hitBoxCenterX * 32
+		const startPosY = entity.hitBoxCenterY * 32
+		const endPosX = target.hitBoxCenterX * 32
+		const endPosY = target.hitBoxCenterY * 32
+
+		const x = endPosX - startPosX
+		const y = endPosY - startPosY
+		const alfa = Math.atan2(x, y)
+		const facingDirection = facingDirectionFromAngle(alfa)
+		entity.currentAnimation = entity.attackingAnimation
+		entity.currentAnimationFrame = 0
+		entity.sourceDrawY = 0
+		entity.sourceDrawX = facingDirection * entity.spriteSize
+	}
+	let lastTargetX = target.mostWestTile
+	let lastTargetY = target.mostNorthTile
+	setUpAttackingEntityRotation()
+
+	let isOutOfRange: boolean = false
 	return {
+		entityEnteredRange(which: Entity) {
+			if (target === which)
+				isOutOfRange = false
+		},
+		entityLeftRange(which: Entity) {
+			if (which === target)
+				isOutOfRange = true
+		},
+		onPop() {
+			entity.currentAnimation = entity.standingAnimation
+			entity.currentAnimationFrame = 0
+			entity.sourceDrawY = 0
+		},
 		handleCommand(command: PlayerCommand, game: GameInstance) {
 			controller.pop()
 			controller.get().handleCommand(command, game)
 		},
 		update(ctx: UpdateContext) {
-			entity.currentAnimation = entity.attackingAnimation
+			console.log({isOutOfRange})
+			if (isOutOfRange) {
+				controller.pop()
+				return
+			}
 			if (--reloading > 0) return
-			reloading = 5
+			if (lastTargetX !== target.mostWestTile || lastTargetY !== target.mostNorthTile) {
+				setUpAttackingEntityRotation()
+				lastTargetX = target.mostWestTile
+				lastTargetY = target.mostNorthTile
+			}
+			reloading = 7
 			// shoot it!
-			const arrow = ctx.world.spawnEntity(ArrowImpl)
-			const startPosX = entity.hitBoxCenterX * 32
-			const startPosY = entity.hitBoxCenterY * 32
-			const endPosX = target.hitBoxCenterX * 32
-			const endPosY = target.hitBoxCenterY * 32
-
-			arrow.destinationDrawX = startPosX - arrow.spriteSize / 2
-			arrow.destinationDrawY = startPosY - arrow.spriteSize / 2
-
-			const x = endPosX - startPosX
-			const y = endPosY - startPosY
-			const alfa = Math.atan2(x, y)
-			const facingDirection = facingDirectionFromAngle(alfa)
-			arrow.sourceDrawX = facingDirection * arrow.spriteSize
-
-			const distance = Math.sqrt(x * x + y * y)
-			const ARROW_SPEED_PER_TICK = 200
-			const ticksToTravel = (distance / ARROW_SPEED_PER_TICK)
-			const travelDurationMillis = ticksToTravel * MILLIS_BETWEEN_TICKS
-			arrow.spriteVelocityX = x / (travelDurationMillis | 0)
-			arrow.spriteVelocityY = y / (travelDurationMillis | 0)
-			arrow.hideMeAtMillis = travelDurationMillis + Date.now()
+			ArrowImpl.spawn(ctx.world, entity, target)
 		},
 	}
 }
@@ -215,8 +241,9 @@ export class ArcherImpl extends Entity
 	implements PredefinedDrawableComponent, StateMachineHolderComponent,
 		MovingDrawableComponent, AnimatableDrawableComponent,
 		TilesIncumbentComponent, DamageableComponent,
-		PlayerCommandTakerComponent, TileListenerComponent {
-	static components = new Set<ComponentNameType>(['TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'AnimatableDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
+		PlayerCommandTakerComponent, TileListenerComponent,
+		SelfLifecycleObserverComponent {
+	static components = new Set<ComponentNameType>(['SelfLifecycleObserverComponent','AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
 
 	destinationDrawX: number = -18
 	destinationDrawY: number = -18
@@ -235,9 +262,11 @@ export class ArcherImpl extends Entity
 	canAcceptCommands: true = true
 	public unitMovingSpeed: number = 9
 	subscribedToTiles: Set<Tile> = new Set()
+
 	public walkingAnimation: AnimationFrames = standardWalkingAnimationFrames
 	public standingAnimation: AnimationFrames = standardStandingAnimationFrames
-	public attackingAnimation: AnimationFrames = standardAttackingAnimationFrames
+	public attackingAnimation: AnimationFrames = standardArcherAttackingAnimationFrames
+
 	render = PredefinedDrawableComponent_render
 	public entitiesWithinRange: Set<PossibleAttackTarget> = new Set()
 	public reloading: number = 0
@@ -252,17 +281,34 @@ export class ArcherImpl extends Entity
 		return this.mostNorthTile + 0.5
 	}
 
+	resumeTileListeners(game: GameInstance) {
+		const entity = this
+		entity.entitiesWithinRange = game.tiles.addListenersForRectAndGet(entity.mostWestTile - 4, entity.mostNorthTile - 4, 9, 9, entity, (obj => {
+			const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
+			return teamId !== undefined && teamId !== entity.myTeamId
+		}))
+	}
+	entityCreated(game: GameInstance): void {
+		this.resumeTileListeners(game)
+	}
+	entityRemoved(game: GameInstance): void {
+		game.tiles.removeListenerFromAllTiles(this)
+	}
+
 	onListenedTileOccupationChanged(_: Entity & TileListenerComponent,
 	                                tile: Tile,
 	                                occupiedByPrevious: (Entity & TilesIncumbentComponent) | undefined,
 	                                occupiedByNow: (Entity & TilesIncumbentComponent) | undefined) {
-		if (occupiedByPrevious != null)
+		if (occupiedByPrevious != null) {
 			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
+			this.state.get().entityLeftRange?.(occupiedByPrevious);
+		}
 
 		if (occupiedByNow != null) {
 			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myTeamId
 			if (teamId !== undefined && teamId !== this.myTeamId) {
 				this.entitiesWithinRange.add(occupiedByNow as PossibleAttackTarget)
+				this.state.get().entityEnteredRange?.(occupiedByNow);
 			}
 		}
 	}
