@@ -84,7 +84,16 @@ function App() {
 	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
 		ev.preventDefault()
 		gameInstance.dispatchNextTick((world) => {
-			const x = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
+			let x = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
+			if (x.canAcceptCommands) {
+				x.accept({
+					type: 'go',
+					targetX: ev.clientX / 32 / 2 | 0,
+					targetY: ev.clientY / 32 / 2 | 0,
+				}, gameInstance)
+			}
+
+			x = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
 			if (x.canAcceptCommands) {
 				x.accept({
 					type: 'go',

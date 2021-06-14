@@ -1,9 +1,9 @@
-import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
-import { facingDirectionFromAngle } from '../../misc/facing-direction'
+import { GameInstance } from '../../game-instance'
 import { registry } from '../../misc/resources-manager'
 import {
 	ComponentNameType,
-	DamageableComponent, PossibleAttackTarget,
+	DamageableComponent,
+	PossibleAttackTarget,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
 	SelfLifecycleObserverComponent,
@@ -55,24 +55,34 @@ export class GuardTowerImpl extends Entity
 	}
 
 	entityCreated(game: GameInstance): void {
-		const size = 8
+		const size = 4
 		const selfSize = this.tileOccupySize
-		game.tiles.addListenersForRect(
-			this.mostWestTile - size,
-			this.mostNorthTile - size,
-			size, size * 2+ selfSize, this)
-		game.tiles.addListenersForRect(
-			this.mostWestTile + selfSize,
-			this.mostNorthTile - size,
-			size, size * selfSize + selfSize, this)
-		game.tiles.addListenersForRect(
-			this.mostWestTile,
-			this.mostNorthTile - size,
-			size, size, this)
-		game.tiles.addListenersForRect(
-			this.mostWestTile,
-			this.mostNorthTile + selfSize,
-			size, size, this)
+		// game.tiles.addListenersForRect(
+		// 	this.mostWestTile - size,
+		// 	this.mostNorthTile - size,
+		// 	size, size * 2 + selfSize, this)
+		// game.tiles.addListenersForRect(
+		// 	this.mostWestTile + selfSize,
+		// 	this.mostNorthTile - size,
+		// 	size, size * selfSize + selfSize, this)
+		// game.tiles.addListenersForRect(
+		// 	this.mostWestTile,
+		// 	this.mostNorthTile - size,
+		// 	size, size, this)
+		// game.tiles.addListenersForRect(
+		// 	this.mostWestTile,
+		// 	this.mostNorthTile + selfSize,
+		// 	size, size, this)
+		const entity = this
+		entity.entitiesWithinRange = game.tiles.addListenersForRectAndGet(
+			entity.mostWestTile - size,
+			entity.mostNorthTile - size,
+			size + size + selfSize,
+			size + size + selfSize,
+			entity, (obj => {
+			const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
+			return teamId !== undefined && teamId !== entity.myTeamId
+		}))
 	}
 
 	entityRemoved(game: GameInstance): void {

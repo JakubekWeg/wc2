@@ -37,4 +37,7 @@ newEntry('pig_farm', 'tileset')
 newEntry('troll_axethrower', 'unit')
 newEntry('guard_tower', 'tileset')
 newEntry('arrow', 'arrow')
+newEntry('footman', 'unit')
+newEntry('ogre', 'unit')
+newEntry('axe', 'unit')
 

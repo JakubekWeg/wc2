@@ -69,34 +69,45 @@ export default class TileSystem {
 				this.tiles[i * this.sizeX + j] = new TileImpl(j, i)
 			}
 		}
-		game.entityEnteredTileEvent.listen((event) => {
-			for (let i = 0; i < event.entity.tileOccupySize; i++) {
-				for (let j = 0; j < event.entity.tileOccupySize; j++) {
-					this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, event.entity)
-				}
-			}
-		})
-		game.entityLeftTileEvent.listen((event) => {
-			for (let i = 0; i < event.entity.tileOccupySize; i++) {
-				for (let j = 0; j < event.entity.tileOccupySize; j++) {
-					this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, undefined)
-				}
-			}
-		})
+		// game.entityEnteredTileEvent.listen((event) => {
+		// 	for (let i = 0; i < event.entity.tileOccupySize; i++) {
+		// 		for (let j = 0; j < event.entity.tileOccupySize; j++) {
+		// 			this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, event.entity)
+		// 		}
+		// 	}
+		// })
+		// game.entityLeftTileEvent.listen((event) => {
+		// 	for (let i = 0; i < event.entity.tileOccupySize; i++) {
+		// 		for (let j = 0; j < event.entity.tileOccupySize; j++) {
+		// 			this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, undefined)
+		// 		}
+		// 	}
+		// })
+		const self = this
+
 		world.registerIndex({
 			components: ['TilesIncumbentComponent'],
 			entityAdded(entity: Entity & TilesIncumbentComponent) {
-				game.entityEnteredTileEvent.publish({
-					entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
-				})
+				for (let i = 0; i < entity.tileOccupySize; i++) {
+					for (let j = 0; j < entity.tileOccupySize; j++) {
+						self.updateRegistryThrow(entity.mostWestTile + i, entity.mostNorthTile + j, entity)
+					}
+				}
+				// game.entityEnteredTileEvent.publish({
+				// 	entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
+				// })
 			},
 			entityRemoved(entity: Entity & TilesIncumbentComponent) {
-				game.entityEnteredTileEvent.publish({
-					entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
-				})
+				for (let i = 0; i < entity.tileOccupySize; i++) {
+					for (let j = 0; j < entity.tileOccupySize; j++) {
+						self.updateRegistryThrow(entity.mostWestTile + i, entity.mostNorthTile + j, undefined)
+					}
+				}
+				// game.entityEnteredTileEvent.publish({
+				// 	entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
+				// })
 			},
 		})
-		const self = this
 		world.registerIndex({
 			components: ['TileListenerComponent'],
 			entityAdded(_: Entity & TileListenerComponent) {
@@ -198,17 +209,45 @@ export default class TileSystem {
 	 * Updates occupation field inside index
 	 * Returns false if attempt to occupy a field that is being occupied by a different entity
 	 * Returns true if field was updated successfully
-	 * Never throws
+	 * Throws only if invalid coords given
 	 */
 	public updateRegistryCheck(x: number,
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): boolean {
-		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
-			throw new Error(`Invalid tile index x=${x} y=${y}`)
+		this.validateCoords(x, y)
 		const tile = this.tiles[y * this.sizeX + x]
 		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
 			return false
 		tile.forceSetOccupiedByAndCallListeners(occupiedBy)
 		return true
+	}
+
+
+	/**
+	 * Moves occupation from one field to another
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity
+	 * Returns true if field was updated successfully
+	 * Throws only if invalid coords given
+	 */
+	public moveOccupationAtOnce(sx: number,
+	                            sy: number,
+	                            dx: number,
+	                            dy: number): boolean {
+		this.validateCoords(sx, sy)
+		this.validateCoords(dx, dy)
+
+		const destination = this.tiles[dy * this.sizeX + dx]
+		if (destination.occupiedBy != null)
+			return false
+		const source = this.tiles[sy * this.sizeX + sx]
+		const tmp = source.occupiedBy
+		source.forceSetOccupiedByAndCallListeners(undefined)
+		destination.forceSetOccupiedByAndCallListeners(tmp)
+		return true
+	}
+
+	private validateCoords(x: number, y: number) {
+		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+			throw new Error(`Invalid tile index x=${x} y=${y}`)
 	}
 }

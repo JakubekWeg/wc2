@@ -13,9 +13,15 @@ export class SortedList<T> {
 		}
 		this.mList.push(obj)
 	}
+	size(): number {
+		return this.mList.length
+	}
 
 	getFirst(): T | undefined {
 		return this.mList[0]
+	}
+	getRawList(): T[] {
+		return this.mList
 	}
 
 	has(check: (obj: T) => boolean): boolean {

@@ -44,9 +44,6 @@ export class GameInstance {
 	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
 	// public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	private readonly ecs = new World()
-	public get world(){
-		return this.ecs;
-	}
 	public readonly tiles = new TileSystem(this.settings, this, this.ecs)
 	public readonly drawableEntities = createSimpleListIndex<DrawableBaseComponent>(this.ecs, ['DrawableBaseComponent'])
 	public readonly movingEntities = createSimpleListIndex<MovingDrawableComponent>(this.ecs, ['MovingDrawableComponent'])
@@ -70,19 +67,30 @@ export class GameInstance {
 
 		this.ecs.lockTypes()
 		this.dispatchNextTick((world) => {
-			{
+			const createOrge = (left: number, top: number) => {
+				// const archer = world.spawnEntity(FootmanImpl)
+				// archer.destinationDrawX = -18 + 32 * left
+				// archer.destinationDrawY = -18 + 32 * top
+				// archer.mostWestTile = left
+				// archer.mostNorthTile = top
+				// archer.myTeamId = 2
+				// archer.texture = registry[7]
+			}
+			const createArcher = (left: number, top: number) => {
 				const archer = world.spawnEntity(ArcherImpl)
-				archer.destinationDrawX = -18
-				archer.destinationDrawY = -18
+				archer.destinationDrawX = -18 + 32 * left
+				archer.destinationDrawY = -18 + 32 * top
+				archer.mostWestTile = left
+				archer.mostNorthTile = top
 				archer.myTeamId = 1
 			}
-
-			{
-				const archer = world.spawnEntity(ArcherImpl)
-				archer.destinationDrawX = -18 + 32 * 4
-				archer.destinationDrawY = -18
-				archer.mostWestTile = 4
-				archer.myTeamId = 2
+			const createFootman = (left: number, top: number) => {
+				// const archer = world.spawnEntity(FootmanImpl)
+				// archer.destinationDrawX = -18 + 32 * left
+				// archer.destinationDrawY = -18 + 32 * top
+				// archer.mostWestTile = left
+				// archer.mostNorthTile = top
+				// archer.myTeamId = 1
 			}
 
 			const createFarm = (left: number, top: number) => {
@@ -92,8 +100,6 @@ export class GameInstance {
 				farm.mostWestTile = left
 				farm.mostNorthTile = top
 			}
-			createFarm(4, 4)
-			// createFarm(0, 4)
 
 			const createTower = (left: number, top: number) => {
 				const tower = world.spawnEntity(GuardTowerImpl)
@@ -103,14 +109,41 @@ export class GameInstance {
 				tower.hitBoxCenterY = top + 1
 				tower.mostWestTile = left
 				tower.mostNorthTile = top
+				tower.myTeamId = 2
 			}
-			// createTower(2, 2)
+			// createFarm(4, 4)
+			// createFarm(7, 3)
+			// createFarm(9, 3)
+			// createFarm(8, 1)
+			// createTower(7, 7)
+			// createTower(8, 11)
+			// createTower(13, 10)
+			//
+			// createArcher(5,7)
+			// createArcher(9,7)
+			// createFootman(7,6)
+			// createOrge(2,1)
+			// createOrge(4,2)
+			// createOrge(3,1)
+			createArcher(1, 1)
+			createArcher(2, 2)
+			// createTower(5, 0)
+			createFarm(5, 5)
+			createFarm(7, 5)
+			createFarm(9, 5)
+			createFarm(9, 7)
+			createFarm(9, 9)
+			createFarm(7, 9)
+			createFarm(5, 9)
+			createFarm(5, 7)
 		})
 
+
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
-		this.entityEnteredTileEvent.listen(() => {
-			// console.log('enter', Date.now() / 100 % 100000 | 0)
-		})
+	}
+
+	public get world() {
+		return this.ecs
 	}
 
 	public readonly walkableTester = (x: number, y: number) => this.tiles.isTileWalkableNoThrow(x, y)

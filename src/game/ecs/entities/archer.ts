@@ -1,6 +1,6 @@
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
-import { findPathDirections } from '../../misc/path-finder'
+import { findPathDirectionsCoarse, findPathDirectionsExact } from '../../misc/path-finder'
 import { registry } from '../../misc/resources-manager'
 import { DebugPath, Renderer } from '../../renderer'
 import {
@@ -24,7 +24,7 @@ import { Tile } from '../systems/tiles-system'
 import { Entity } from '../world'
 import { ArrowImpl } from './arrow'
 import {
-	AnimationFrames, isInRectRange,
+	AnimationFrames,
 	standardArcherAttackingAnimationFrames,
 	standardStandingAnimationFrames,
 	standardWalkingAnimationFrames,
@@ -33,7 +33,9 @@ import {
 
 interface ArcherState extends State2 {
 	handleCommand(command: PlayerCommand, game: GameInstance): void
+
 	entityLeftRange?(which: Entity): void
+
 	entityEnteredRange?(which: Entity): void
 }
 
@@ -53,7 +55,7 @@ const idleState = (entity: ArcherImpl, controller: State2Controller<ArcherState>
 					const sy = entity.mostNorthTile
 					const dx = command.targetX
 					const dy = command.targetY
-					const path = findPathDirections(sx, sy, dx, dy, game.walkableTester)
+					const path = findPathDirectionsCoarse(sx, sy, dx, dy, game.walkableTester)
 					if (path != null) {
 						controller.push(goingPath(path, entity, controller, game)).update(game)
 					}
@@ -126,6 +128,21 @@ const goingTile = (dir: FacingDirection, entity: ArcherImpl, controller: State2C
 	let progress = 0
 	entity.sourceDrawX = dir * 72
 	const [ox, oy] = facingDirectionToVector(dir)
+	if (!game.tiles.moveOccupationAtOnce(
+		entity.mostWestTile, entity.mostNorthTile,
+		entity.mostWestTile + ox, entity.mostNorthTile + oy)) {
+		return {
+			update(_) {
+				controller.pop()
+				controller.pop()
+			},
+			onPop() {
+			},
+			handleCommand(_,__) {
+				// controller.get().handleCommand(command, game)
+			},
+		}
+	}
 
 	const ticksToMoveThisField = (ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.5 | 0) : (11 - entity.unitMovingSpeed)
 	entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
@@ -133,20 +150,21 @@ const goingTile = (dir: FacingDirection, entity: ArcherImpl, controller: State2C
 	entity.spriteVelocityX = ox * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 	entity.spriteVelocityY = oy * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 
-	game.entityLeftTileEvent.publish({
-		mostWestTile: entity.mostWestTile,
-		mostNorthTile: entity.mostNorthTile,
-		entity,
-	})
+
+	// game.entityLeftTileEvent.publish({
+	// 	mostWestTile: entity.mostWestTile,
+	// 	mostNorthTile: entity.mostNorthTile,
+	// 	entity,
+	// })
 
 	entity.mostWestTile += ox
 	entity.mostNorthTile += oy
 
-	game.entityEnteredTileEvent.publish({
-		mostWestTile: entity.mostWestTile,
-		mostNorthTile: entity.mostNorthTile,
-		entity,
-	})
+	// game.entityEnteredTileEvent.publish({
+	// 	mostWestTile: entity.mostWestTile,
+	// 	mostNorthTile: entity.mostNorthTile,
+	// 	entity,
+	// })
 	let delayedCommand: PlayerCommand
 	return {
 		onPop() {
@@ -218,7 +236,6 @@ const attackingState = (entity: ArcherImpl,
 			controller.get().handleCommand(command, game)
 		},
 		update(ctx: UpdateContext) {
-			console.log({isOutOfRange})
 			if (isOutOfRange) {
 				controller.pop()
 				return
@@ -243,7 +260,7 @@ export class ArcherImpl extends Entity
 		TilesIncumbentComponent, DamageableComponent,
 		PlayerCommandTakerComponent, TileListenerComponent,
 		SelfLifecycleObserverComponent {
-	static components = new Set<ComponentNameType>(['SelfLifecycleObserverComponent','AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
+	static components = new Set<ComponentNameType>(['SelfLifecycleObserverComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
 
 	destinationDrawX: number = -18
 	destinationDrawY: number = -18
@@ -288,9 +305,11 @@ export class ArcherImpl extends Entity
 			return teamId !== undefined && teamId !== entity.myTeamId
 		}))
 	}
+
 	entityCreated(game: GameInstance): void {
 		this.resumeTileListeners(game)
 	}
+
 	entityRemoved(game: GameInstance): void {
 		game.tiles.removeListenerFromAllTiles(this)
 	}
@@ -301,14 +320,14 @@ export class ArcherImpl extends Entity
 	                                occupiedByNow: (Entity & TilesIncumbentComponent) | undefined) {
 		if (occupiedByPrevious != null) {
 			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
-			this.state.get().entityLeftRange?.(occupiedByPrevious);
+			this.state.get().entityLeftRange?.(occupiedByPrevious)
 		}
 
 		if (occupiedByNow != null) {
 			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myTeamId
 			if (teamId !== undefined && teamId !== this.myTeamId) {
 				this.entitiesWithinRange.add(occupiedByNow as PossibleAttackTarget)
-				this.state.get().entityEnteredRange?.(occupiedByNow);
+				this.state.get().entityEnteredRange?.(occupiedByNow)
 			}
 		}
 	}
