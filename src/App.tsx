@@ -85,7 +85,7 @@ function App() {
 		ev.preventDefault()
 		gameInstance.dispatchNextTick((world) => {
 			let x = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
-			if (x.canAcceptCommands) {
+			if (x?.canAcceptCommands) {
 				x.accept({
 					type: 'go',
 					targetX: ev.clientX / 32 / 2 | 0,
@@ -94,7 +94,7 @@ function App() {
 			}
 
 			x = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
-			if (x.canAcceptCommands) {
+			if (x?.canAcceptCommands) {
 				x.accept({
 					type: 'go',
 					targetX: ev.clientX / 32 / 2 | 0,

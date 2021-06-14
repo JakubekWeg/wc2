@@ -1,5 +1,6 @@
 import { GameInstance } from '../game-instance'
 import { AnimationFrames } from './entities/common'
+import { Force } from './force'
 import { Tile } from './systems/tiles-system'
 import { Entity } from './world'
 
@@ -14,6 +15,8 @@ export type ComponentNameType =
 	| 'DelayedHideComponent'
 	| 'DamageableComponent'
 	| 'PlayerCommandTakerComponent'
+	| 'SightComponent'
+	| 'AttackRangeComponent'
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 
@@ -98,12 +101,26 @@ export type TeamId = number
 export type PossibleAttackTarget = Entity & TilesIncumbentComponent & DamageableComponent
 
 /**
- * Component for entities that can accept damage and do belong to a team
+ * Component for entities that can accept damage and do belong to a force (team)
  */
 export interface DamageableComponent {
-	myTeamId: TeamId
+	myForce: Force
 	readonly hitBoxCenterX: number
 	readonly hitBoxCenterY: number
+}
+
+/**
+ * Component for entities that can see a world and other entities
+ */
+export interface SightComponent extends TilesIncumbentComponent {
+	sightAmount: number
+}
+
+/**
+ * Component for entities that can deal damage
+ */
+export interface AttackRangeComponent extends TilesIncumbentComponent, DamageableComponent {
+	attackRangeAmount: number
 }
 
 export type TileOccupationChangedCallback = (listener: Entity & TileListenerComponent,

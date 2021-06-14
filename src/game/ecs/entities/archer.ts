@@ -1,10 +1,11 @@
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
-import { findPathDirectionsCoarse, findPathDirectionsExact } from '../../misc/path-finder'
+import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination } from '../../misc/path-finder'
 import { registry } from '../../misc/resources-manager'
 import { DebugPath, Renderer } from '../../renderer'
 import {
 	AnimatableDrawableComponent,
+	AttackRangeComponent,
 	ComponentNameType,
 	DamageableComponent,
 	MovingDrawableComponent,
@@ -14,17 +15,20 @@ import {
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
 	SelfLifecycleObserverComponent,
+	SightComponent,
 	StateMachineHolderComponent,
 	TileListenerComponent,
 	TilesIncumbentComponent,
 	UpdateContext,
 } from '../components'
+import { Force, neutralForce } from '../force'
 import { createState2, State2, State2Controller } from '../state'
 import { Tile } from '../systems/tiles-system'
 import { Entity } from '../world'
 import { ArrowImpl } from './arrow'
 import {
 	AnimationFrames,
+	isInRectRange,
 	standardArcherAttackingAnimationFrames,
 	standardStandingAnimationFrames,
 	standardWalkingAnimationFrames,
@@ -34,9 +38,9 @@ import {
 interface ArcherState extends State2 {
 	handleCommand(command: PlayerCommand, game: GameInstance): void
 
-	entityLeftRange?(which: Entity): void
+	entityLeftSightRange?(which: Entity & TilesIncumbentComponent): void
 
-	entityEnteredRange?(which: Entity): void
+	entityEnteredSightRange?(which: Entity & TilesIncumbentComponent): void
 }
 
 const idleState = (entity: ArcherImpl, controller: State2Controller<ArcherState>): ArcherState => {
@@ -44,21 +48,15 @@ const idleState = (entity: ArcherImpl, controller: State2Controller<ArcherState>
 		onPop() {
 		},
 		update(_: UpdateContext) {
-			const target: PossibleAttackTarget = entity.entitiesWithinRange.values().next().value
-			if (target != null)
-				controller.push(attackingState(entity, controller, target))
+		},
+		entityEnteredSightRange(which: Entity & TilesIncumbentComponent) {
+			const target: PossibleAttackTarget = which as PossibleAttackTarget
+			controller.push(attackingState(entity, controller, target))
 		},
 		handleCommand(command: PlayerCommand, game: GameInstance) {
 			switch (command.type) {
 				case 'go':
-					const sx = entity.mostWestTile
-					const sy = entity.mostNorthTile
-					const dx = command.targetX
-					const dy = command.targetY
-					const path = findPathDirectionsCoarse(sx, sy, dx, dy, game.walkableTester)
-					if (path != null) {
-						controller.push(goingPath(path, entity, controller, game)).update(game)
-					}
+					controller.push(goingAndFindingPath(entity, controller, game, command.targetX, command.targetY)).update(game)
 					break
 				default:
 					console.warn('Entity', entity, 'cannot handle command with type', command.type)
@@ -87,6 +85,73 @@ const commandDelayer = (game: GameInstance, controller: State2Controller<ArcherS
 	}
 }
 
+const goingAndFindingPath = (entity: ArcherImpl, controller: State2Controller<ArcherState>, game: GameInstance,
+                             destinationX: number, destinationY: number): ArcherState => {
+	let attempts = 0
+	return {
+		onPop() {
+			entity.currentAnimation = entity.standingAnimation
+			entity.currentAnimationFrame = 0
+			entity.sourceDrawY = 0
+			entity.spriteVelocityX = entity.spriteVelocityY = 0
+			entity.resumeTileListeners(game)
+		},
+		update(game: UpdateContext) {
+			const sx = entity.mostWestTile
+			const sy = entity.mostNorthTile
+			if (attempts++ > 10 || (sx === destinationX && sy === destinationY)) {
+				controller.pop()
+				return
+			}
+			const path = findPathDirectionsCoarse(sx, sy, destinationX, destinationY, game.walkableTester)
+			if (path.length > 0)
+				controller.push(goingPath(path, entity, controller, game)).update(game)
+			else
+				controller.pop()
+		},
+		handleCommand(command: PlayerCommand, _: GameInstance) {
+			controller.pop()
+			controller.get().handleCommand(command, _)
+		},
+	}
+}
+
+
+const goingAndFindingPathRange = (entity: ArcherImpl, controller: State2Controller<ArcherState>, game: GameInstance,
+                                  destinationX: number, destinationY: number, range: number): ArcherState => {
+	let attempts = 0
+	return {
+		onPop() {
+			entity.currentAnimation = entity.standingAnimation
+			entity.currentAnimationFrame = 0
+			entity.sourceDrawY = 0
+			entity.spriteVelocityX = entity.spriteVelocityY = 0
+			entity.resumeTileListeners(game)
+		},
+		update(game: UpdateContext) {
+			const sx = entity.mostWestTile
+			const sy = entity.mostNorthTile
+			if (attempts++ > 10 || (sx === destinationX && sy === destinationY)) {
+				controller.pop()
+				return
+			}
+			const path = findPathDirectionsCoarseRectDestination(sx, sy,
+				destinationX, destinationY,
+				destinationX - range, destinationY - range,
+				destinationX + range, destinationY + range,
+				game.walkableTester)
+			if (path.length > 0)
+				controller.push(goingPath(path, entity, controller, game)).update(game)
+			else
+				controller.pop()
+		},
+		handleCommand(command: PlayerCommand, _: GameInstance) {
+			controller.pop()
+			controller.get().handleCommand(command, _)
+		},
+	}
+}
+
 const goingPath = (path: FacingDirection[], entity: ArcherImpl, controller: State2Controller<ArcherState>, game: GameInstance): ArcherState => {
 	const debugObject = {
 		current: 0,
@@ -94,18 +159,14 @@ const goingPath = (path: FacingDirection[], entity: ArcherImpl, controller: Stat
 		path: path,
 	} as DebugPath
 
+	entity.entitiesWithinSightRange.clear()
 	game.tiles.removeListenerFromAllTiles(entity)
 	entity.currentAnimation = entity.walkingAnimation
 	Renderer.DEBUG_PATHS.add(debugObject)
 	let delayedCommand: PlayerCommand
 	return {
 		onPop() {
-			entity.resumeTileListeners(game)
 			Renderer.DEBUG_PATHS.delete(debugObject)
-			entity.currentAnimation = entity.standingAnimation
-			entity.currentAnimationFrame = 0
-			entity.sourceDrawY = 0
-			entity.spriteVelocityX = entity.spriteVelocityY = 0
 		},
 		update(game: UpdateContext) {
 			if (debugObject.current < path.length && !delayedCommand) {
@@ -116,6 +177,8 @@ const goingPath = (path: FacingDirection[], entity: ArcherImpl, controller: Stat
 				controller.pop()
 				if (delayedCommand != null)
 					controller.get().handleCommand(delayedCommand, game)
+				else
+					controller.get().update(game)
 			}
 		},
 		handleCommand(command: PlayerCommand, _: GameInstance) {
@@ -138,7 +201,7 @@ const goingTile = (dir: FacingDirection, entity: ArcherImpl, controller: State2C
 			},
 			onPop() {
 			},
-			handleCommand(_,__) {
+			handleCommand(_, __) {
 				// controller.get().handleCommand(command, game)
 			},
 		}
@@ -195,7 +258,8 @@ const goingTile = (dir: FacingDirection, entity: ArcherImpl, controller: State2C
 const attackingState = (entity: ArcherImpl,
                         controller: State2Controller<ArcherState>,
                         target: PossibleAttackTarget): ArcherState => {
-	let reloading = 5
+
+	let reloading = 6
 
 	const setUpAttackingEntityRotation = () => {
 		const startPosX = entity.hitBoxCenterX * 32
@@ -216,13 +280,27 @@ const attackingState = (entity: ArcherImpl,
 	let lastTargetY = target.mostNorthTile
 	setUpAttackingEntityRotation()
 
-	let isOutOfRange: boolean = false
+	const unitRange = entity.attackRangeAmount
+	const targetSizeBonus = target.tileOccupySize - 1
+	let isOutOfRange: boolean = !isInRectRange(target.hitBoxCenterX, target.hitBoxCenterY,
+		entity.mostWestTile - unitRange,
+		entity.mostNorthTile - unitRange,
+		unitRange * 2 + targetSizeBonus + 1,
+		unitRange * 2 + targetSizeBonus + 1)
+
 	return {
-		entityEnteredRange(which: Entity) {
-			if (target === which)
-				isOutOfRange = false
+		entityEnteredSightRange(which: PossibleAttackTarget) {
+			if (target === which) {
+				if (isInRectRange(target.hitBoxCenterX, target.hitBoxCenterY,
+					entity.mostWestTile - unitRange,
+					entity.mostNorthTile - unitRange,
+					unitRange * 2 + targetSizeBonus + 1,
+					unitRange * 2 + targetSizeBonus + 1)) {
+					isOutOfRange = false
+				}
+			}
 		},
-		entityLeftRange(which: Entity) {
+		entityLeftSightRange(which: Entity) {
 			if (which === target)
 				isOutOfRange = true
 		},
@@ -238,6 +316,9 @@ const attackingState = (entity: ArcherImpl,
 		update(ctx: UpdateContext) {
 			if (isOutOfRange) {
 				controller.pop()
+				controller.push(goingAndFindingPathRange(entity, controller, ctx,
+					target.hitBoxCenterX | 0, target.hitBoxCenterY | 0,
+					unitRange + targetSizeBonus))
 				return
 			}
 			if (--reloading > 0) return
@@ -259,8 +340,9 @@ export class ArcherImpl extends Entity
 		MovingDrawableComponent, AnimatableDrawableComponent,
 		TilesIncumbentComponent, DamageableComponent,
 		PlayerCommandTakerComponent, TileListenerComponent,
-		SelfLifecycleObserverComponent {
-	static components = new Set<ComponentNameType>(['SelfLifecycleObserverComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
+		SelfLifecycleObserverComponent, AttackRangeComponent,
+		SightComponent {
+	static components = new Set<ComponentNameType>(['AttackRangeComponent', 'SightComponent', 'SelfLifecycleObserverComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent'])
 
 	destinationDrawX: number = -18
 	destinationDrawY: number = -18
@@ -272,12 +354,14 @@ export class ArcherImpl extends Entity
 	tileOccupySize: number = 1
 	texture: CanvasImageSource = registry[0]
 	currentAnimationFrame: number = 0
-	myTeamId: number = 0
+	myForce: Force = neutralForce
 	currentAnimation: AnimationFrames = standardStandingAnimationFrames
 	mostWestTile: number = 0
 	mostNorthTile: number = 0
 	canAcceptCommands: true = true
 	public unitMovingSpeed: number = 9
+	public sightAmount: number = 4
+	public attackRangeAmount: number = 3
 	subscribedToTiles: Set<Tile> = new Set()
 
 	public walkingAnimation: AnimationFrames = standardWalkingAnimationFrames
@@ -285,7 +369,7 @@ export class ArcherImpl extends Entity
 	public attackingAnimation: AnimationFrames = standardArcherAttackingAnimationFrames
 
 	render = PredefinedDrawableComponent_render
-	public entitiesWithinRange: Set<PossibleAttackTarget> = new Set()
+	public entitiesWithinSightRange: Set<PossibleAttackTarget> = new Set()
 	public reloading: number = 0
 	private state = createState2<ArcherState>(c => idleState(this, c))
 	updateState = this.state.execute
@@ -300,10 +384,19 @@ export class ArcherImpl extends Entity
 
 	resumeTileListeners(game: GameInstance) {
 		const entity = this
-		entity.entitiesWithinRange = game.tiles.addListenersForRectAndGet(entity.mostWestTile - 4, entity.mostNorthTile - 4, 9, 9, entity, (obj => {
-			const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
-			return teamId !== undefined && teamId !== entity.myTeamId
-		}))
+		const sightBoxSize = entity.sightAmount * 2 + 1
+		entity.entitiesWithinSightRange = game.tiles.addListenersForRectAndGet(
+			entity.mostWestTile - entity.sightAmount,
+			entity.mostNorthTile - entity.sightAmount,
+			sightBoxSize, sightBoxSize,
+			entity, (obj => {
+				const teamId = (obj as unknown as PossibleAttackTarget).myForce
+				return teamId !== undefined && teamId !== entity.myForce
+			}))
+		const value: PossibleAttackTarget = entity.entitiesWithinSightRange.values().next().value
+		if (value != null) {
+			this.state.get().entityEnteredSightRange?.(value)
+		}
 	}
 
 	entityCreated(game: GameInstance): void {
@@ -319,15 +412,15 @@ export class ArcherImpl extends Entity
 	                                occupiedByPrevious: (Entity & TilesIncumbentComponent) | undefined,
 	                                occupiedByNow: (Entity & TilesIncumbentComponent) | undefined) {
 		if (occupiedByPrevious != null) {
-			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
-			this.state.get().entityLeftRange?.(occupiedByPrevious)
+			this.entitiesWithinSightRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
+			this.state.get().entityLeftSightRange?.(occupiedByPrevious)
 		}
 
 		if (occupiedByNow != null) {
-			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myTeamId
-			if (teamId !== undefined && teamId !== this.myTeamId) {
-				this.entitiesWithinRange.add(occupiedByNow as PossibleAttackTarget)
-				this.state.get().entityEnteredRange?.(occupiedByNow)
+			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myForce
+			if (this.myForce.isAggressiveTowards(teamId)) {
+				this.entitiesWithinSightRange.add(occupiedByNow as PossibleAttackTarget)
+				this.state.get().entityEnteredSightRange?.(occupiedByNow)
 			}
 		}
 	}

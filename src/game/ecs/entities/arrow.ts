@@ -25,7 +25,7 @@ export class ArrowImpl extends Entity
 	spriteSize: number = 40
 	texture: CanvasImageSource = registry[5]
 	currentAnimationFrame: number = 0
-	myTeamId: number = 0
+	myForce: number = 0
 
 
 	render = PredefinedDrawableComponent_render

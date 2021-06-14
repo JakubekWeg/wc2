@@ -32,5 +32,8 @@ export const doNothingCallback = () => {
 }
 
 export const isInRectRange = (px: number, py: number, l: number, t: number, w: number, h: number): boolean => {
-	return px >= l && px <= l + w && py >= t && py < t + h
+	return isInRectRange2(px, py, l, t, l + w, t + h)
+}
+export const isInRectRange2 = (px: number, py: number, l: number, t: number, r: number, b: number): boolean => {
+	return px >= l && px < r && py >= t && py < b
 }

@@ -12,6 +12,7 @@ import {
 	TilesIncumbentComponent,
 	UpdateContext,
 } from '../components'
+import { Force, neutralForce } from '../force'
 import { Tile } from '../systems/tiles-system'
 import { Entity } from '../world'
 import { ArrowImpl } from './arrow'
@@ -21,7 +22,7 @@ export class GuardTowerImpl extends Entity
 	implements PredefinedDrawableComponent, TilesIncumbentComponent, TileListenerComponent, SelfLifecycleObserverComponent, StateMachineHolderComponent, DamageableComponent {
 	static components = new Set<ComponentNameType>(['DrawableBaseComponent', 'TilesIncumbentComponent', 'TileListenerComponent', 'SelfLifecycleObserverComponent', 'StateMachineHolderComponent', 'DamageableComponent'])
 
-	myTeamId: number = 0
+	myForce: Force = neutralForce
 	destinationDrawX: number = 0
 	destinationDrawY: number = 0
 	sourceDrawX: number = 0
@@ -47,8 +48,8 @@ export class GuardTowerImpl extends Entity
 			this.entitiesWithinRange.delete(occupiedByPrevious as unknown as PossibleAttackTarget)
 
 		if (occupiedByNow != null) {
-			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myTeamId
-			if (teamId !== undefined && teamId !== this.myTeamId) {
+			const teamId = (occupiedByNow as unknown as PossibleAttackTarget).myForce
+			if (teamId !== undefined && teamId !== this.myForce) {
 				this.entitiesWithinRange.add(occupiedByNow as PossibleAttackTarget)
 			}
 		}
@@ -80,8 +81,8 @@ export class GuardTowerImpl extends Entity
 			size + size + selfSize,
 			size + size + selfSize,
 			entity, (obj => {
-			const teamId = (obj as unknown as PossibleAttackTarget).myTeamId
-			return teamId !== undefined && teamId !== entity.myTeamId
+			const teamId = (obj as unknown as PossibleAttackTarget).myForce
+			return teamId !== undefined && teamId !== entity.myForce
 		}))
 	}
 
