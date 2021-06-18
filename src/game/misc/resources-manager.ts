@@ -1,4 +1,3 @@
-export type TextureId = number
 export const registry: CanvasImageSource[] = []
 export type TextureType = 'unit' | 'tileset' | 'arrow'
 const newEntry = (name: string, type: TextureType) => {

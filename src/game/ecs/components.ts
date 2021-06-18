@@ -1,8 +1,9 @@
 import { GameInstance } from '../game-instance'
 import { AnimationFrames } from './entities/common'
 import { Force } from './force'
+import { State, StateController, StateDeserializeContext } from './states/state'
 import { Tile } from './systems/tiles-system'
-import { Entity } from './world'
+import World, { Entity } from './world'
 
 export type ComponentNameType =
 	'DrawableBaseComponent'
@@ -17,6 +18,9 @@ export type ComponentNameType =
 	| 'PlayerCommandTakerComponent'
 	| 'SightComponent'
 	| 'AttackRangeComponent'
+	| 'UnitAnimationsComponent'
+	| 'MovingUnitComponent'
+	| 'SerializableComponent'
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 
@@ -26,7 +30,6 @@ export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 export interface DrawableBaseComponent {
 	render: RenderFunction
 }
-
 
 /**
  * Component for rendering drawable on the screen that may change it's properties, but they are defined
@@ -69,21 +72,21 @@ export interface AnimatableDrawableComponent extends PredefinedDrawableComponent
 	currentAnimation: AnimationFrames
 }
 
-/**
- * Object passed to each and every state update
- */
-// export interface UpdateContext {
-// 	readonly game: GameInstance
-// }
-export type UpdateContext = GameInstance
+export interface MovingUnitComponent extends TilesIncumbentComponent {
+	unitMovingSpeed: number
+}
 
-export type UpdateStateMachineFunction = (ctx: UpdateContext) => void
+export interface UnitAnimationsComponent extends AnimatableDrawableComponent, MovingUnitComponent {
+	standingAnimation: AnimationFrames
+	walkingAnimation: AnimationFrames
+	attackingAnimation: AnimationFrames
+}
 
 /**
  * Component for entities that needs to be updated every frame
  */
-export interface StateMachineHolderComponent {
-	updateState: UpdateStateMachineFunction
+export interface StateMachineHolderComponent<T extends State = State> {
+	myCurrentState: StateController<T>
 }
 
 
@@ -95,8 +98,6 @@ export interface TilesIncumbentComponent {
 	mostNorthTile: number
 	tileOccupySize: number
 }
-
-export type TeamId = number
 
 export type PossibleAttackTarget = Entity & TilesIncumbentComponent & DamageableComponent
 
@@ -136,7 +137,6 @@ export interface TileListenerComponent {
 	onListenedTileOccupationChanged: TileOccupationChangedCallback
 }
 
-
 /**
  * Component for entities that want to execute custom code after they are initialized and before they are removed
  */
@@ -145,7 +145,6 @@ export interface SelfLifecycleObserverComponent {
 
 	entityRemoved(game: GameInstance): void
 }
-
 
 export type PlayerCommandType = 'go'
 
@@ -158,8 +157,16 @@ export interface PlayerCommand {
 /**
  * Component for entities that may be ordered by player to do certain action like go, stop, attack etc
  */
-export interface PlayerCommandTakerComponent {
-	canAcceptCommands: true,
+export interface PlayerCommandTakerComponent extends StateMachineHolderComponent {
+	canAcceptCommands: true
+}
 
-	accept(command: PlayerCommand, game: GameInstance): void
+export interface DeserializationUnitContext {
+	game: GameInstance,
+	world: World,
+}
+export interface SerializableComponent {
+	serializeToJson(): unknown
+	deserializeFromJson(data: any): void
+	postSetup(ctx: DeserializationUnitContext, data: any): void
 }

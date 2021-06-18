@@ -67,13 +67,12 @@ export class Renderer {
 		this.hasFocus = focus
 	}
 
-	private nextFrame() {
+	private nextFrame(time: number) {
 		if (!this.enabled) return
 		requestAnimationFrame(this.nextFrameBind)
-		const now = Date.now()
-		const delta = now - this.lastFrameTime
+		const delta = time - this.lastFrameTime
 		// if (delta < 100) return
-		this.lastFrameTime = now
+		this.lastFrameTime = time
 
 		if (!this.hasFocus) {
 			const context = this.context
@@ -101,6 +100,7 @@ export class Renderer {
 					}
 				}
 
+				const now = Date.now()
 				for (let e of game.delayedHideEntities()) {
 					if (e.hideMeAtMillis <= now)
 						e.render = doNothingCallback

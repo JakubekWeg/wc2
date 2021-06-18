@@ -1,0 +1,14 @@
+{
+  "entities": {
+    "archer": {
+      "prototype": "unit",
+      "prototypeData": {
+        "ai": "warrior",
+        "spriteSize": 72,
+        "unitMovingSpeed": 1,
+        "attackRangeAmount": 3,
+        "sightAmount": 5
+      }
+    }
+  }
+}

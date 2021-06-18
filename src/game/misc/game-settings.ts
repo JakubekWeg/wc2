@@ -1,7 +1,9 @@
+import { EntityType } from '../ecs/world'
+
 interface GameSettings {
 	mapWidth: number
 	mapHeight: number
-	chunkSize: number
+	entityTypes: EntityType[]
 }
 
 export default GameSettings

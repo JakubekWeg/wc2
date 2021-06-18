@@ -4,7 +4,6 @@ import {
 	DamageableComponent,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
-	TeamId,
 	TilesIncumbentComponent,
 } from '../components'
 import { Force, neutralForce } from '../force'

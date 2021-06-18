@@ -1,15 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
-import { PlayerCommandTakerComponent } from './game/ecs/components'
+import Game from './Game'
+import { createEntityType } from './game/ecs/entities/composer'
 import { GameInstance } from './game/game-instance'
 import GameSettings from './game/misc/game-settings'
-import { DebugOptions, Renderer } from './game/renderer'
-
-const settings: GameSettings = {
-	mapWidth: 40,
-	mapHeight: 20,
-	chunkSize: 4,
-}
+import { DebugOptions } from './game/renderer'
 
 const debugOptions: DebugOptions = {
 	showTilesOccupation: false,
@@ -19,99 +14,44 @@ const debugOptions: DebugOptions = {
 }
 
 function App() {
-	const [renderer] = useState(new Renderer(settings))
-	const [gameInstance] = useState(new GameInstance(settings))
-	const [width, setWidth] = useState(window.innerWidth)
-	const [height, setHeight] = useState(window.innerHeight)
-
+	const [gameInstance, setGameInstance] = useState<GameInstance>()
 	useEffect(() => {
-		gameInstance.startGame()
-		return () => gameInstance.stopGame()
+		(async () => {
+			const settings: GameSettings = {
+				mapWidth: 40,
+				mapHeight: 20,
+				entityTypes: [],
+			}
+			const response = await (await fetch('/entities-description.json')).json()
+			for (const key in response.entities) {
+				if (response.entities.hasOwnProperty(key)) {
+					const description = response.entities[key]
+					const type = createEntityType(key, description)
+					settings.entityTypes.push(type)
+				}
+			}
+			setGameInstance(GameInstance.createNewGame(settings))
+		})()
+	}, [])
+
+	const reload = useCallback(() => {
+		if (gameInstance) {
+			setGameInstance(undefined)
+			const x = localStorage.getItem('last-save')
+			if (x) {
+				const save = JSON.parse(x)
+				const game = GameInstance.loadGameFromObj(gameInstance.settings.entityTypes, save)
+				setGameInstance(game)
+			}
+		}
 	}, [gameInstance])
 
-	useEffect(() => {
-		renderer.updateDebugOptions(debugOptions)
-		renderer.setGameInstance(gameInstance)
-		renderer.setSize(width, height)
-	}, [renderer, width, height, gameInstance])
-
-	useEffect(() => {
-		const resizeCallback = () => {
-			const w = window.innerWidth / 2 | 0
-			const h = window.innerHeight / 2 | 0
-			setWidth(w)
-			setHeight(h)
-			renderer.setSize(w, h)
-		}
-		window.addEventListener('resize', resizeCallback, {passive: true})
-		return () => window.removeEventListener('resize', resizeCallback)
-	}, [setWidth, setHeight, renderer])
-
-	useEffect(() => {
-		const focusCallback = () => renderer.setPageFocused(true)
-		const blurCallback = () => renderer.setPageFocused(false)
-		const keyPressCallback = (ev: KeyboardEvent) => {
-			switch (ev.code) {
-				case 'Digit1':
-					debugOptions.showTilesOccupation = !debugOptions.showTilesOccupation
-					break
-				case 'Digit2':
-					debugOptions.showPaths = !debugOptions.showPaths
-					break
-				case 'Digit3':
-					debugOptions.showChunkBoundaries = !debugOptions.showChunkBoundaries
-					break
-				case 'Digit4':
-					debugOptions.showTileListenersCount = !debugOptions.showTileListenersCount
-					break
-			}
-			renderer.updateDebugOptions(debugOptions)
-		}
-		window.addEventListener('focus', focusCallback, {passive: true})
-		window.addEventListener('blur', blurCallback, {passive: true})
-		window.addEventListener('keypress', keyPressCallback, {passive: false})
-		return () => {
-			window.removeEventListener('focus', focusCallback)
-			window.removeEventListener('blur', blurCallback)
-			window.removeEventListener('keypress', keyPressCallback)
-		}
-	}, [renderer])
-
-	const canvasRefCallback = useCallback((canvas: HTMLCanvasElement) => {
-		renderer.setCanvas(canvas)
-	}, [renderer])
-
-	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
-		ev.preventDefault()
-		gameInstance.dispatchNextTick((world) => {
-			let x = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
-			if (x?.canAcceptCommands) {
-				x.accept({
-					type: 'go',
-					targetX: ev.clientX / 32 / 2 | 0,
-					targetY: ev.clientY / 32 / 2 | 0,
-				}, gameInstance)
-			}
-
-			x = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
-			if (x?.canAcceptCommands) {
-				x.accept({
-					type: 'go',
-					targetX: ev.clientX / 32 / 2 | 0,
-					targetY: ev.clientY / 32 / 2 | 0,
-				}, gameInstance)
-			}
-		})
-	}, [gameInstance])
-
+	if (!gameInstance)
+		return (<p>Loading...</p>)
 	return (
 		<div className="App">
-			<canvas ref={canvasRefCallback}
-			        onClick={onClicked}
-			        onContextMenu={onClicked}
-			        width={width}
-			        height={height}
-			        style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>
+			<Game debugOptions={debugOptions} settings={gameInstance.settings} reloadRequested={reload}
+			      gameInstance={gameInstance}/>
 		</div>
 	)
 }

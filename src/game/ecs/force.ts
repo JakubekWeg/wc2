@@ -27,4 +27,4 @@ export const neutralForce: Force = new class extends ForceImpl {
 	isAggressiveTowards(other?: Force): boolean {
 		return false
 	}
-}
+}()

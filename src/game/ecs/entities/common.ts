@@ -1,3 +1,7 @@
+import { GameInstance } from '../../game-instance'
+import { PlayerCommand, PredefinedDrawableComponent } from '../components'
+import { UnitPrototype } from './composer'
+
 export type AnimationFrames = number[]
 
 export const standardWalkingAnimationFrames: AnimationFrames = [
@@ -37,3 +41,8 @@ export const isInRectRange = (px: number, py: number, l: number, t: number, w: n
 export const isInRectRange2 = (px: number, py: number, l: number, t: number, r: number, b: number): boolean => {
 	return px >= l && px < r && py >= t && py < b
 }
+
+// export const PlayerCommandTakerComponent_acceptByUnit = function (this: UnitPrototype,
+//                                                                   command: PlayerCommand, game: GameInstance) {
+// 	this.updateState()
+// }
