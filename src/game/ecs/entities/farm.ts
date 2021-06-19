@@ -1,3 +1,4 @@
+import { Force, neutralForce } from '../../forces-manager'
 import { registry } from '../../misc/resources-manager'
 import {
 	ComponentNameType,
@@ -6,8 +7,8 @@ import {
 	PredefinedDrawableComponent_render,
 	TilesIncumbentComponent,
 } from '../components'
-import { Force, neutralForce } from '../force'
 import { Entity } from '../world'
+
 
 export class FarmImpl extends Entity
 	implements PredefinedDrawableComponent, TilesIncumbentComponent, DamageableComponent {

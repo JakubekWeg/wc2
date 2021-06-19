@@ -40,7 +40,7 @@ function App() {
 			// load keyframes
 			for (const [key, obj] of config.child('animations').objectEntries()) {
 				const frames: AnimationFrames = obj.getAsNotEmptyListOfNonNegativeIntegers()
-				config.setRegistryValue('animations', key, frames)
+				config.setRegistryValue('animation', key, frames)
 			}
 
 

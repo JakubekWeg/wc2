@@ -390,7 +390,7 @@ class GoingTileState implements State {
 	                               entity: UnitPrototype,
 	                               controller: StateController<UnitState>,
 	                               game: GameInstance): State {
-		entity.sourceDrawX = direction * 72
+		entity.sourceDrawX = direction * entity.spriteSize
 		const [ox, oy] = facingDirectionToVector(direction)
 
 		if (!game.tiles.moveOccupationAtOnce(entity.mostWestTile,
@@ -412,11 +412,11 @@ class GoingTileState implements State {
 
 	public static deserialize(ctx: StateDeserializeContext, data: Config) {
 		const direction: number = data.requireInt('direction')
-		const entity = ctx.entity
+		const entity = ctx.entity as UnitPrototype
 		const ticksToMoveThisField: number = data.requireInt('ticksToMoveThisField')
-		entity.sourceDrawX = direction * 72
-		entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
-		entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
+		entity.sourceDrawX = direction * entity.spriteSize
+		entity.destinationDrawX = (entity.mostWestTile * 32 - entity.spriteSize / 4) | 0
+		entity.destinationDrawY = (entity.mostNorthTile * 32 - entity.spriteSize / 4) | 0
 		return new GoingTileState(direction, entity, ctx.controller,
 			data.requireInt('progress'),
 			ticksToMoveThisField,
@@ -511,7 +511,7 @@ class AttackingState implements State {
 	public static create(entity: UnitPrototype,
 	                     controller: StateController<UnitState>,
 	                     target: PossibleAttackTarget) {
-		return new AttackingState(entity, controller, target, 6)
+		return new AttackingState(entity, controller, target, entity.loadDuration)
 	}
 
 	public static deserialize(ctx: StateDeserializeContext, data: Config) {
@@ -544,8 +544,6 @@ class AttackingState implements State {
 			unitRange * 2 + targetSizeBonus + 1)) {
 
 			this.controller.pop()
-			// reloading = 6
-			// controller.replace(attackingState(entity, controller, target))
 			this.controller.push(GoingAndFindingPathAreaState.create(entity,
 				this.controller,
 				target.hitBoxCenterX | 0,
@@ -560,7 +558,7 @@ class AttackingState implements State {
 		// 	lastTargetY = target.mostNorthTile
 		// }
 		if (--this.reloading > 0) return
-		this.reloading = 7
+		this.reloading = entity.reloadDuration
 		console.warn('SHOOT')
 		// shoot it!
 		// ArrowImpl.spawn(game.world, entity, target)

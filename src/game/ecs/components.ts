@@ -1,8 +1,8 @@
 import Config from '../../config/config'
+import { Force } from '../forces-manager'
 import { GameInstanceImpl } from '../game-instance'
 import { AnimationFrames } from './entities/common'
-import { Force } from './force'
-import { State, StateController, StateDeserializeContext } from './states/state'
+import { State, StateController } from './states/state'
 import { Tile } from './systems/tiles-system'
 import World, { Entity } from './world'
 
@@ -18,7 +18,7 @@ export type ComponentNameType =
 	| 'DamageableComponent'
 	| 'PlayerCommandTakerComponent'
 	| 'SightComponent'
-	| 'AttackRangeComponent'
+	| 'AttackComponent'
 	| 'UnitAnimationsComponent'
 	| 'MovingUnitComponent'
 	| 'SerializableComponent'
@@ -121,8 +121,10 @@ export interface SightComponent extends TilesIncumbentComponent {
 /**
  * Component for entities that can deal damage
  */
-export interface AttackRangeComponent extends TilesIncumbentComponent, DamageableComponent {
+export interface AttackComponent extends TilesIncumbentComponent, DamageableComponent {
 	attackRangeAmount: number
+	reloadDuration: number
+	loadDuration: number
 }
 
 export type TileOccupationChangedCallback = (listener: Entity & TileListenerComponent,
@@ -166,8 +168,14 @@ export interface DeserializationUnitContext {
 	game: GameInstanceImpl,
 	world: World,
 }
+
+/**
+ * Component for entities that may be serialized and deserialized
+ */
 export interface SerializableComponent {
 	serializeToJson(): unknown
+
 	deserializeFromObject(data: Config): void
+
 	postSetup(ctx: DeserializationUnitContext, data: Config): void
 }

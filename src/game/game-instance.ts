@@ -12,6 +12,7 @@ import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system
 import TileSystem from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
 import World, { createSimpleListIndex, Entity, EntityType } from './ecs/world'
+import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
 import { ResourcesManager } from './misc/resources-manager'
 
@@ -43,6 +44,7 @@ export interface GameInstance {
 	readonly walkableTester: (x: number, y: number) => boolean
 
 	readonly resources: ResourcesManager
+	readonly forces: ForcesManager
 
 	startGame(): void
 
@@ -81,7 +83,8 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	private lastIntervalId: number = -1
 
 	private constructor(public readonly settings: GameSettings,
-	                    public readonly resources: ResourcesManager) {
+	                    public readonly resources: ResourcesManager,
+	                    public readonly forces: ForcesManager) {
 		// @ts-ignore
 		window.game = this
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
@@ -118,7 +121,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 	public static createNewGame(settings: GameSettings,
 	                            resources: ResourcesManager): GameInstanceImpl {
-		return new GameInstanceImpl(settings, resources)
+		return new GameInstanceImpl(settings, resources, ForcesManager.createNew())
 	}
 
 	public static loadGameFromObj(entityTypes: EntityType[],
@@ -129,7 +132,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapWidth: obj.requirePositiveInt('mapWidth'),
 			entityTypes: [...entityTypes],
 		}
-		const game = new GameInstanceImpl(settings, resources)
+		const game = new GameInstanceImpl(settings, resources, ForcesManager.deserialize(obj.child('forces')))
 
 		const entities: [Entity & SerializableComponent, Config][] = []
 		for (const [key, description] of obj.child('entities').objectEntries()) {
@@ -207,6 +210,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapWidth: this.settings.mapWidth,
 			mapHeight: this.settings.mapHeight,
 			entities: {},
+			forces: this.forces.serialize(),
 		}
 
 		for (const entity of this.serializableEntities()) {

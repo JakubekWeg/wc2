@@ -9,7 +9,8 @@
           "stand": "@animation/stand-zero",
           "attack": "@animation/elven-archer-attack"
         },
-        "reloadDuration": 6,
+        "reloadDuration": 7,
+        "firstAttackLoadDuration": 6,
         "unitMovingSpeed": 9,
         "attackRangeAmount": 3,
         "sightAmount": 5

@@ -1,8 +1,9 @@
 import Config from '../../../config/config'
-import { registry, ResourcesManager } from '../../misc/resources-manager'
+import { Force, neutralForce } from '../../forces-manager'
+import { ResourcesManager } from '../../misc/resources-manager'
 import {
 	AnimatableDrawableComponent,
-	AttackRangeComponent,
+	AttackComponent,
 	ComponentNameType,
 	DamageableComponent,
 	DeserializationUnitContext,
@@ -18,17 +19,11 @@ import {
 	TilesIncumbentComponent,
 	UnitAnimationsComponent,
 } from '../components'
-import { Force, neutralForce } from '../force'
 import { createAiState } from '../states/basic-unit-ai'
 import { createState, deserializeUnitState, nullState } from '../states/state'
 import { Tile } from '../systems/tiles-system'
 import { Entity, EntityType } from '../world'
-import {
-	AnimationFrames,
-	standardArcherAttackingAnimationFrames,
-	standardStandingAnimationFrames,
-	standardWalkingAnimationFrames,
-} from './common'
+import { AnimationFrames } from './common'
 
 
 export type UnitPrototype = Entity & (
@@ -36,7 +31,7 @@ export type UnitPrototype = Entity & (
 	MovingDrawableComponent & AnimatableDrawableComponent &
 	TilesIncumbentComponent & DamageableComponent &
 	PlayerCommandTakerComponent & TileListenerComponent &
-	AttackRangeComponent & SightComponent
+	AttackComponent & SightComponent
 	& UnitAnimationsComponent & MovingUnitComponent
 	& SerializableComponent)
 
@@ -47,13 +42,18 @@ const createTypeForUnit = (prototypeId: string, description: Config, mgr: Resour
 	const unitMovingSpeed = data.requirePositiveInt('unitMovingSpeed')
 	const attackRangeAmount = data.requirePositiveInt('attackRangeAmount')
 	const sightAmount = data.requirePositiveInt('sightAmount')
+	const reloadTicks = data.requirePositiveInt('reloadDuration')
+	const firstLoadTicks = data.requirePositiveInt('firstAttackLoadDuration')
 	const {image, spriteSize} = mgr.getEntry(data.requireString('texture'))
+	const walkingAnimation = data.child('animations/walk').getAsNotEmptyListOfNonNegativeIntegers()
+	const standingAnimation = data.child('animations/stand').getAsNotEmptyListOfNonNegativeIntegers()
+	const attackingAnimation = data.child('animations/attack').getAsNotEmptyListOfNonNegativeIntegers()
 
 	const UnitClass = class extends Entity implements PredefinedDrawableComponent, StateMachineHolderComponent,
 		MovingDrawableComponent, AnimatableDrawableComponent,
 		TilesIncumbentComponent, DamageableComponent,
 		PlayerCommandTakerComponent, TileListenerComponent,
-		AttackRangeComponent, SightComponent
+		AttackComponent, SightComponent
 		, UnitAnimationsComponent, MovingUnitComponent, SerializableComponent {
 
 		destinationDrawX: number = -spriteSize / 4
@@ -64,22 +64,24 @@ const createTypeForUnit = (prototypeId: string, description: Config, mgr: Resour
 		spriteVelocityY: number = 0
 		currentAnimationFrame: number = 0
 		myForce: Force = neutralForce
-		currentAnimation: AnimationFrames = standardStandingAnimationFrames
+		currentAnimation: AnimationFrames = standingAnimation
 		mostWestTile: number = 0
 		mostNorthTile: number = 0
 		canAcceptCommands: true = true
 		tileOccupySize: number = 1
 		subscribedToTiles: Set<Tile> = new Set()
 
+		reloadDuration: number = reloadTicks
+		loadDuration: number = firstLoadTicks
 		spriteSize: number = spriteSize
 		unitMovingSpeed: number = unitMovingSpeed
 		sightAmount: number = sightAmount
 		attackRangeAmount: number = attackRangeAmount
 		texture: CanvasImageSource = image
 
-		walkingAnimation: AnimationFrames = standardWalkingAnimationFrames
-		standingAnimation: AnimationFrames = standardStandingAnimationFrames
-		attackingAnimation: AnimationFrames = standardArcherAttackingAnimationFrames
+		walkingAnimation: AnimationFrames = walkingAnimation
+		standingAnimation: AnimationFrames = standingAnimation
+		attackingAnimation: AnimationFrames = attackingAnimation
 
 		render = PredefinedDrawableComponent_render
 		myCurrentState = nullState()
@@ -120,6 +122,7 @@ const createTypeForUnit = (prototypeId: string, description: Config, mgr: Resour
 		}
 
 		postSetup(ctx: DeserializationUnitContext, data: Config): void {
+			this.myForce = ctx.game.forces.getForce(data.requireInt('force'))
 			this.destinationDrawX = this.mostWestTile * 32 - 18
 			this.destinationDrawY = this.mostNorthTile * 32 - 18
 			this.myCurrentState = deserializeUnitState(this, ctx.game, ctx.world, data.child('state'))
@@ -150,7 +153,7 @@ export const createEntityType = (id: string, description: Config, mgr: Resources
 	return {
 		id,
 		spawn: spawner,
-		componentNames: new Set<ComponentNameType>(['SerializableComponent', 'AttackRangeComponent', 'SightComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent']),
+		componentNames: new Set<ComponentNameType>(['SerializableComponent', 'AttackComponent', 'SightComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent']),
 	}
 }
 

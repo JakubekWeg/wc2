@@ -107,7 +107,6 @@ export class ResourcesManager {
 					const img = document.createElement('img')
 					img.onload = () => {
 						const size = entry.spriteSize
-						console.log({size})
 						canvas.width = 8 * size
 						canvas.height = img.height
 						const context = canvas.getContext('2d')!

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import {
+	DamageableComponent,
 	PlayerCommand,
 	PlayerCommandTakerComponent,
 	PredefinedDrawableComponent,
@@ -99,24 +100,22 @@ function Game({
 				switch (ev.button) {
 					case 0: {
 						// left button
-						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent)
+						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent)
 						archer.mostWestTile = x
 						archer.mostNorthTile = y
 						archer.destinationDrawX = x * 32 - 18
 						archer.destinationDrawY = y * 32 - 18
+						archer.myForce = gameInstance.forces.getForce(1)
 						break
 					}
 					case 2: {
 						//right click
-						let entity = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
-						if (entity?.canAcceptCommands) {
-							const command = {
-								type: 'go',
-								targetX: x,
-								targetY: y,
-							} as PlayerCommand
-							entity.myCurrentState.get().handleCommand(command, gameInstance)
-						}
+						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent)
+						archer.mostWestTile = x
+						archer.mostNorthTile = y
+						archer.destinationDrawX = x * 32 - 18
+						archer.destinationDrawY = y * 32 - 18
+						archer.myForce = gameInstance.forces.getForce(2)
 						break
 					}
 					case 1: {
@@ -141,7 +140,7 @@ function Game({
 		<canvas ref={canvasRefCallback}
 		        onClick={onClicked}
 		        onContextMenu={onClicked}
-		        onAuxClick={onClicked}
+		        // onAuxClick={onClicked}
 		        width={width}
 		        height={height}
 		        style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>
