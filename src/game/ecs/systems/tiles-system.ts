@@ -214,7 +214,7 @@ export default class TileSystem {
 	public updateRegistryCheck(x: number,
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): boolean {
-		this.validateCoords(x, y)
+		this.forceValidateCoords(x, y)
 		const tile = this.tiles[y * this.sizeX + x]
 		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
 			return false
@@ -233,8 +233,8 @@ export default class TileSystem {
 	                            sy: number,
 	                            dx: number,
 	                            dy: number): boolean {
-		this.validateCoords(sx, sy)
-		this.validateCoords(dx, dy)
+		this.forceValidateCoords(sx, sy)
+		this.forceValidateCoords(dx, dy)
 
 		const destination = this.tiles[dy * this.sizeX + dx]
 		if (destination.occupiedBy != null)
@@ -246,8 +246,35 @@ export default class TileSystem {
 		return true
 	}
 
-	private validateCoords(x: number, y: number) {
-		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+	/**
+	 * Moves occupation from one field to another
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity or coords are invalid
+	 * Returns true if field was updated successfully
+	 */
+	public moveOccupationAtOnceNoThrow(sx: number,
+	                            sy: number,
+	                            dx: number,
+	                            dy: number): boolean {
+		if (!this.checkCoords(sx, sy) || !this.checkCoords(dx, dy))
+			return false
+
+		const destination = this.tiles[dy * this.sizeX + dx]
+		if (destination.occupiedBy != null)
+			return false
+		const source = this.tiles[sy * this.sizeX + sx]
+		const tmp = source.occupiedBy
+		source.forceSetOccupiedByAndCallListeners(undefined)
+		destination.forceSetOccupiedByAndCallListeners(tmp)
+		return true
+	}
+
+	private forceValidateCoords(x: number, y: number) {
+		if (!this.checkCoords(x, y))
 			throw new Error(`Invalid tile index x=${x} y=${y}`)
+	}
+
+	private checkCoords(x: number, y: number) {
+		return !(x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+
 	}
 }

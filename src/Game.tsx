@@ -7,11 +7,13 @@ import {
 	PredefinedDrawableComponent,
 	TilesIncumbentComponent,
 } from './game/ecs/components'
+import { Entity } from './game/ecs/world'
 import { GameInstanceImpl } from './game/game-instance'
 import GameSettings from './game/misc/game-settings'
 import { DebugOptions, Renderer } from './game/renderer'
 
 
+let lastEntityId = 0
 function Game({
 	              settings,
 	              debugOptions,
@@ -100,27 +102,28 @@ function Game({
 				switch (ev.button) {
 					case 0: {
 						// left button
-						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent)
+						const archer = world.spawnEntity('catapult') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent & Entity)
+						lastEntityId = archer.id
 						archer.mostWestTile = x
 						archer.mostNorthTile = y
-						archer.destinationDrawX = x * 32 - 18
-						archer.destinationDrawY = y * 32 - 18
+						archer.destinationDrawX = x * 32 - (archer.spriteSize - 32) / 2
+						archer.destinationDrawY = y * 32 - (archer.spriteSize - 32) / 2
 						archer.myForce = gameInstance.forces.getForce(1)
 						break
 					}
-					case 2: {
+					case 1: {
 						//right click
-						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent)
+						const archer = world.spawnEntity('critter') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent)
 						archer.mostWestTile = x
 						archer.mostNorthTile = y
-						archer.destinationDrawX = x * 32 - 18
-						archer.destinationDrawY = y * 32 - 18
-						archer.myForce = gameInstance.forces.getForce(2)
+						archer.destinationDrawX = x * 32 - (archer.spriteSize - 32) / 2
+						archer.destinationDrawY = y * 32 - (archer.spriteSize - 32) / 2
+						// archer.myForce = gameInstance.forces.getForce(2)
 						break
 					}
-					case 1: {
+					case 2: {
 						//middle click
-						let entity = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
+						let entity = world.getSpawnedEntity(lastEntityId || 1) as unknown as PlayerCommandTakerComponent
 						if (entity?.canAcceptCommands) {
 							const command = {
 								type: 'go',
@@ -140,10 +143,10 @@ function Game({
 		<canvas ref={canvasRefCallback}
 		        onClick={onClicked}
 		        onContextMenu={onClicked}
-		        // onAuxClick={onClicked}
-		        width={width}
-		        height={height}
-		        style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>
+			// onAuxClick={onClicked}
+			    width={width}
+			    height={height}
+			    style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>
 	)
 }
 

@@ -1,5 +1,21 @@
 {
   "entities": {
+    "critter": {
+      "prototype": "unit",
+      "prototypeData": {
+        "texture": "critter",
+        "animations": {
+          "walk": "@animation/stand-zero",
+          "stand": "@animation/stand-zero",
+          "attack": "@animation/stand-zero"
+        },
+        "reloadDuration": 1,
+        "firstAttackLoadDuration": 1,
+        "unitMovingSpeed": 7,
+        "attackRangeAmount": 1,
+        "sightAmount": 1
+      }
+    },
     "archer": {
       "prototype": "unit",
       "prototypeData": {
@@ -15,11 +31,58 @@
         "attackRangeAmount": 3,
         "sightAmount": 5
       }
+    },
+    "catapult": {
+      "prototype": "unit",
+      "prototypeData": {
+        "texture": "catapult",
+        "animations": {
+          "walk": "@animation/catapult-go",
+          "stand": "@animation/stand-zero",
+          "attack": "@animation/catapult-attack"
+        },
+        "reloadDuration": 9,
+        "firstAttackLoadDuration": 1,
+        "unitMovingSpeed": 5,
+        "attackRangeAmount": 8,
+        "sightAmount": 9
+      }
+    },
+    "footman": {
+      "prototype": "unit",
+      "prototypeData": {
+        "texture": "footman",
+        "animations": {
+          "walk": "@animation/generic-walk",
+          "stand": "@animation/stand-zero",
+          "attack": "@animation/footman-attack"
+        },
+        "reloadDuration": 4,
+        "firstAttackLoadDuration": 2,
+        "unitMovingSpeed": 8,
+        "attackRangeAmount": 1,
+        "sightAmount": 4
+      }
     }
   },
   "textures": {
     "elven-archer": {
       "name": "elven_archer",
+      "type": "unit",
+      "spriteSize": 72
+    },
+    "critter": {
+      "name": "critter",
+      "type": "unit",
+      "spriteSize": 32
+    },
+    "catapult": {
+      "name": "catapult",
+      "type": "unit",
+      "spriteSize": 64
+    },
+    "footman": {
+      "name": "footman",
       "type": "unit",
       "spriteSize": 72
     }
@@ -52,6 +115,38 @@
       360,
       432,
       432
+    ],
+    "footman-attack": [
+      0,
+      0,
+      360,
+      432,
+      504,
+      576
+    ],
+    "catapult-go": [
+      0,
+      64
+    ],
+    "catapult-attack": [
+      128,
+      128,
+      128,
+      128,
+      128,
+      128,
+      192,
+      192,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
     ]
   }
 }

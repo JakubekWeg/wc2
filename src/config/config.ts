@@ -39,6 +39,12 @@ class Config {
 			throw new Error(`Expected integer in config file key=${key}, got value=${value}`)
 		return value
 	}
+	public requireNumber = (key: string): number => {
+		const value = this.getValueRaw(key)
+		if (typeof value !== 'number')
+			throw new Error(`Expected number in config file key=${key}, got value=${value}`)
+		return value
+	}
 
 	public requireString = (key: string): string => {
 		const value = this.getValueRaw(key)

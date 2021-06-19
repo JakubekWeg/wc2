@@ -15,6 +15,7 @@ import World, { createSimpleListIndex, Entity, EntityType } from './ecs/world'
 import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
 import { ResourcesManager } from './misc/resources-manager'
+import SeededRandom from './misc/seeded-random'
 
 const TICKS_PER_SECOND = 5
 export const MILLIS_BETWEEN_TICKS = 1000 / TICKS_PER_SECOND
@@ -45,6 +46,7 @@ export interface GameInstance {
 
 	readonly resources: ResourcesManager
 	readonly forces: ForcesManager
+	readonly random: SeededRandom
 
 	startGame(): void
 
@@ -84,7 +86,8 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 	private constructor(public readonly settings: GameSettings,
 	                    public readonly resources: ResourcesManager,
-	                    public readonly forces: ForcesManager) {
+	                    public readonly forces: ForcesManager,
+	                    public readonly random: SeededRandom) {
 		// @ts-ignore
 		window.game = this
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
@@ -121,7 +124,9 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 	public static createNewGame(settings: GameSettings,
 	                            resources: ResourcesManager): GameInstanceImpl {
-		return new GameInstanceImpl(settings, resources, ForcesManager.createNew())
+		return new GameInstanceImpl(settings, resources,
+			ForcesManager.createNew(),
+			SeededRandom.createWithRandomSeed())
 	}
 
 	public static loadGameFromObj(entityTypes: EntityType[],
@@ -132,7 +137,9 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapWidth: obj.requirePositiveInt('mapWidth'),
 			entityTypes: [...entityTypes],
 		}
-		const game = new GameInstanceImpl(settings, resources, ForcesManager.deserialize(obj.child('forces')))
+		const game = new GameInstanceImpl(settings, resources,
+			ForcesManager.deserialize(obj.child('forces')),
+			SeededRandom.deserialize(obj.child('random')))
 
 		const entities: [Entity & SerializableComponent, Config][] = []
 		for (const [key, description] of obj.child('entities').objectEntries()) {
@@ -141,15 +148,15 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			entities.push([entity, description])
 		}
 
+		game.ecs.resumeFromTick(
+			obj.requirePositiveInt('tick'),
+			obj.requirePositiveInt('nextEntityId'))
 		for (const [entity, description] of entities) {
 			entity.postSetup({
 				game: game,
 				world: game.ecs,
 			}, description)
 		}
-		game.ecs.resumeFromTick(
-			obj.requirePositiveInt('tick'),
-			obj.requirePositiveInt('nextEntityId'))
 		return game
 	}
 
@@ -211,6 +218,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapHeight: this.settings.mapHeight,
 			entities: {},
 			forces: this.forces.serialize(),
+			random: this.random.serialize()
 		}
 
 		for (const entity of this.serializableEntities()) {

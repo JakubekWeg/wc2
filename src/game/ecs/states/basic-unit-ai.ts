@@ -245,6 +245,7 @@ class GoingAndFindingPathAreaState implements State {
 	                    private readonly destinationY: number,
 	                    private readonly range: number,
 	                    private attempts: number) {
+		// console.log({destinationX, destinationY, range})
 	}
 
 
@@ -401,8 +402,8 @@ class GoingTileState implements State {
 		}
 
 		const ticksToMoveThisField = (ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.5 | 0) : (11 - entity.unitMovingSpeed)
-		entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
-		entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
+		entity.destinationDrawX = entity.mostWestTile * 32 - (entity.spriteSize - 32) / 2 | 0
+		entity.destinationDrawY = entity.mostNorthTile * 32 - (entity.spriteSize - 32) / 2 | 0
 		entity.spriteVelocityX = ox * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 		entity.spriteVelocityY = oy * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 		entity.mostWestTile += ox
@@ -503,7 +504,6 @@ class AttackingState implements State {
 	                    private readonly target: PossibleAttackTarget,
 	                    private reloading: number) {
 		entity.sourceDrawY = 0
-		entity.currentAnimation = entity.attackingAnimation
 		entity.currentAnimationFrame = 0
 		this.setUpAttackingEntityRotation()
 	}
@@ -551,6 +551,8 @@ class AttackingState implements State {
 				unitRange + targetSizeBonus)).update(game)
 			return
 		}
+		entity.currentAnimation = entity.attackingAnimation
+		this.setUpAttackingEntityRotation()
 
 		// if (lastTargetX !== target.mostWestTile || lastTargetY !== target.mostNorthTile) {
 		// 	setUpAttackingEntityRotation()
