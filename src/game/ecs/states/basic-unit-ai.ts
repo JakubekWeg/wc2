@@ -1,9 +1,9 @@
+import Config from '../../../config/config'
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
 import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination } from '../../misc/path-finder'
 import { DebugPath, Renderer } from '../../renderer'
 import { DamageableComponent, PlayerCommand, PossibleAttackTarget, TilesIncumbentComponent } from '../components'
-import { ArrowImpl } from '../entities/arrow'
 import { isInRectRange } from '../entities/common'
 import { UnitPrototype } from '../entities/composer'
 import { Entity } from '../world'
@@ -134,13 +134,15 @@ class CommandDelayerState implements State {
 	                    private delayedCommand?: PlayerCommand) {
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		return new CommandDelayerState(ctx.game, ctx.controller, data.delay, data.command)
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		return new CommandDelayerState(ctx.game, ctx.controller,
+			data.requireInt('delay'),
+			data.child('command').getRawObject() as PlayerCommand)
 	}
 
 	public static create(game: GameInstance,
-	              controller: StateController<UnitState>,
-	              delay: number) {
+	                     controller: StateController<UnitState>,
+	                     delay: number) {
 		return new CommandDelayerState(game, controller, delay)
 	}
 
@@ -191,8 +193,8 @@ class GoingAndFindingPathState implements State {
 		return new GoingAndFindingPathState(entity, controller, destinationX, destinationY, 0)
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		return new GoingAndFindingPathState(ctx.entity, ctx.controller, data.x, data.y, data.attempts)
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		return new GoingAndFindingPathState(ctx.entity, ctx.controller, data.requireInt('x'), data.requireInt('y'), data.requireInt('attempts'))
 	}
 
 	update(game: GameInstance) {
@@ -254,8 +256,9 @@ class GoingAndFindingPathAreaState implements State {
 		return new GoingAndFindingPathAreaState(entity, controller, destinationX, destinationY, range, 0)
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		return new GoingAndFindingPathAreaState(ctx.entity, ctx.controller, data.x, data.y, data.range, data.attempts)
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		return new GoingAndFindingPathAreaState(ctx.entity, ctx.controller,
+			data.requireInt('x'), data.requireInt('y'), data.requireInt('range'), data.requireInt('attempts'))
 	}
 
 	update(game: GameInstance) {
@@ -327,8 +330,11 @@ class GoingPathState implements State {
 		return new GoingPathState(path, entity, controller, 0, undefined)
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		return new GoingPathState(data.path, ctx.entity, ctx.controller, data.current, data.command)
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		return new GoingPathState(data.child('path').getAsListOfNonNegativeIntegers(),
+			ctx.entity, ctx.controller,
+			data.requireInt('current'),
+			data.child('command').getRawObject() as PlayerCommand)
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {
@@ -404,14 +410,17 @@ class GoingTileState implements State {
 		return new GoingTileState(direction, entity, controller, 0, ticksToMoveThisField, undefined)
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		const direction: number = data.direction
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		const direction: number = data.requireInt('direction')
 		const entity = ctx.entity
-		const ticksToMoveThisField: number = data.ticksToMoveThisField
+		const ticksToMoveThisField: number = data.requireInt('ticksToMoveThisField')
 		entity.sourceDrawX = direction * 72
 		entity.destinationDrawX = entity.mostWestTile * 32 - 18 | 0
 		entity.destinationDrawY = entity.mostNorthTile * 32 - 18 | 0
-		return new GoingTileState(direction, entity, ctx.controller, data.progress, ticksToMoveThisField, data.command)
+		return new GoingTileState(direction, entity, ctx.controller,
+			data.requireInt('progress'),
+			ticksToMoveThisField,
+			data.child('command').getRawObject() as PlayerCommand)
 	}
 
 	onPop(): void {
@@ -505,9 +514,9 @@ class AttackingState implements State {
 		return new AttackingState(entity, controller, target, 6)
 	}
 
-	public static deserialize(ctx: StateDeserializeContext, data: any) {
-		const entity = ctx.world.getSpawnedEntity(data.targetId) as PossibleAttackTarget
-		return new AttackingState(ctx.entity, ctx.controller, entity, data.reloading)
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		const entity = ctx.world.getSpawnedEntity(data.requirePositiveInt('targetId')) as PossibleAttackTarget
+		return new AttackingState(ctx.entity, ctx.controller, entity, data.requireInt('reloading'))
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {
@@ -554,7 +563,7 @@ class AttackingState implements State {
 		this.reloading = 7
 		console.warn('SHOOT')
 		// shoot it!
-		ArrowImpl.spawn(game.world, entity, target)
+		// ArrowImpl.spawn(game.world, entity, target)
 	}
 
 	serializeToJson(): unknown {

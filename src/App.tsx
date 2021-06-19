@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './App.css'
+import Config  from './config/config'
 import Game from './Game'
+import { AnimationFrames } from './game/ecs/entities/common'
 import { createEntityType } from './game/ecs/entities/composer'
-import { GameInstance } from './game/game-instance'
+import { GameInstanceImpl } from './game/game-instance'
 import GameSettings from './game/misc/game-settings'
+import { ResourcesManager, TextureType } from './game/misc/resources-manager'
 import { DebugOptions } from './game/renderer'
 
 const debugOptions: DebugOptions = {
@@ -14,7 +17,9 @@ const debugOptions: DebugOptions = {
 }
 
 function App() {
-	const [gameInstance, setGameInstance] = useState<GameInstance>()
+	const [resourceManager, setResourceManager] = useState<ResourcesManager>()
+	const [gameInstance, setGameInstance] = useState<GameInstanceImpl>()
+
 	useEffect(() => {
 		(async () => {
 			const settings: GameSettings = {
@@ -22,29 +27,46 @@ function App() {
 				mapHeight: 20,
 				entityTypes: [],
 			}
-			const response = await (await fetch('/entities-description.json')).json()
-			for (const key in response.entities) {
-				if (response.entities.hasOwnProperty(key)) {
-					const description = response.entities[key]
-					const type = createEntityType(key, description)
-					settings.entityTypes.push(type)
-				}
+
+			const mgr = new ResourcesManager()
+			const config = Config
+				.createConfigFromObject(await (await fetch('/entities-description.json')).json())
+
+			// load textures
+			await Promise.all(Array.from(config.child('textures').objectEntries())
+				.map(([key, obj]) => mgr
+					.addAsset(key, obj.requireString('name'), obj.requirePositiveInt('spriteSize'), obj.requireString('type') as TextureType)))
+
+			// load keyframes
+			for (const [key, obj] of config.child('animations').objectEntries()) {
+				const frames: AnimationFrames = obj.getAsNotEmptyListOfNonNegativeIntegers()
+				config.setRegistryValue('animations', key, frames)
 			}
-			setGameInstance(GameInstance.createNewGame(settings))
+
+
+			// load entity types
+			for (const [key, obj] of config.child('entities').objectEntries()) {
+				settings.entityTypes.push(createEntityType(key, obj, mgr))
+			}
+
+			setResourceManager(mgr)
+			setGameInstance(GameInstanceImpl.createNewGame(settings, mgr))
 		})()
 	}, [])
 
 	const reload = useCallback(() => {
+		if (resourceManager == null) return
 		if (gameInstance) {
 			setGameInstance(undefined)
 			const x = localStorage.getItem('last-save')
 			if (x) {
-				const save = JSON.parse(x)
-				const game = GameInstance.loadGameFromObj(gameInstance.settings.entityTypes, save)
+				const save = Config.createConfigFromObject(JSON.parse(x))
+				// const save = JSON.parse(x)
+				const game = GameInstanceImpl.loadGameFromObj(gameInstance.settings.entityTypes, resourceManager, save)
 				setGameInstance(game)
 			}
 		}
-	}, [gameInstance])
+	}, [gameInstance, resourceManager])
 
 	if (!gameInstance)
 		return (<p>Loading...</p>)

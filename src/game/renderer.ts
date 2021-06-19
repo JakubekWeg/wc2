@@ -6,7 +6,7 @@ import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { TileImpl } from './ecs/systems/tiles-system'
 import { Entity } from './ecs/world'
-import { GameInstance } from './game-instance'
+import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
 import GameSettings from './misc/game-settings'
 import { registry } from './misc/resources-manager'
@@ -29,7 +29,7 @@ export class Renderer {
 
 	private debugOptions: DebugOptions = {}
 	private enabled: boolean = false
-	private game?: GameInstance
+	private game?: GameInstanceImpl
 	private canvas?: HTMLCanvasElement
 	private context?: CanvasRenderingContext2D
 	private width: number = 0
@@ -47,7 +47,7 @@ export class Renderer {
 		this.reinitialize()
 	}
 
-	public setGameInstance(game?: GameInstance) {
+	public setGameInstance(game?: GameInstanceImpl) {
 		this.game = game
 		Renderer.DEBUG_PATHS.clear()
 	}
@@ -115,6 +115,8 @@ export class Renderer {
 					e.render(context)
 				}
 
+				// context.drawImage(game.resources.getImage('elven-archer'), 0, 0)
+				// context.drawImage(registry[0], 0, 0)
 
 				// if (now - this.lastAnimationTime > 40) {
 				// 	this.lastAnimationTime = now

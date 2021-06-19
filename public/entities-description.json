@@ -3,12 +3,54 @@
     "archer": {
       "prototype": "unit",
       "prototypeData": {
-        "ai": "warrior",
-        "spriteSize": 72,
-        "unitMovingSpeed": 1,
+        "texture": "elven-archer",
+        "animations": {
+          "walk": "@animation/generic-walk",
+          "stand": "@animation/stand-zero",
+          "attack": "@animation/elven-archer-attack"
+        },
+        "reloadDuration": 6,
+        "unitMovingSpeed": 9,
         "attackRangeAmount": 3,
         "sightAmount": 5
       }
     }
+  },
+  "textures": {
+    "elven-archer": {
+      "name": "elven_archer",
+      "type": "unit",
+      "spriteSize": 72
+    }
+  },
+  "animations": {
+    "stand-zero": [
+      0
+    ],
+    "generic-walk": [
+      0,
+      72,
+      144,
+      0,
+      288,
+      216,
+      288
+    ],
+    "elven-archer-attack": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      360,
+      360,
+      360,
+      360,
+      432,
+      432
+    ]
   }
 }

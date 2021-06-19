@@ -1,9 +1,11 @@
-import { registry } from '../../misc/resources-manager'
+import Config from '../../../config/config'
+import { registry, ResourcesManager } from '../../misc/resources-manager'
 import {
 	AnimatableDrawableComponent,
 	AttackRangeComponent,
 	ComponentNameType,
-	DamageableComponent, DeserializationUnitContext,
+	DamageableComponent,
+	DeserializationUnitContext,
 	MovingDrawableComponent,
 	MovingUnitComponent,
 	PlayerCommandTakerComponent,
@@ -18,7 +20,7 @@ import {
 } from '../components'
 import { Force, neutralForce } from '../force'
 import { createAiState } from '../states/basic-unit-ai'
-import { createState, deserializeUnitState, nullState, StateDeserializeContext } from '../states/state'
+import { createState, deserializeUnitState, nullState } from '../states/state'
 import { Tile } from '../systems/tiles-system'
 import { Entity, EntityType } from '../world'
 import {
@@ -38,20 +40,14 @@ export type UnitPrototype = Entity & (
 	& UnitAnimationsComponent & MovingUnitComponent
 	& SerializableComponent)
 
-const requirePositiveInt = (description: any, key: string): number => {
-	const value = description[key]
-	if (typeof value !== 'number' || value !== (value | 0) || value <= 0)
-		throw new Error(`Excepted positive integer in config file key=${key}, got value=${value}`)
-	return value
-}
 
-const createTypeForUnit = (prototypeId: string, description: any): () => Entity => {
+const createTypeForUnit = (prototypeId: string, description: Config, mgr: ResourcesManager): () => Entity => {
 
-	const data = description.prototypeData
-	const spriteSize = requirePositiveInt(data, 'spriteSize')
-	const unitMovingSpeed = requirePositiveInt(data, 'unitMovingSpeed')
-	const attackRangeAmount = requirePositiveInt(data, 'attackRangeAmount')
-	const sightAmount = requirePositiveInt(data, 'sightAmount')
+	const data = description.child('prototypeData')
+	const unitMovingSpeed = data.requirePositiveInt('unitMovingSpeed')
+	const attackRangeAmount = data.requirePositiveInt('attackRangeAmount')
+	const sightAmount = data.requirePositiveInt('sightAmount')
+	const {image, spriteSize} = mgr.getEntry(data.requireString('texture'))
 
 	const UnitClass = class extends Entity implements PredefinedDrawableComponent, StateMachineHolderComponent,
 		MovingDrawableComponent, AnimatableDrawableComponent,
@@ -60,8 +56,8 @@ const createTypeForUnit = (prototypeId: string, description: any): () => Entity 
 		AttackRangeComponent, SightComponent
 		, UnitAnimationsComponent, MovingUnitComponent, SerializableComponent {
 
-		destinationDrawX: number = -18
-		destinationDrawY: number = -18
+		destinationDrawX: number = -spriteSize / 4
+		destinationDrawY: number = -spriteSize / 4
 		sourceDrawX: number = 0
 		sourceDrawY: number = 0
 		spriteVelocityX: number = 0
@@ -79,7 +75,7 @@ const createTypeForUnit = (prototypeId: string, description: any): () => Entity 
 		unitMovingSpeed: number = unitMovingSpeed
 		sightAmount: number = sightAmount
 		attackRangeAmount: number = attackRangeAmount
-		texture: CanvasImageSource = registry[0]
+		texture: CanvasImageSource = image
 
 		walkingAnimation: AnimationFrames = standardWalkingAnimationFrames
 		standingAnimation: AnimationFrames = standardStandingAnimationFrames
@@ -117,16 +113,16 @@ const createTypeForUnit = (prototypeId: string, description: any): () => Entity 
 			}
 		}
 
-		deserializeFromJson(data: any): void {
-			this.mostWestTile = data.x
-			this.mostNorthTile = data.y
+		deserializeFromObject(data: Config): void {
+			this.mostWestTile = data.requireInt('x')
+			this.mostNorthTile = data.requireInt('y')
 			this.myCurrentState = nullState()
 		}
 
-		postSetup(ctx: DeserializationUnitContext, data: any): void {
+		postSetup(ctx: DeserializationUnitContext, data: Config): void {
 			this.destinationDrawX = this.mostWestTile * 32 - 18
 			this.destinationDrawY = this.mostNorthTile * 32 - 18
-			this.myCurrentState = deserializeUnitState(this, ctx.game, ctx.world, data.state)
+			this.myCurrentState = deserializeUnitState(this, ctx.game, ctx.world, data.child('state'))
 		}
 	}
 
@@ -138,18 +134,16 @@ const createTypeForUnit = (prototypeId: string, description: any): () => Entity 
 }
 
 
-export const createEntityType = (id: string, description: any): EntityType => {
-	if (typeof description !== 'object')
-		throw new Error('Description must be an object')
-
+export const createEntityType = (id: string, description: Config, mgr: ResourcesManager): EntityType => {
 	let spawner: any
 
-	switch (description.prototype) {
+	const proto = description.requireString('prototype')
+	switch (proto) {
 		case 'unit':
-			spawner = createTypeForUnit(id, description)
+			spawner = createTypeForUnit(id, description, mgr)
 			break
 		default:
-			throw new Error('Invalid entity prototype ' + description.prototype)
+			throw new Error('Invalid entity prototype ' + proto)
 	}
 
 

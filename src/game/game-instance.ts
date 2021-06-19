@@ -1,3 +1,4 @@
+import Config from '../config/config'
 import {
 	DelayedHideComponent,
 	DrawableBaseComponent,
@@ -12,6 +13,7 @@ import TileSystem from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
 import World, { createSimpleListIndex, Entity, EntityType } from './ecs/world'
 import GameSettings from './misc/game-settings'
+import { ResourcesManager } from './misc/resources-manager'
 
 const TICKS_PER_SECOND = 5
 export const MILLIS_BETWEEN_TICKS = 1000 / TICKS_PER_SECOND
@@ -33,7 +35,33 @@ export interface System {
 // 	mostNorthTile: number
 // }
 
-export class GameInstance {
+export interface GameInstance {
+	readonly tiles: TileSystem
+
+	readonly settings: GameSettings
+
+	readonly walkableTester: (x: number, y: number) => boolean
+
+	readonly resources: ResourcesManager
+
+	startGame(): void
+
+	stopGame(): void
+
+	dispatchNextTick(action: (world: World) => void): void
+
+	tick(): void
+
+	generateSaveJson(): unknown
+}
+
+export interface GameInstanceForRenderer {
+	readonly drawableEntities: () => IterableIterator<Entity & DrawableBaseComponent>
+	readonly movingEntities: () => IterableIterator<Entity & MovingDrawableComponent>
+	readonly delayedHideEntities: () => IterableIterator<Entity & DelayedHideComponent>
+}
+
+export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	// public readonly tiles = new TileSystem(this.settings)
 	public readonly eventProcessor = createEventProcessor()
 	// public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
@@ -42,17 +70,18 @@ export class GameInstance {
 	// public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	private readonly ecs = new World()
 	public readonly tiles = new TileSystem(this.settings, this, this.ecs)
-	public readonly serializableEntities = createSimpleListIndex<SerializableComponent>(this.ecs, ['SerializableComponent'])
 	public readonly drawableEntities = createSimpleListIndex<DrawableBaseComponent>(this.ecs, ['DrawableBaseComponent'])
 	public readonly movingEntities = createSimpleListIndex<MovingDrawableComponent>(this.ecs, ['MovingDrawableComponent'])
 	public readonly delayedHideEntities = createSimpleListIndex<DelayedHideComponent>(this.ecs, ['DelayedHideComponent'])
+	private readonly serializableEntities = createSimpleListIndex<SerializableComponent>(this.ecs, ['SerializableComponent'])
 	private readonly allSystems: System[] = []
 	private nextTickIsOnlyForAnimations: number = 0
 	private readonly advanceAnimationsSystem = new AdvanceAnimationsSystem(this.ecs)
 	private isRunning: boolean = false
 	private lastIntervalId: number = -1
 
-	private constructor(public readonly settings: GameSettings) {
+	private constructor(public readonly settings: GameSettings,
+	                    public readonly resources: ResourcesManager) {
 		// @ts-ignore
 		window.game = this
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
@@ -87,38 +116,37 @@ export class GameInstance {
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
 	}
 
-	public get world() {
-		return this.ecs
+	public static createNewGame(settings: GameSettings,
+	                            resources: ResourcesManager): GameInstanceImpl {
+		return new GameInstanceImpl(settings, resources)
 	}
 
-	public static createNewGame(settings: GameSettings): GameInstance {
-		return new GameInstance(settings)
-	}
-
-	public static loadGameFromObj(entityTypes: EntityType[], obj: any): GameInstance {
+	public static loadGameFromObj(entityTypes: EntityType[],
+	                              resources: ResourcesManager,
+	                              obj: Config): GameInstanceImpl {
 		const settings: GameSettings = {
-			mapHeight: obj.mapHeight,
-			mapWidth: obj.mapWidth,
+			mapHeight: obj.requirePositiveInt('mapHeight'),
+			mapWidth: obj.requirePositiveInt('mapWidth'),
 			entityTypes: [...entityTypes],
 		}
-		const game = new GameInstance(settings)
+		const game = new GameInstanceImpl(settings, resources)
 
-		const entities: [Entity & SerializableComponent, any][] = []
-		for (const key in obj.entities) {
-			if (obj.entities.hasOwnProperty(key)) {
-				const description = obj.entities[key]
-				const entity = game.world.spawnEntityWithId(description.prototype, +key) as Entity & SerializableComponent
-				entity.deserializeFromJson(description)
-				entities.push([entity, description])
-			}
+		const entities: [Entity & SerializableComponent, Config][] = []
+		for (const [key, description] of obj.child('entities').objectEntries()) {
+			const entity = game.ecs.spawnEntityWithId(description.requireString('prototype'), +key) as Entity & SerializableComponent
+			entity.deserializeFromObject(description)
+			entities.push([entity, description])
 		}
+
 		for (const [entity, description] of entities) {
 			entity.postSetup({
 				game: game,
 				world: game.ecs,
 			}, description)
 		}
-		game.world.resumeFromTick(obj.tick, obj.nextEntityId)
+		game.ecs.resumeFromTick(
+			obj.requirePositiveInt('tick'),
+			obj.requirePositiveInt('nextEntityId'))
 		return game
 	}
 
@@ -172,10 +200,10 @@ export class GameInstance {
 		this.isRunning = false
 	}
 
-	generateSaveJson(): any {
+	generateSaveJson(): unknown {
 		const obj: any = {
-			tick: this.world.lastExecutedTick,
-			nextEntityId: this.world.publicNextEntityId,
+			tick: this.ecs.lastExecutedTick,
+			nextEntityId: this.ecs.publicNextEntityId,
 			mapWidth: this.settings.mapWidth,
 			mapHeight: this.settings.mapHeight,
 			entities: {},

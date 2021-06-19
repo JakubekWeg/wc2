@@ -1,11 +1,11 @@
-import { GameInstance } from '../../game-instance'
+import { GameInstanceImpl } from '../../game-instance'
 import { ComponentNameType, SelfLifecycleObserverComponent } from '../components'
 import { Entity, Index } from '../world'
 
 export class LifecycleNotifierSystem implements Index<Entity & SelfLifecycleObserverComponent> {
 	readonly components: ComponentNameType[] = ['SelfLifecycleObserverComponent']
 
-	constructor(private readonly game: GameInstance) {
+	constructor(private readonly game: GameInstanceImpl) {
 	}
 
 	entityAdded(entity: Entity & SelfLifecycleObserverComponent): void {

@@ -1,4 +1,4 @@
-import { GameInstance, System } from '../../game-instance'
+import { GameInstanceImpl, System } from '../../game-instance'
 import { StateMachineHolderComponent } from '../components'
 import World, { createSimpleListIndex } from '../world'
 
@@ -6,7 +6,7 @@ export class UpdateStateMachineSystem implements System {
 	private entities = createSimpleListIndex<StateMachineHolderComponent>(this.world, ['StateMachineHolderComponent'])
 
 	constructor(private readonly world: World,
-	            private readonly instance: GameInstance) {
+	            private readonly instance: GameInstanceImpl) {
 	}
 
 	onTick(tick: number): void {
@@ -16,7 +16,7 @@ export class UpdateStateMachineSystem implements System {
 		// 	world: this.world
 		// } as GameInstance
 
-		const game: GameInstance = this.instance
+		const game: GameInstanceImpl = this.instance
 		for (const entity of this.entities()) {
 			entity.myCurrentState.execute(game)
 			// entity.updateState(this.instance)

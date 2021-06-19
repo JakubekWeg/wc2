@@ -2,7 +2,7 @@ import { isInRectRange, isInRectRange2 } from '../ecs/entities/common'
 import { FacingDirection } from './facing-direction'
 import SortedList from './sorted-list'
 
-const maxTiles = 10
+const maxTiles = 25
 /**
  * Checks if node is walkable
  * Must return true if node exists and is walkable

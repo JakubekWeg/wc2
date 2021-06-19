@@ -1,4 +1,4 @@
-import { GameInstance } from '../../game-instance'
+import { GameInstanceImpl } from '../../game-instance'
 import GameSettings from '../../misc/game-settings'
 import { TileListenerComponent, TilesIncumbentComponent } from '../components'
 import World, { Entity } from '../world'
@@ -59,7 +59,7 @@ export default class TileSystem {
 	private readonly tiles: TileImpl[] = []
 
 	constructor(private readonly settings: GameSettings,
-	            private readonly game: GameInstance,
+	            private readonly game: GameInstanceImpl,
 	            private readonly world: World) {
 		this.sizeX = settings.mapWidth
 		this.sizeY = settings.mapHeight

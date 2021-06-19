@@ -6,7 +6,7 @@ import {
 	PredefinedDrawableComponent,
 	TilesIncumbentComponent,
 } from './game/ecs/components'
-import { GameInstance } from './game/game-instance'
+import { GameInstanceImpl } from './game/game-instance'
 import GameSettings from './game/misc/game-settings'
 import { DebugOptions, Renderer } from './game/renderer'
 
@@ -19,7 +19,7 @@ function Game({
               }: {
 	settings: GameSettings,
 	debugOptions: DebugOptions,
-	gameInstance: GameInstance,
+	gameInstance: GameInstanceImpl,
 	reloadRequested: Function
 }) {
 	const [renderer] = useState(new Renderer(settings))
@@ -94,29 +94,54 @@ function Game({
 	const onClicked = useCallback((ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
 		ev.preventDefault()
 		gameInstance.dispatchNextTick((world) => {
-			const x = ev.clientX / 32 / 2 | 0
-			const y = ev.clientY / 32 / 2 | 0
-			let entity = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
-			if (entity?.canAcceptCommands) {
-				const command = {
-					type: 'go',
-					targetX: x,
-					targetY: y,
-				} as PlayerCommand
-				entity.myCurrentState.get().handleCommand(command, gameInstance)
-			}
-			// const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent)
-			// archer.mostWestTile = x
-			// archer.mostNorthTile = y
-			// archer.destinationDrawX = x * 32 - 18
-			// archer.destinationDrawY = y * 32 - 18
-		})
+				const x = ev.clientX / 32 / 2 | 0
+				const y = ev.clientY / 32 / 2 | 0
+				switch (ev.button) {
+					case 0: {
+						// left button
+						const archer = world.spawnEntity('archer') as unknown as (TilesIncumbentComponent & PredefinedDrawableComponent)
+						archer.mostWestTile = x
+						archer.mostNorthTile = y
+						archer.destinationDrawX = x * 32 - 18
+						archer.destinationDrawY = y * 32 - 18
+						break
+					}
+					case 2: {
+						//right click
+						let entity = world.getSpawnedEntity(2) as unknown as PlayerCommandTakerComponent
+						if (entity?.canAcceptCommands) {
+							const command = {
+								type: 'go',
+								targetX: x,
+								targetY: y,
+							} as PlayerCommand
+							entity.myCurrentState.get().handleCommand(command, gameInstance)
+						}
+						break
+					}
+					case 1: {
+						//middle click
+						let entity = world.getSpawnedEntity(1) as unknown as PlayerCommandTakerComponent
+						if (entity?.canAcceptCommands) {
+							const command = {
+								type: 'go',
+								targetX: x,
+								targetY: y,
+							} as PlayerCommand
+							entity.myCurrentState.get().handleCommand(command, gameInstance)
+						}
+						break
+					}
+				}
+			},
+		)
 	}, [gameInstance])
 
 	return (
 		<canvas ref={canvasRefCallback}
 		        onClick={onClicked}
 		        onContextMenu={onClicked}
+		        onAuxClick={onClicked}
 		        width={width}
 		        height={height}
 		        style={{width: `${width * 2}px`, height: `${height * 2}px`}}/>

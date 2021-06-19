@@ -171,6 +171,7 @@ export class World {
 	 * @throws Error if world is not locked, game is not executing or prototype is not registered
 	 */
 	spawnEntityWithId(name: string, id: number): Entity {
+		if (!isFinite(id)) throw new Error('Invalid id')
 		if (!this.prototypesLocked) throw new Error('World is not locked')
 		if (this.currentTick !== 0) throw new Error('Game has already worked')
 

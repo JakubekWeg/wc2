@@ -1,3 +1,4 @@
+import Config from '../../../config/config'
 import { GameInstance } from '../../game-instance'
 import { PlayerCommand, TilesIncumbentComponent } from '../components'
 import World, { Entity } from '../world'
@@ -116,7 +117,7 @@ export function UnitState(constructor: Function) {
 export const deserializeUnitState = (entity: Entity,
                                      game: GameInstance,
                                      world: World,
-                                     data: any) => {
+                                     data: Config) => {
 	const stack: State[] = []
 	const c = {
 		pop() {
@@ -157,10 +158,12 @@ export const deserializeUnitState = (entity: Entity,
 		world: world,
 	} as StateDeserializeContext
 
-	for (const description of data.stack) {
-		const deserializer: Function = states.get(description.id)
+	for (const description of data.child('stack').listEntries()) {
+		const id = description.requireString('id')
+		const deserializer: Function = states.get(id)
 		if (!deserializer)
-			throw new Error('Deserializer for state ' + description.id + ' not found')
+			throw new Error('Deserializer for state ' + id + ' not found')
+
 		stack.push(deserializer(ctx, description))
 	}
 

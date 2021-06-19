@@ -1,4 +1,4 @@
-import { GameInstance } from '../../game-instance'
+import { GameInstanceImpl } from '../../game-instance'
 import { PlayerCommand, PredefinedDrawableComponent } from '../components'
 import { UnitPrototype } from './composer'
 

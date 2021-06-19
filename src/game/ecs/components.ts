@@ -1,4 +1,5 @@
-import { GameInstance } from '../game-instance'
+import Config from '../../config/config'
+import { GameInstanceImpl } from '../game-instance'
 import { AnimationFrames } from './entities/common'
 import { Force } from './force'
 import { State, StateController, StateDeserializeContext } from './states/state'
@@ -141,9 +142,9 @@ export interface TileListenerComponent {
  * Component for entities that want to execute custom code after they are initialized and before they are removed
  */
 export interface SelfLifecycleObserverComponent {
-	entityCreated(game: GameInstance): void
+	entityCreated(game: GameInstanceImpl): void
 
-	entityRemoved(game: GameInstance): void
+	entityRemoved(game: GameInstanceImpl): void
 }
 
 export type PlayerCommandType = 'go'
@@ -162,11 +163,11 @@ export interface PlayerCommandTakerComponent extends StateMachineHolderComponent
 }
 
 export interface DeserializationUnitContext {
-	game: GameInstance,
+	game: GameInstanceImpl,
 	world: World,
 }
 export interface SerializableComponent {
 	serializeToJson(): unknown
-	deserializeFromJson(data: any): void
-	postSetup(ctx: DeserializationUnitContext, data: any): void
+	deserializeFromObject(data: Config): void
+	postSetup(ctx: DeserializationUnitContext, data: Config): void
 }
