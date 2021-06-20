@@ -4,10 +4,14 @@
  * Force with id = 0 is always passive and created statically
  */
 import Config from '../config/config'
+import { Camera } from './camera'
+
 
 export interface Force {
 	readonly id: number
 	readonly name: string
+
+	readonly camera?: Camera
 
 	isAggressiveTowards(other?: Force): boolean
 }

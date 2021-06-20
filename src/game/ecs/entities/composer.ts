@@ -19,7 +19,7 @@ import {
 	TilesIncumbentComponent,
 	UnitAnimationsComponent,
 } from '../components'
-import { createAiState } from '../states/basic-unit-ai'
+import { createAiState } from '../states/critter-ai'
 import '../states/basic-unit-ai'
 import '../states/critter-ai'
 import { createState, deserializeUnitState, nullState } from '../states/state'

@@ -7,6 +7,7 @@ import {
 	SerializableComponent,
 } from './ecs/components'
 import './ecs/entities/composer'
+import { UnitPrototype } from './ecs/entities/composer'
 import createEventProcessor from './ecs/game-event-processor'
 import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system'
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
@@ -107,19 +108,19 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 		// const force2 = new ForceImpl(2, 'Two')
 
 		this.ecs.lockTypes()
-		// this.dispatchNextTick((world) => {
-		// 	// const createArcher = (left: number, top: number, force: Force = force1) => {
-		// 	// 	const archer = world.spawnEntity('archer') as UnitPrototype
-		// 	// 	archer.destinationDrawX = -18 + 32 * left
-		// 	// 	archer.destinationDrawY = -18 + 32 * top
-		// 	// 	archer.mostWestTile = left
-		// 	// 	archer.mostNorthTile = top
-		// 	// 	archer.myForce = force
-		// 	// 	return archer
-		// 	// }
-		// 	// createArcher(1, 1, force1)
-		// 	// createArcher(8, 1, force2)
-		// })
+		this.dispatchNextTick((world) => {
+			const createArcher = (left: number, top: number) => {
+				const archer = world.spawnEntity('critter') as UnitPrototype
+				archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
+				archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
+				archer.mostWestTile = left
+				archer.mostNorthTile = top
+				return archer
+			}
+			for (let i = 0; i < this.settings.mapWidth; i++) {
+				createArcher(i, this.random.intMax(this.settings.mapHeight))
+			}
+		})
 
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
 	}

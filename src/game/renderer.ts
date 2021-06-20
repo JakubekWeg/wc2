@@ -2,6 +2,7 @@
 
 // const log = createLogger('Renderer')
 
+import { Camera } from './camera'
 import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { TileImpl } from './ecs/systems/tiles-system'
@@ -39,7 +40,8 @@ export class Renderer {
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
 
-	constructor(private readonly settings: GameSettings) {
+	constructor(private readonly settings: GameSettings,
+	            private readonly camera: Camera) {
 	}
 
 	public setCanvas(canvas?: HTMLCanvasElement) {
@@ -86,16 +88,24 @@ export class Renderer {
 		if (context != null) {
 			const game = this.game
 			if (game == null) {
-				context.fillStyle = 'red'
+				context.fillStyle = '#880000'
 				context.fillRect(0, 0, this.width, this.height)
 			} else {
 				// context.fillStyle = '#333'
 				context.fillStyle = '#6a3a00'
 				context.fillRect(0, 0, this.width, this.height)
 
+				const camera = this.camera
+				camera.update(delta)
+				const scale = camera.scale
+				const viewPortWidth = this.width / scale
+				const viewPortHeight = this.height / scale
+				context.scale(scale, scale)
+				context.translate(-camera.centerX + viewPortWidth * 0.25, -camera.centerY + viewPortHeight * 0.25)
+
 				const tileSet = registry[1]
-				for (let i = 0; i < 20; i++) {
-					for (let j = 0; j < 20; j++) {
+				for (let i = 0; i < this.settings.mapWidth; i++) {
+					for (let j = 0; j < this.settings.mapHeight; j++) {
 						context.drawImage(tileSet, 384, 704, 32, 32, i * 32, j * 32, 32, 32)
 					}
 				}
@@ -114,36 +124,6 @@ export class Renderer {
 				for (const e of game.drawableEntities()) {
 					e.render(context)
 				}
-
-				// context.drawImage(game.resources.getImage('elven-archer'), 0, 0)
-				// context.drawImage(registry[0], 0, 0)
-
-				// if (now - this.lastAnimationTime > 40) {
-				// 	this.lastAnimationTime = now
-				// 	for (const entity of game.animatedEntities()) {
-				// 		if (++entity.currentFrame === entity.currentFrames.length)
-				// 			entity.currentFrame = 0
-				// 		entity.sourceDrawY = entity.currentFrames[entity.currentFrame]
-				// 	}
-				// }
-
-				// context.drawImage(registry[0], 0, 32 * 6)
-				//
-				// for (const entity of game.dynamicSpriteEntities()) {
-				// 	entity.destinationDrawX += entity.spriteVelocityX * delta
-				// 	entity.destinationDrawY += entity.spriteVelocityY * delta
-				// }
-				//
-				// for (const entity of game.spriteEntities()) {
-				// 	const size = entity.spriteSize
-				// 	context.drawImage(registry[entity.imageIndex],
-				// 		entity.sourceDrawX,
-				// 		entity.sourceDrawY,
-				// 		size, size,
-				// 		entity.destinationDrawX | 0,
-				// 		entity.destinationDrawY | 0,
-				// 		size, size)
-				// }
 
 
 				if (this.debugOptions.showTilesOccupation) {
@@ -258,6 +238,7 @@ export class Renderer {
 						}
 					}
 				}
+				context.resetTransform()
 			}
 		}
 	}
@@ -269,7 +250,13 @@ export class Renderer {
 			alpha: false,
 		}) ?? undefined
 		if (this.context) {
+			if (this.canvas != null) {
+				this.canvas.width = this.width / 2
+				this.canvas.height = this.height / 2
+			}
 			this.context.imageSmoothingEnabled = false
+			this.context.fillStyle = 'black'
+			this.context.fillRect(0, 0, this.width, this.height)
 		}
 
 		if (this.enabled && !wasEnabled) {
