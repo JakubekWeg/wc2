@@ -50,9 +50,11 @@ class RootState implements State {
 
 	update(game: GameInstance) {
 		if (this.nextMoveIn-- < 0) {
-			this.nextMoveIn = game.random.intMax(10)
+			this.nextMoveIn = game.random.intMax(30)
 			const dir = game.random.intMax(8)
-			this.controller.push(GoingTileState.tryToWalkThisWay(dir, this.entity, this.controller, game))
+			const state = GoingTileState.tryToWalkThisWay(dir, this.entity, this.controller, game)
+			if (state !== undefined)
+				this.controller.push(state)
 		}
 	}
 }
@@ -77,7 +79,7 @@ class GoingTileState implements State {
 	public static tryToWalkThisWay(direction: FacingDirection,
 	                               entity: UnitPrototype,
 	                               controller: StateController<UnitState>,
-	                               game: GameInstance): State {
+	                               game: GameInstance): State | undefined {
 		entity.sourceDrawX = direction * entity.spriteSize
 		const [ox, oy] = facingDirectionToVector(direction)
 
@@ -85,7 +87,7 @@ class GoingTileState implements State {
 			entity.mostNorthTile,
 			entity.mostWestTile + ox,
 			entity.mostNorthTile + oy)) {
-			return new GoingTileFailed(controller)
+			return undefined
 		}
 
 		const ticksToMoveThisField = (ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.5 | 0) : (11 - entity.unitMovingSpeed)
@@ -139,36 +141,5 @@ class GoingTileState implements State {
 			direction: this.direction,
 			command: this.delayedCommand,
 		}
-	}
-}
-
-/**
- * Temporary state when made attempt to walk into occupied entity
- * */
-@UnitState
-class GoingTileFailed implements State {
-	public static ID = namespaceId + 'walking-failed'
-
-	constructor(private readonly controller: StateController<UnitState>) {
-	}
-
-	public static deserialize(ctx: StateDeserializeContext) {
-		return new GoingTileFailed(ctx.controller)
-	}
-
-	handleCommand(command: PlayerCommand, game: GameInstance): void {
-	}
-
-	onPop(): void {
-	}
-
-	serializeToJson(): unknown {
-		return {
-			id: GoingTileFailed.ID,
-		}
-	}
-
-	update(game: GameInstance): void {
-		this.controller.pop()
 	}
 }

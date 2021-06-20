@@ -20,7 +20,8 @@ import {
 	UnitAnimationsComponent,
 } from '../components'
 import { createAiState } from '../states/basic-unit-ai'
-import { } from '../states/critter-ai'
+import '../states/basic-unit-ai'
+import '../states/critter-ai'
 import { createState, deserializeUnitState, nullState } from '../states/state'
 import { Tile } from '../systems/tiles-system'
 import { Entity, EntityType } from '../world'

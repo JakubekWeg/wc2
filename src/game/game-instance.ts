@@ -1,4 +1,5 @@
 import Config from '../config/config'
+import { DataPack } from './data-pack'
 import {
 	DelayedHideComponent,
 	DrawableBaseComponent,
@@ -11,7 +12,7 @@ import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
 import TileSystem from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
-import World, { createSimpleListIndex, Entity, EntityType } from './ecs/world'
+import World, { createSimpleListIndex, Entity } from './ecs/world'
 import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
 import { ResourcesManager } from './misc/resources-manager'
@@ -69,6 +70,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	// public readonly tiles = new TileSystem(this.settings)
 	public readonly eventProcessor = createEventProcessor()
 	// public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
+	public readonly resources: ResourcesManager = this.dataPack.resources
 	// public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
 	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
 	// public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
@@ -85,7 +87,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	private lastIntervalId: number = -1
 
 	private constructor(public readonly settings: GameSettings,
-	                    public readonly resources: ResourcesManager,
+	                    public readonly dataPack: DataPack,
 	                    public readonly forces: ForcesManager,
 	                    public readonly random: SeededRandom) {
 		// @ts-ignore
@@ -94,7 +96,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 		this.addSystem(this.advanceAnimationsSystem)
 		this.ecs.registerIndex(new LifecycleNotifierSystem(this))
 		// this.ecs.registerEntityType(ArrowImpl)
-		for (const entityType of this.settings.entityTypes) {
+		for (const entityType of this.dataPack.entityTypes) {
 			this.ecs.registerEntityType(entityType)
 		}
 		// this.ecs.registerEntityType(ArcherImpl)
@@ -123,21 +125,21 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	}
 
 	public static createNewGame(settings: GameSettings,
-	                            resources: ResourcesManager): GameInstanceImpl {
-		return new GameInstanceImpl(settings, resources,
+	                            dataPack: DataPack): GameInstanceImpl {
+		return new GameInstanceImpl(settings,
+			dataPack,
 			ForcesManager.createNew(),
 			SeededRandom.createWithRandomSeed())
 	}
 
-	public static loadGameFromObj(entityTypes: EntityType[],
-	                              resources: ResourcesManager,
+	public static loadGameFromObj(dataPack: DataPack,
 	                              obj: Config): GameInstanceImpl {
 		const settings: GameSettings = {
 			mapHeight: obj.requirePositiveInt('mapHeight'),
 			mapWidth: obj.requirePositiveInt('mapWidth'),
-			entityTypes: [...entityTypes],
 		}
-		const game = new GameInstanceImpl(settings, resources,
+		const game = new GameInstanceImpl(settings,
+			dataPack,
 			ForcesManager.deserialize(obj.child('forces')),
 			SeededRandom.deserialize(obj.child('random')))
 
@@ -218,7 +220,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapHeight: this.settings.mapHeight,
 			entities: {},
 			forces: this.forces.serialize(),
-			random: this.random.serialize()
+			random: this.random.serialize(),
 		}
 
 		for (const entity of this.serializableEntities()) {

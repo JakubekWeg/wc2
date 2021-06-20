@@ -19,6 +19,9 @@ export const createAiState = (entity: UnitPrototype, controller: StateController
 }
 
 /**
+ * Hello world
+ */
+/**
  * State that handles commands, it switches immediately to something other
  */
 @UnitState
@@ -391,16 +394,16 @@ class GoingTileState implements State {
 	                               entity: UnitPrototype,
 	                               controller: StateController<UnitState>,
 	                               game: GameInstance): State {
-		entity.sourceDrawX = direction * entity.spriteSize
 		const [ox, oy] = facingDirectionToVector(direction)
 
 		if (!game.tiles.moveOccupationAtOnce(entity.mostWestTile,
 			entity.mostNorthTile,
 			entity.mostWestTile + ox,
 			entity.mostNorthTile + oy)) {
-			return new GoingTileFailed(controller)
+			return new GoingTileFailed(entity, controller)
 		}
 
+		entity.sourceDrawX = direction * entity.spriteSize
 		const ticksToMoveThisField = (ox !== 0 && oy !== 0) ? ((11 - entity.unitMovingSpeed) * 1.5 | 0) : (11 - entity.unitMovingSpeed)
 		entity.destinationDrawX = entity.mostWestTile * 32 - (entity.spriteSize - 32) / 2 | 0
 		entity.destinationDrawY = entity.mostNorthTile * 32 - (entity.spriteSize - 32) / 2 | 0
@@ -467,11 +470,13 @@ class GoingTileState implements State {
 class GoingTileFailed implements State {
 	public static ID = namespaceId + 'walking-failed'
 
-	constructor(private readonly controller: StateController<UnitState>) {
+	constructor(private readonly entity: UnitPrototype,
+	            readonly controller: StateController<UnitState>) {
+		entity.spriteVelocityX = entity.spriteVelocityY = 0
 	}
 
 	public static deserialize(ctx: StateDeserializeContext) {
-		return new GoingTileFailed(ctx.controller)
+		return new GoingTileFailed(ctx.entity, ctx.controller)
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {

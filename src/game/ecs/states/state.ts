@@ -85,8 +85,6 @@ export const nullState = (): any => ({
 	handleCommand(_: PlayerCommand, __: GameInstance) {
 		throw new Error('Not implemented')
 	},
-	onPop() {
-	},
 	serializeToJson(): unknown {
 		return {id: this.id}
 	},
@@ -103,8 +101,8 @@ const states = new Map<string, any>()
 export const addState = (which: any) => {
 	const id = which.ID
 	if (!id) throw new Error('State requires ID!')
-	if (states.has(id))
-		throw new Error('State with id ' + id + ' is already registered')
+	// if (states.has(id))
+	// 	throw new Error('State with id ' + id + ' is already registered')
 	if (!which.deserialize)
 		throw new Error('State with id ' + id + ' is missing deserialize static function')
 	states.set(id, which.deserialize)
