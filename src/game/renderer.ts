@@ -3,6 +3,7 @@
 // const log = createLogger('Renderer')
 
 import { Camera } from './camera'
+import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
 import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { TileImpl } from './ecs/systems/tiles-system'
@@ -17,6 +18,7 @@ export interface DebugOptions {
 	showPaths?: boolean
 	showChunkBoundaries?: boolean
 	showTileListenersCount?: boolean
+	renderZoomedOut?: boolean
 }
 
 export interface DebugPath {
@@ -39,6 +41,7 @@ export class Renderer {
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
+	private terrainLayer: HTMLCanvasElement = document.createElement('canvas')
 
 	constructor(private readonly settings: GameSettings,
 	            private readonly camera: Camera) {
@@ -100,15 +103,16 @@ export class Renderer {
 				const scale = camera.scale
 				const viewPortWidth = this.width / scale
 				const viewPortHeight = this.height / scale
-				context.scale(scale, scale)
-				context.translate(-camera.centerX + viewPortWidth * 0.25, -camera.centerY + viewPortHeight * 0.25)
-
-				const tileSet = registry[1]
-				for (let i = 0; i < this.settings.mapWidth; i++) {
-					for (let j = 0; j < this.settings.mapHeight; j++) {
-						context.drawImage(tileSet, 384, 704, 32, 32, i * 32, j * 32, 32, 32)
-					}
+				if (this.debugOptions.renderZoomedOut) {
+					const newScale = scale * 0.3
+					context.scale(newScale, newScale)
+					context.translate(-camera.centerX + this.width / newScale * 0.5, -camera.centerY + this.height / newScale * 0.5)
+				} else {
+					context.scale(scale, scale)
+					context.translate(-camera.centerX + viewPortWidth * 0.5, -camera.centerY + viewPortHeight * 0.5)
 				}
+
+				context.drawImage(this.terrainLayer, 0, 0)
 
 				const now = Date.now()
 				for (let e of game.delayedHideEntities()) {
@@ -121,9 +125,17 @@ export class Renderer {
 					e.destinationDrawY += e.spriteVelocityY * delta
 				}
 
-				for (const e of game.drawableEntities()) {
+
+				const viewPortLeft = camera.centerX - viewPortWidth * 0.5
+				const viewPortTop = camera.centerY - viewPortHeight * 0.5
+				for (const e of game.chunkEntityIndex.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
 					e.render(context)
 				}
+
+
+				// for (const e of game.drawableEntities()) {
+				// 	e.render(context)
+				// }
 
 
 				if (this.debugOptions.showTilesOccupation) {
@@ -207,6 +219,35 @@ export class Renderer {
 				// 	}
 				// }
 				//
+
+				if (this.debugOptions.showChunkBoundaries) {
+					context.lineWidth = 2
+					const {mapWidth, mapHeight} = game.settings
+					const chunksX = Math.ceil(mapWidth / CHUNK_TILE_SIZE)
+					const chunksY = Math.ceil(mapHeight / CHUNK_TILE_SIZE)
+					const margin = 4
+					context.font = '12px Roboto'
+					context.fillStyle = 'black'
+					for (let i = 0; i < chunksX; i++) {
+						for (let j = 0; j < chunksY; j++) {
+							const count = game
+								.chunkEntityIndex
+								.getChunkByChunkCoords(i, j)
+								?.getEntitiesCount()
+
+							context.fillText(`${count}`,
+								i * CHUNK_REAL_PX_SIZE + 2 * margin,
+								j * CHUNK_REAL_PX_SIZE + 4 * margin)
+
+							context.strokeRect(
+								i * CHUNK_REAL_PX_SIZE + margin,
+								j * CHUNK_REAL_PX_SIZE + margin,
+								CHUNK_REAL_PX_SIZE - margin * 2,
+								CHUNK_REAL_PX_SIZE - margin * 2)
+						}
+					}
+				}
+
 				if (this.debugOptions.showTileListenersCount) {
 					const {mapWidth, mapHeight} = game.settings
 					for (let i = 0; i < mapWidth; i++) {
@@ -238,6 +279,12 @@ export class Renderer {
 						}
 					}
 				}
+
+				if (this.debugOptions.renderZoomedOut) {
+					const SIZE = 8
+					context.strokeRect(viewPortLeft - SIZE | 0, viewPortTop - SIZE | 0, viewPortWidth + SIZE * 2 | 0, viewPortHeight + SIZE * 2 | 0)
+				}
+
 				context.resetTransform()
 			}
 		}
@@ -251,8 +298,8 @@ export class Renderer {
 		}) ?? undefined
 		if (this.context) {
 			if (this.canvas != null) {
-				this.canvas.width = this.width / 2
-				this.canvas.height = this.height / 2
+				this.canvas.width = this.width
+				this.canvas.height = this.height
 			}
 			this.context.imageSmoothingEnabled = false
 			this.context.fillStyle = 'black'
@@ -260,6 +307,17 @@ export class Renderer {
 		}
 
 		if (this.enabled && !wasEnabled) {
+			this.terrainLayer.width = 32 * this.settings.mapWidth
+			this.terrainLayer.height = 32 * this.settings.mapHeight
+			const ctx = this.terrainLayer.getContext('2d')
+			if (ctx != null) {
+				const tileSet = registry[1]
+				for (let i = 0; i < this.settings.mapWidth; i++) {
+					for (let j = 0; j < this.settings.mapHeight; j++) {
+						ctx.drawImage(tileSet, 384, 704, 32, 32, i * 32, j * 32, 32, 32)
+					}
+				}
+			}
 			cancelAnimationFrame(this.animationHandle)
 			this.animationHandle = requestAnimationFrame(this.nextFrameBind)
 		}

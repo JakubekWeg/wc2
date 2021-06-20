@@ -30,9 +30,9 @@ export interface Camera {
 }
 
 export class CameraImpl implements Camera {
-	centerX: number = 100
-	centerY: number = 100
-	scale: number = 0.5
+	centerX: number = 0
+	centerY: number = 0
+	scale: number = 1
 
 	private movingLeft = 0
 	private movingRight = 0
@@ -117,11 +117,11 @@ export class CameraImpl implements Camera {
 		this.centerX -= (this.movingLeft - this.movingRight) * VELOCITY
 		this.centerY -= (this.movingUp - this.movingDown) * VELOCITY
 
-		this.scale += (this.zoomingIn - this.zoomingOut) * 0.001 * delta
-		if (this.scale < 0.1)
-			this.scale = 0.1
-		if (this.scale > 2)
-			this.scale = 2
+		this.scale += (this.zoomingIn - this.zoomingOut) * 0.01 * delta
+		if (this.scale < 0.2)
+			this.scale = 0.2
+		if (this.scale > 8)
+			this.scale = 8
 	}
 }
 

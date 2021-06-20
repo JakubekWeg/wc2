@@ -23,8 +23,8 @@ function Component() {
 				setGame(game)
 			} else {
 				const game = GameInstanceImpl.createNewGame({
-					mapWidth: 60,
-					mapHeight: 30,
+					mapWidth: 128,
+					mapHeight: 128,
 				}, dp)
 				setGame(game)
 			}

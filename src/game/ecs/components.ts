@@ -8,6 +8,7 @@ import World, { Entity } from './world'
 
 export type ComponentNameType =
 	'DrawableBaseComponent'
+	| 'PredefinedDrawableComponent'
 	| 'StateMachineHolderComponent'
 	| 'MovingDrawableComponent'
 	| 'AnimatableDrawableComponent'
@@ -42,6 +43,7 @@ export interface PredefinedDrawableComponent extends DrawableBaseComponent {
 	sourceDrawX: number
 	sourceDrawY: number
 	spriteSize: number
+	assignedToChunkId: number
 }
 
 /**

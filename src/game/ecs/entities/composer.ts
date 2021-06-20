@@ -19,8 +19,8 @@ import {
 	TilesIncumbentComponent,
 	UnitAnimationsComponent,
 } from '../components'
-import { createAiState } from '../states/critter-ai'
 import '../states/basic-unit-ai'
+import { createAiState } from '../states/critter-ai'
 import '../states/critter-ai'
 import { createState, deserializeUnitState, nullState } from '../states/state'
 import { Tile } from '../systems/tiles-system'
@@ -58,8 +58,10 @@ const createTypeForUnit = (prototypeId: string, description: Config, mgr: Resour
 		AttackComponent, SightComponent
 		, UnitAnimationsComponent, MovingUnitComponent, SerializableComponent {
 
-		destinationDrawX: number = -spriteSize / 4
-		destinationDrawY: number = -spriteSize / 4
+
+		destinationDrawX: number = 0
+		destinationDrawY: number = 0
+		assignedToChunkId: number = -1
 		sourceDrawX: number = 0
 		sourceDrawY: number = 0
 		spriteVelocityX: number = 0
@@ -120,13 +122,13 @@ const createTypeForUnit = (prototypeId: string, description: Config, mgr: Resour
 		deserializeFromObject(data: Config): void {
 			this.mostWestTile = data.requireInt('x')
 			this.mostNorthTile = data.requireInt('y')
+			this.destinationDrawX = this.mostWestTile * 32 - (32 - this.spriteSize) / 2
+			this.destinationDrawY = this.mostNorthTile * 32 - (32 - this.spriteSize) / 2
 			this.myCurrentState = nullState()
 		}
 
 		postSetup(ctx: DeserializationUnitContext, data: Config): void {
 			this.myForce = ctx.game.forces.getForce(data.requireInt('force'))
-			this.destinationDrawX = this.mostWestTile * 32 - 18
-			this.destinationDrawY = this.mostNorthTile * 32 - 18
 			this.myCurrentState = deserializeUnitState(this, ctx.game, ctx.world, data.child('state'))
 		}
 	}
@@ -155,7 +157,7 @@ export const createEntityType = (id: string, description: Config, mgr: Resources
 	return {
 		id,
 		spawn: spawner,
-		componentNames: new Set<ComponentNameType>(['SerializableComponent', 'AttackComponent', 'SightComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent']),
+		componentNames: new Set<ComponentNameType>(['PredefinedDrawableComponent', 'SerializableComponent', 'AttackComponent', 'SightComponent', 'AnimatableDrawableComponent', 'TileListenerComponent', 'DrawableBaseComponent', 'StateMachineHolderComponent', 'MovingDrawableComponent', 'TilesIncumbentComponent', 'DamageableComponent', 'PlayerCommandTakerComponent']),
 	}
 }
 

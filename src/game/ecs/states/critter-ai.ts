@@ -70,6 +70,7 @@ class GoingTileState implements State {
 	private constructor(private readonly direction: FacingDirection,
 	                    private readonly entity: UnitPrototype,
 	                    private readonly controller: StateController<UnitState>,
+	                    private readonly game: GameInstance,
 	                    private progress: number,
 	                    private readonly ticksToMoveThisField: number,
 	                    private delayedCommand?: PlayerCommand) {
@@ -97,7 +98,7 @@ class GoingTileState implements State {
 		entity.spriteVelocityY = oy * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 		entity.mostWestTile += ox
 		entity.mostNorthTile += oy
-		return new GoingTileState(direction, entity, controller, 0, ticksToMoveThisField, undefined)
+		return new GoingTileState(direction, entity, controller, game, 0, ticksToMoveThisField, undefined)
 	}
 
 	public static deserialize(ctx: StateDeserializeContext, data: Config) {
@@ -108,13 +109,18 @@ class GoingTileState implements State {
 		entity.destinationDrawX = (entity.mostWestTile * 32 - entity.spriteSize / 4) | 0
 		entity.destinationDrawY = (entity.mostNorthTile * 32 - entity.spriteSize / 4) | 0
 		return new GoingTileState(direction, entity, ctx.controller,
+			ctx.game,
 			data.requireInt('progress'),
 			ticksToMoveThisField,
 			data.child('command').getRawObject() as PlayerCommand)
 	}
 
 	onPop(): void {
-		this.entity.spriteVelocityX = this.entity.spriteVelocityY = 0
+		const entity = this.entity
+		entity.spriteVelocityX = entity.spriteVelocityY = 0
+		entity.destinationDrawX = (entity.mostWestTile * 32 - (32 - entity.spriteSize) / 2) | 0
+		entity.destinationDrawY = (entity.mostNorthTile * 32 - (32 - entity.spriteSize) / 2) | 0
+		this.game.world.notifyEntityModified(entity, 'PredefinedDrawableComponent')
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {

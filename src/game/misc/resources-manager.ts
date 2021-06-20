@@ -65,7 +65,7 @@ export class ResourcesManager {
 				image = document.createElement('canvas')
 				break
 			case 'tileset':
-				image =document.createElement('img')
+				image = document.createElement('img')
 				break
 			default:
 				throw new Error(`Invalid resource type ${type}`)
@@ -116,7 +116,7 @@ export class ResourcesManager {
 						context.drawImage(img, size * 3, 0)
 						resolve(entry)
 					}
-					img.onerror = () => reject(entry)
+					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)
 					img.crossOrigin = 'anonymous'
 					img.src = `/res/${entry.fileName}.png`
 					break

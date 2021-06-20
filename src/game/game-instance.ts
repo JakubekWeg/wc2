@@ -1,5 +1,6 @@
 import Config from '../config/config'
 import { DataPack } from './data-pack'
+import { ChunkIndexer } from './ecs/chunk-indexer'
 import {
 	DelayedHideComponent,
 	DrawableBaseComponent,
@@ -49,6 +50,7 @@ export interface GameInstance {
 	readonly resources: ResourcesManager
 	readonly forces: ForcesManager
 	readonly random: SeededRandom
+	readonly world: World
 
 	startGame(): void
 
@@ -72,9 +74,9 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	public readonly eventProcessor = createEventProcessor()
 	// public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
 	public readonly resources: ResourcesManager = this.dataPack.resources
+	public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	// public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
 	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
-	// public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
 	private readonly ecs = new World()
 	public readonly tiles = new TileSystem(this.settings, this, this.ecs)
 	public readonly drawableEntities = createSimpleListIndex<DrawableBaseComponent>(this.ecs, ['DrawableBaseComponent'])
@@ -93,6 +95,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	                    public readonly random: SeededRandom) {
 		// @ts-ignore
 		window.game = this
+		this.ecs.registerIndexAndListener(this.chunkEntityIndex)
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
 		this.addSystem(this.advanceAnimationsSystem)
 		this.ecs.registerIndex(new LifecycleNotifierSystem(this))
@@ -118,11 +121,20 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 				return archer
 			}
 			for (let i = 0; i < this.settings.mapWidth; i++) {
-				createArcher(i, this.random.intMax(this.settings.mapHeight))
+				const n = this.random.intMax(this.settings.mapHeight)
+				const s = 4
+				const m = settings.mapHeight / s | 0
+				for (let j = n; j < m * s; j += s) {
+					createArcher(i, j % settings.mapHeight)
+				}
 			}
 		})
 
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
+	}
+
+	public get world() {
+		return this.ecs
 	}
 
 	public static createNewGame(settings: GameSettings,
@@ -130,7 +142,9 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 		return new GameInstanceImpl(settings,
 			dataPack,
 			ForcesManager.createNew(),
-			SeededRandom.createWithRandomSeed())
+			// SeededRandom.createWithRandomSeed()
+			SeededRandom.fromSeed(1),
+		)
 	}
 
 	public static loadGameFromObj(dataPack: DataPack,

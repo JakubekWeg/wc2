@@ -19,7 +19,8 @@ function Component(params: ComponentParams) {
 		const camera = CameraImpl.createNew(params.game.settings)
 		const renderer = new Renderer(params.game.settings, camera)
 		renderer.updateDebugOptions({
-			showChunkBoundaries: true
+			showChunkBoundaries: false,
+			renderZoomedOut: false
 		})
 		renderer.setGameInstance(params.game)
 		renderer.setCanvas(canvas)
