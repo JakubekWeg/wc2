@@ -253,9 +253,9 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			console.error('Critical error, stopping simulation', e)
 			this.stopGame()
 		}
-		const delta = performance.now() - startTime
-		if (delta > 10)
-			console.log('Took', delta, 'ms to execute update!, quite a lot')
+		//const delta = performance.now() - startTime
+		//if (delta > 10)
+		//	console.log('Took', delta, 'ms to execute update!, quite a lot')
 	}
 
 	dispatchNextTick(action: (world: World) => void) {

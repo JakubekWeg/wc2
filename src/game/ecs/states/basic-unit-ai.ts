@@ -1,7 +1,7 @@
 import Config from '../../../config/config'
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
-import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination } from '../../misc/path-finder'
+import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination2 } from '../../misc/path-finder'
 import { DebugPath, Renderer } from '../../renderer'
 import {
 	ComponentNameType,
@@ -10,7 +10,6 @@ import {
 	PossibleAttackTarget,
 	TilesIncumbentComponent,
 } from '../components'
-import { isInRectRange } from '../entities/common'
 import { UnitPrototype } from '../entities/composer'
 import { Entity } from '../world'
 import { State, StateController, StateDeserializeContext, UnitState } from './state'
@@ -257,6 +256,7 @@ class GoingAndFindingPathState implements State {
 
 /**
  * Makes entity go to the destination by provided destination area
+ * @deprecated
  */
 @UnitState
 class GoingAndFindingPathAreaState implements State {
@@ -296,7 +296,7 @@ class GoingAndFindingPathAreaState implements State {
 		const dx = this.destinationX
 		const dy = this.destinationY
 		const r = this.range
-		const path = findPathDirectionsCoarseRectDestination(sx, sy,
+		const path = findPathDirectionsCoarseRectDestination2(sx, sy,
 			dx, dy,
 			dx - r, dy - r,
 			dx + r, dy + r,
@@ -319,6 +319,79 @@ class GoingAndFindingPathAreaState implements State {
 			y: this.destinationY,
 			attempts: this.attempts,
 		}
+	}
+
+	handleCommand(command: PlayerCommand, game: GameInstance) {
+		this.controller.pop()
+		this.controller.get().handleCommand(command, game)
+	}
+}
+
+
+/**
+ * Makes entity go to the destination by provided destination area
+ */
+@UnitState
+class GoingAndFindingPathToEntityState implements State {
+	public static ID = namespaceId + 'walking-and-finding-path-to-entity'
+
+	private constructor(private readonly entity: UnitPrototype,
+	                    private readonly controller: StateController<UnitState>,
+	                    private readonly target: Entity & TilesIncumbentComponent & DamageableComponent,
+	                    private attempts: number) {
+	}
+
+
+	public static create(entity: UnitPrototype,
+	                     controller: StateController<UnitState>,
+	                     target: Entity & TilesIncumbentComponent & DamageableComponent) {
+		return new GoingAndFindingPathToEntityState(entity, controller, target, 0)
+	}
+
+	public static deserialize(ctx: StateDeserializeContext, data: Config) {
+		throw new Error('not implemented')
+		// return new GoingAndFindingPathAreaState(ctx.entity, ctx.controller,
+		// 	data.requireInt('x'), data.requireInt('y'), data.requireInt('range'), data.requireInt('attempts'))
+	}
+
+	update(game: GameInstance) {
+		const entity = this.entity
+		const target = this.target
+		const isInRange =
+			target.mostWestTile <= entity.mostWestTile + entity.attackRangeAmount
+			&& target.mostNorthTile <= entity.mostNorthTile + entity.attackRangeAmount
+			&& target.mostWestTile + target.tileOccupySize > entity.mostWestTile - entity.attackRangeAmount
+			&& target.mostNorthTile + target.tileOccupySize > entity.mostNorthTile - entity.attackRangeAmount
+		if (isInRange) {
+			this.controller.pop()
+			return
+		}
+
+
+		const [dx, dy] = target.calculateHitBoxCenter()
+		const path = findPathDirectionsCoarseRectDestination2(entity.mostWestTile, entity.mostNorthTile,
+			dx, dy,
+			target.mostWestTile, target.mostNorthTile, entity.attackRangeAmount, target.tileOccupySize,
+			game.walkableTester)
+		if (path.length > 0)
+			this.controller.push(GoingPathState.create(path, this.entity, this.controller)).update(game)
+		else
+			this.controller.pop()
+	}
+
+	onPop() {
+		this.entity.currentAnimation = this.entity.standingAnimation
+		this.entity.currentAnimationFrame = this.entity.sourceDrawY = this.entity.spriteVelocityX = this.entity.spriteVelocityY = 0
+	}
+
+	serializeToJson(): unknown {
+		// return {
+		// 	id: GoingAndFindingPathState.ID,
+		// 	x: this.destinationX,
+		// 	y: this.destinationY,
+		// 	attempts: this.attempts,
+		// }
+		throw  new Error('not implemented')
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance) {
@@ -442,7 +515,7 @@ class GoingTileState implements State {
 		entity.sourceDrawX = direction * entity.spriteSize
 		entity.destinationDrawX = (entity.mostWestTile * 32 - entity.spriteSize / 4) | 0
 		entity.destinationDrawY = (entity.mostNorthTile * 32 - entity.spriteSize / 4) | 0
-		return new GoingTileState(direction, entity, ctx.game,ctx.controller,
+		return new GoingTileState(direction, entity, ctx.game, ctx.controller,
 			data.requireInt('progress'),
 			ticksToMoveThisField,
 			data.child('command').getRawObject() as PlayerCommand)
@@ -562,24 +635,34 @@ class AttackingState implements State {
 	update(game: GameInstance): void {
 		const entity = this.entity
 		const target = this.target
-		const unitRange = entity.attackRangeAmount
-		const targetSizeBonus = target.tileOccupySize - 1
-		const [hitBoxX, hitBoxY] = target.calculateHitBoxCenter()
+		// const targetSizeBonus = target.tileOccupySize - 1
 
-		if (!isInRectRange(hitBoxX, hitBoxY,
-			entity.mostWestTile - unitRange,
-			entity.mostNorthTile - unitRange,
-			unitRange * 2 + targetSizeBonus + 1,
-			unitRange * 2 + targetSizeBonus + 1)) {
+		const isInRange =
+			target.mostWestTile <= entity.mostWestTile + entity.attackRangeAmount
+			&& target.mostNorthTile <= entity.mostNorthTile + entity.attackRangeAmount
+			&& target.mostWestTile + target.tileOccupySize > entity.mostWestTile - entity.attackRangeAmount
+			&& target.mostNorthTile + target.tileOccupySize > entity.mostNorthTile - entity.attackRangeAmount
 
+		if (!isInRange) {
 			this.controller.pop()
-			this.controller.push(GoingAndFindingPathAreaState.create(entity,
-				this.controller,
-				hitBoxX | 0,
-				hitBoxY | 0,
-				unitRange + targetSizeBonus)).update(game)
+			this.controller.push(GoingAndFindingPathToEntityState.create(entity, this.controller, target)).update(game)
 			return
 		}
+
+		// if (!isInRectRange(hitBoxX, hitBoxY,
+		// 	entity.mostWestTile - unitRange,
+		// 	entity.mostNorthTile - unitRange,
+		// 	unitRange * 2,
+		// 	unitRange * 2)) {
+		//
+		// 	this.controller.pop()
+		// 	this.controller.push(GoingAndFindingPathAreaState.create(entity,
+		// 		this.controller,
+		// 		hitBoxX | 0,
+		// 		hitBoxY | 0,
+		// 		unitRange)).update(game)
+		// 	return
+		// }
 		entity.currentAnimation = entity.attackingAnimation
 		this.setUpAttackingEntityRotation()
 
@@ -590,7 +673,7 @@ class AttackingState implements State {
 		// }
 		if (--this.reloading > 0) return
 		this.reloading = entity.reloadDuration
-		console.warn('SHOOT')
+		//console.warn('SHOOT')
 		// shoot it!
 		// ArrowImpl.spawn(game.world, entity, target)
 	}
