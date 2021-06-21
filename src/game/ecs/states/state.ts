@@ -1,6 +1,7 @@
 import Config from '../../../config/config'
 import { GameInstance } from '../../game-instance'
-import { PlayerCommand, TilesIncumbentComponent } from '../components'
+import { ComponentNameType, PlayerCommand, StateMachineHolderComponent, TilesIncumbentComponent } from '../components'
+import { UnitPrototype } from '../entities/composer'
 import World, { Entity } from '../world'
 
 export interface State {
@@ -99,17 +100,36 @@ export interface StateDeserializeContext {
 
 const states = new Map<string, any>()
 export const addState = (which: any) => {
-	const id = which.ID
+	const id: string | undefined = which.ID
 	if (!id) throw new Error('State requires ID!')
+	const indexOfSlash = id.indexOf('/')
+	if (indexOfSlash < 0) throw new Error('State requires namespaceID and type name!')
 	// if (states.has(id))
 	// 	throw new Error('State with id ' + id + ' is already registered')
-	if (!which.deserialize)
+	if (typeof which.deserialize !== 'function')
 		throw new Error('State with id ' + id + ' is missing deserialize static function')
-	states.set(id, which.deserialize)
+	if (id.substring(indexOfSlash + 1) === 'root') {
+		if (typeof which.create !== 'function')
+			throw new Error('State with id ' + id + ' is missing create static function, but root state requires it')
+		if (typeof which.isCompatibleWithComponents !== 'function')
+			throw new Error('State with id ' + id + ' is missing isCompatibleWithComponents static function, but root state requires it')
+	}
+	states.set(id, which)
 }
 
 export function UnitState(constructor: Function) {
 	addState(constructor)
+}
+
+export const getRootStateByAiName = (name: string, components: Set<ComponentNameType>): (entity: Entity & StateMachineHolderComponent, controller: StateController<any>) => State => {
+	const state = states.get(name + '/root')
+	if (state === undefined)
+		throw new Error(`Root state of group ${name} not found`)
+
+	if (!state.isCompatibleWithComponents(components))
+		throw new Error(`Root state of group ${name} claims to be incompatible with current components state`)
+
+	return state.create
 }
 
 export const deserializeUnitState = (entity: Entity,
@@ -158,7 +178,7 @@ export const deserializeUnitState = (entity: Entity,
 
 	for (const description of data.child('stack').listEntries()) {
 		const id = description.requireString('id')
-		const deserializer: Function = states.get(id)
+		const deserializer: Function = states.get(id)?.deserialize
 		if (!deserializer)
 			throw new Error('Deserializer for state ' + id + ' not found')
 

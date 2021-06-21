@@ -112,22 +112,69 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 		this.ecs.lockTypes()
 		this.dispatchNextTick((world) => {
-			const createArcher = (left: number, top: number) => {
-				const archer = world.spawnEntity('critter') as UnitPrototype
-				archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
-				archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
-				archer.mostWestTile = left
-				archer.mostNorthTile = top
-				return archer
-			}
-			for (let i = 0; i < this.settings.mapWidth; i++) {
-				const n = this.random.intMax(this.settings.mapHeight)
-				const s = 4
-				const m = settings.mapHeight / s | 0
-				for (let j = n; j < m * s; j += s) {
-					createArcher(i, j % settings.mapHeight)
-				}
-			}
+			// const createCastle = (left: number, top: number) => {
+			// 	const archer = world.spawnEntity('critter') as UnitPrototype
+			// 	archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
+			// 	archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
+			// 	archer.mostWestTile = left
+			// 	archer.mostNorthTile = top
+			// 	return archer
+			// }
+			// for (let i = 0; i < this.settings.mapWidth; i++) {
+			// 	const n = this.random.intMax(this.settings.mapHeight)
+			// 	const s = 4
+			// 	const m = settings.mapHeight / s | 0
+			// 	for (let j = n; j < m * s; j += s) {
+			// 		createCastle(i, j % settings.mapHeight)
+			// 	}
+			// }
+
+			// const createCastle = (left: number, top: number) => {
+			// 	const archer = world.spawnEntity('castle') as UnitPrototype
+			// 	archer.destinationDrawX = 32 * left
+			// 	archer.destinationDrawY = 32 * top
+			// 	archer.mostWestTile = left
+			// 	archer.mostNorthTile = top
+			// 	return archer
+			// }
+			//
+			//
+			// for (let x = 0; x < settings.mapWidth - 4; x += 4 + random.intMax(10)) {
+			// 	for (let y = 0; y < settings.mapHeight - 4; y += 4 + random.intMax(5)) {
+			// 		createCastle(x, y)
+			// 	}
+			// }
+
+			// setTimeout(() => {
+			// 	const obj = this.generateSaveJson()
+			// 	console.log(obj)
+			// }, 1000)
+
+
+			setTimeout(() => {
+				this.dispatchNextTick((world) => {
+
+					// const createCritter = (left: number, top: number) => {
+					// 	const archer = world.spawnEntity('critter') as UnitPrototype
+					// 	archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
+					// 	archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
+					// 	archer.mostWestTile = left
+					// 	archer.mostNorthTile = top
+					// 	return archer
+					// }
+					// // for (let i = 0; i < this.settings.mapWidth; i++) {
+					// // 	const n = this.random.intMax(this.settings.mapHeight)
+					// // 	const s = 4
+					// // 	const m = settings.mapHeight / s | 0
+					// // 	for (let j = n; j < m * s; j += s) {
+					// // 		const y = j % settings.mapHeight
+					// // 		if (this.tiles.isTileWalkableNoThrow(i, y))
+					// // 			createCritter(i, y)
+					// // 	}
+					// // }
+					// createCritter(20, 20)
+				})
+			}, 1000)
 		})
 
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))

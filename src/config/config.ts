@@ -33,6 +33,14 @@ class Config {
 		return value
 	}
 
+	public getPositiveInt = (key: string): number | undefined => {
+		const value = this.getValueRaw(key)
+		if (value === undefined) return undefined
+		if (typeof value !== 'number' || value !== (value | 0) || value <= 0)
+			throw new Error(`Expected positive integer in config file key=${key}, got value=${value}`)
+		return value
+	}
+
 	public requireInt = (key: string): number => {
 		const value = this.getValueRaw(key)
 		if (typeof value !== 'number' || value !== (value | 0))
@@ -48,6 +56,13 @@ class Config {
 
 	public requireString = (key: string): string => {
 		const value = this.getValueRaw(key)
+		if (typeof value !== 'string')
+			throw new Error(`Expected string in config file key=${key}, got value=${value}`)
+		return value
+	}
+	public getString = (key: string): string | undefined => {
+		const value = this.getValueRaw(key)
+		if (value === undefined) return undefined
 		if (typeof value !== 'string')
 			throw new Error(`Expected string in config file key=${key}, got value=${value}`)
 		return value

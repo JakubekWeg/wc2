@@ -60,6 +60,9 @@ export class Renderer {
 	public updateDebugOptions(options: DebugOptions) {
 		this.debugOptions = {...this.debugOptions, ...options}
 	}
+	public getDebugOptions(): DebugOptions {
+		return this.debugOptions
+	}
 
 	public setSize(width: number,
 	               height: number) {
@@ -75,218 +78,223 @@ export class Renderer {
 	private nextFrame(time: number) {
 		if (!this.enabled) return
 		requestAnimationFrame(this.nextFrameBind)
-		const delta = time - this.lastFrameTime
-		// if (delta < 100) return
-		this.lastFrameTime = time
+		try {
+			const delta = time - this.lastFrameTime
+			// if (delta < 100) return
+			this.lastFrameTime = time
 
-		if (!this.hasFocus) {
+			if (!this.hasFocus) {
+				const context = this.context
+				if (context != null) {
+					context.fillStyle = '#222'
+					context.fillRect(0, 0, this.width, this.height)
+				}
+				return
+			}
 			const context = this.context
 			if (context != null) {
-				context.fillStyle = '#222'
-				context.fillRect(0, 0, this.width, this.height)
-			}
-			return
-		}
-		const context = this.context
-		if (context != null) {
-			const game = this.game
-			if (game == null) {
-				context.fillStyle = '#880000'
-				context.fillRect(0, 0, this.width, this.height)
-			} else {
-				// context.fillStyle = '#333'
-				context.fillStyle = '#6a3a00'
-				context.fillRect(0, 0, this.width, this.height)
-
-				const camera = this.camera
-				camera.update(delta)
-				const scale = camera.scale
-				const viewPortWidth = this.width / scale
-				const viewPortHeight = this.height / scale
-				if (this.debugOptions.renderZoomedOut) {
-					const newScale = scale * 0.3
-					context.scale(newScale, newScale)
-					context.translate(-camera.centerX + this.width / newScale * 0.5, -camera.centerY + this.height / newScale * 0.5)
+				const game = this.game
+				if (game == null) {
+					context.fillStyle = '#880000'
+					context.fillRect(0, 0, this.width, this.height)
 				} else {
-					context.scale(scale, scale)
-					context.translate(-camera.centerX + viewPortWidth * 0.5, -camera.centerY + viewPortHeight * 0.5)
-				}
+					// context.fillStyle = '#333'
+					context.fillStyle = '#6a3a00'
+					context.fillRect(0, 0, this.width, this.height)
 
-				context.drawImage(this.terrainLayer, 0, 0)
+					const camera = this.camera
+					camera.update(delta)
+					const scale = camera.scale
+					const viewPortWidth = this.width / scale
+					const viewPortHeight = this.height / scale
+					if (this.debugOptions.renderZoomedOut) {
+						const newScale = scale * 0.3
+						context.scale(newScale, newScale)
+						context.translate(-camera.centerX + this.width / newScale * 0.5, -camera.centerY + this.height / newScale * 0.5)
+					} else {
+						context.scale(scale, scale)
+						context.translate(-camera.centerX + viewPortWidth * 0.5, -camera.centerY + viewPortHeight * 0.5)
+					}
 
-				const now = Date.now()
-				for (let e of game.delayedHideEntities()) {
-					if (e.hideMeAtMillis <= now)
-						e.render = doNothingCallback
-				}
+					context.drawImage(this.terrainLayer, 0, 0)
 
-				for (const e of game.movingEntities()) {
-					e.destinationDrawX += e.spriteVelocityX * delta
-					e.destinationDrawY += e.spriteVelocityY * delta
-				}
+					const now = Date.now()
+					for (let e of game.delayedHideEntities()) {
+						if (e.hideMeAtMillis <= now)
+							e.render = doNothingCallback
+					}
 
-
-				const viewPortLeft = camera.centerX - viewPortWidth * 0.5
-				const viewPortTop = camera.centerY - viewPortHeight * 0.5
-				for (const e of game.chunkEntityIndex.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
-					e.render(context)
-				}
+					for (const e of game.movingEntities()) {
+						e.destinationDrawX += e.spriteVelocityX * delta
+						e.destinationDrawY += e.spriteVelocityY * delta
+					}
 
 
-				// for (const e of game.drawableEntities()) {
-				// 	e.render(context)
-				// }
+					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
+					const viewPortTop = camera.centerY - viewPortHeight * 0.5
+					for (const e of game.chunkEntityIndex.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
+						e.render(context)
+					}
 
 
-				if (this.debugOptions.showTilesOccupation) {
-					const tileSizeInPixels = 32
-					for (let i = 0; i < this.settings.mapWidth; i++) {
-						for (let j = 0; j < this.settings.mapHeight; j++) {
-							const walkable = game.tiles.isTileWalkableNoThrow(i, j)
-							context.fillStyle = walkable ? '#00FF0077' : '#FF000077'
-							context.fillRect(
-								(i + 0.3) * tileSizeInPixels,
-								(j + 0.3) * tileSizeInPixels,
-								tileSizeInPixels * 0.4,
-								tileSizeInPixels * 0.4)
+					// for (const e of game.drawableEntities()) {
+					// 	e.render(context)
+					// }
+
+
+					if (this.debugOptions.showTilesOccupation) {
+						const tileSizeInPixels = 32
+						for (let i = 0; i < this.settings.mapWidth; i++) {
+							for (let j = 0; j < this.settings.mapHeight; j++) {
+								const walkable = game.tiles.isTileWalkableNoThrow(i, j)
+								context.fillStyle = walkable ? '#00FF0077' : '#FF000077'
+								context.fillRect(
+									(i + 0.3) * tileSizeInPixels,
+									(j + 0.3) * tileSizeInPixels,
+									tileSizeInPixels * 0.4,
+									tileSizeInPixels * 0.4)
+							}
 						}
 					}
-				}
 
-				if (this.debugOptions.showPaths) {
-					context.strokeStyle = '#000000'
-					for (const path of Renderer.DEBUG_PATHS) {
+					if (this.debugOptions.showPaths) {
+						context.strokeStyle = '#000000'
+						for (const path of Renderer.DEBUG_PATHS) {
 
-						context.beginPath()
-						context.lineWidth = 2
-						let lastX = path.entityFor.mostWestTile * 32 + 16
-						let lastY = path.entityFor.mostNorthTile * 32 + 16
-						context.moveTo(lastX, lastY)
-						for (let i = path.current, s = path.path.length; i < s; i++) {
-							const dir = path.path[i]
-							const [ox, oy] = facingDirectionToVector(dir)
-							lastX += ox * 32
-							lastY += oy * 32
-							context.lineTo(lastX, lastY)
+							context.beginPath()
+							context.lineWidth = 2
+							let lastX = path.entityFor.mostWestTile * 32 + 16
+							let lastY = path.entityFor.mostNorthTile * 32 + 16
+							context.moveTo(lastX, lastY)
+							for (let i = path.current, s = path.path.length; i < s; i++) {
+								const dir = path.path[i]
+								const [ox, oy] = facingDirectionToVector(dir)
+								lastX += ox * 32
+								lastY += oy * 32
+								context.lineTo(lastX, lastY)
+							}
+							context.stroke()
+							context.closePath()
 						}
-						context.stroke()
-						context.closePath()
+						// for (const entity of game.walkingEntities()) {
+						// 	if (entity.pathDirections.length > 0) {
+						// 		context.beginPath()
+						// 		context.lineWidth = 2
+						// 		let lastX = entity.occupiedTilesWest * 32 + 16
+						// 		let lastY = entity.occupiedTilesNorth * 32 + 16
+						// 		context.moveTo(lastX, lastY)
+						// 		for (const dir of entity.pathDirections) {
+						// 			const [ox, oy] = facingDirectionToVector(dir)
+						// 			lastX += ox * 32
+						// 			lastY += oy * 32
+						// 			context.lineTo(lastX, lastY)
+						// 		}
+						// 		context.stroke()
+						// 		context.closePath()
+						// 	}
+						// }
 					}
-					// for (const entity of game.walkingEntities()) {
-					// 	if (entity.pathDirections.length > 0) {
-					// 		context.beginPath()
-					// 		context.lineWidth = 2
-					// 		let lastX = entity.occupiedTilesWest * 32 + 16
-					// 		let lastY = entity.occupiedTilesNorth * 32 + 16
-					// 		context.moveTo(lastX, lastY)
-					// 		for (const dir of entity.pathDirections) {
-					// 			const [ox, oy] = facingDirectionToVector(dir)
-					// 			lastX += ox * 32
-					// 			lastY += oy * 32
-					// 			context.lineTo(lastX, lastY)
+					//
+					// if (this.debugOptions.showChunkBoundaries) {
+					// 	context.lineWidth = 2
+					// 	const {mapWidth, mapHeight, chunkSize} = game.settings
+					// 	const chunksX = Math.ceil(mapWidth / chunkSize)
+					// 	const chunksY = Math.ceil(mapHeight / chunkSize)
+					// 	const margin = 4
+					// 	context.font = '12px Roboto'
+					// 	context.fillStyle = 'black'
+					// 	for (let i = 0; i < chunksX; i++) {
+					// 		for (let j = 0; j < chunksY; j++) {
+					// 			const count = game
+					// 				.chunkEntityIndex
+					// 				.getChunkByChunkCoords(i, j)
+					// 				.getEntitiesCount()
+					//
+					// 			context.fillText(`${count}`,
+					// 				i * 32 * chunkSize + 2 * margin,
+					// 				j * 32 * chunkSize + 4 * margin)
+					//
+					// 			context.strokeRect(
+					// 				i * 32 * chunkSize + margin,
+					// 				j * 32 * chunkSize + margin,
+					// 				chunkSize * 32 - margin * 2,
+					// 				chunkSize * 32 - margin * 2)
 					// 		}
-					// 		context.stroke()
-					// 		context.closePath()
 					// 	}
 					// }
-				}
-				//
-				// if (this.debugOptions.showChunkBoundaries) {
-				// 	context.lineWidth = 2
-				// 	const {mapWidth, mapHeight, chunkSize} = game.settings
-				// 	const chunksX = Math.ceil(mapWidth / chunkSize)
-				// 	const chunksY = Math.ceil(mapHeight / chunkSize)
-				// 	const margin = 4
-				// 	context.font = '12px Roboto'
-				// 	context.fillStyle = 'black'
-				// 	for (let i = 0; i < chunksX; i++) {
-				// 		for (let j = 0; j < chunksY; j++) {
-				// 			const count = game
-				// 				.chunkEntityIndex
-				// 				.getChunkByChunkCoords(i, j)
-				// 				.getEntitiesCount()
-				//
-				// 			context.fillText(`${count}`,
-				// 				i * 32 * chunkSize + 2 * margin,
-				// 				j * 32 * chunkSize + 4 * margin)
-				//
-				// 			context.strokeRect(
-				// 				i * 32 * chunkSize + margin,
-				// 				j * 32 * chunkSize + margin,
-				// 				chunkSize * 32 - margin * 2,
-				// 				chunkSize * 32 - margin * 2)
-				// 		}
-				// 	}
-				// }
-				//
+					//
 
-				if (this.debugOptions.showChunkBoundaries) {
-					context.lineWidth = 2
-					const {mapWidth, mapHeight} = game.settings
-					const chunksX = Math.ceil(mapWidth / CHUNK_TILE_SIZE)
-					const chunksY = Math.ceil(mapHeight / CHUNK_TILE_SIZE)
-					const margin = 4
-					context.font = '12px Roboto'
-					context.fillStyle = 'black'
-					for (let i = 0; i < chunksX; i++) {
-						for (let j = 0; j < chunksY; j++) {
-							const count = game
-								.chunkEntityIndex
-								.getChunkByChunkCoords(i, j)
-								?.getEntitiesCount()
+					if (this.debugOptions.showChunkBoundaries) {
+						context.lineWidth = 2
+						const {mapWidth, mapHeight} = game.settings
+						const chunksX = Math.ceil(mapWidth / CHUNK_TILE_SIZE)
+						const chunksY = Math.ceil(mapHeight / CHUNK_TILE_SIZE)
+						const margin = 4
+						context.font = '12px Roboto'
+						context.fillStyle = 'black'
+						for (let i = 0; i < chunksX; i++) {
+							for (let j = 0; j < chunksY; j++) {
+								const count = game
+									.chunkEntityIndex
+									.getChunkByChunkCoords(i, j)
+									?.getEntitiesCount()
 
-							context.fillText(`${count}`,
-								i * CHUNK_REAL_PX_SIZE + 2 * margin,
-								j * CHUNK_REAL_PX_SIZE + 4 * margin)
+								context.fillText(`${count}`,
+									i * CHUNK_REAL_PX_SIZE + 2 * margin,
+									j * CHUNK_REAL_PX_SIZE + 4 * margin)
 
-							context.strokeRect(
-								i * CHUNK_REAL_PX_SIZE + margin,
-								j * CHUNK_REAL_PX_SIZE + margin,
-								CHUNK_REAL_PX_SIZE - margin * 2,
-								CHUNK_REAL_PX_SIZE - margin * 2)
-						}
-					}
-				}
-
-				if (this.debugOptions.showTileListenersCount) {
-					const {mapWidth, mapHeight} = game.settings
-					for (let i = 0; i < mapWidth; i++) {
-						for (let j = 0; j < mapHeight; j++) {
-							const tile = game.tiles.get(i, j) as TileImpl
-							const count = tile.getListenersCount()
-							if (count > 0) {
-								context.fillStyle = '#0000FF44'
-								context?.fillRect(i * 32, j * 32, 32, 32)
+								context.strokeRect(
+									i * CHUNK_REAL_PX_SIZE + margin,
+									j * CHUNK_REAL_PX_SIZE + margin,
+									CHUNK_REAL_PX_SIZE - margin * 2,
+									CHUNK_REAL_PX_SIZE - margin * 2)
 							}
-							context.fillStyle = 'black'
-							context.fillText(`${count}`,
-								i * 32 + 12,
-								j * 32 + 20)
-							// let any = false
-							// for (const listener of tile.getListeners()) {
-							// 	any = true
-							// 	const sprite = (listener as unknown as SpriteDrawableComponent);
-							// 	if (sprite.spriteSize !== undefined) {
-							// 		context.beginPath()
-							// 		context.lineWidth = 2
-							// 		context.moveTo(i * 32, j * 32)
-							// 		context.lineTo(sprite.destinationDrawX + 36, sprite.destinationDrawY + 36)
-							// 		context.closePath()
-							// 		context.stroke()
-							//
-							// 	}
-							// }
 						}
 					}
-				}
 
-				if (this.debugOptions.renderZoomedOut) {
-					const SIZE = 8
-					context.strokeRect(viewPortLeft - SIZE | 0, viewPortTop - SIZE | 0, viewPortWidth + SIZE * 2 | 0, viewPortHeight + SIZE * 2 | 0)
-				}
+					if (this.debugOptions.showTileListenersCount) {
+						const {mapWidth, mapHeight} = game.settings
+						for (let i = 0; i < mapWidth; i++) {
+							for (let j = 0; j < mapHeight; j++) {
+								const tile = game.tiles.get(i, j) as TileImpl
+								const count = tile.getListenersCount()
+								if (count > 0) {
+									context.fillStyle = '#0000FF44'
+									context?.fillRect(i * 32, j * 32, 32, 32)
+								}
+								context.fillStyle = 'black'
+								context.fillText(`${count}`,
+									i * 32 + 12,
+									j * 32 + 20)
+								// let any = false
+								// for (const listener of tile.getListeners()) {
+								// 	any = true
+								// 	const sprite = (listener as unknown as SpriteDrawableComponent);
+								// 	if (sprite.spriteSize !== undefined) {
+								// 		context.beginPath()
+								// 		context.lineWidth = 2
+								// 		context.moveTo(i * 32, j * 32)
+								// 		context.lineTo(sprite.destinationDrawX + 36, sprite.destinationDrawY + 36)
+								// 		context.closePath()
+								// 		context.stroke()
+								//
+								// 	}
+								// }
+							}
+						}
+					}
 
-				context.resetTransform()
+					if (this.debugOptions.renderZoomedOut) {
+						const SIZE = 8
+						context.strokeRect(viewPortLeft - SIZE | 0, viewPortTop - SIZE | 0, viewPortWidth + SIZE * 2 | 0, viewPortHeight + SIZE * 2 | 0)
+					}
+
+					context.resetTransform()
+				}
 			}
+		} catch (e) {
+			console.error(e)
+			this.enabled = false
 		}
 	}
 
@@ -322,4 +330,5 @@ export class Renderer {
 			this.animationHandle = requestAnimationFrame(this.nextFrameBind)
 		}
 	}
+
 }

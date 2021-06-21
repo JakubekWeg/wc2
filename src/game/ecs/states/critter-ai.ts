@@ -1,17 +1,21 @@
 import Config from '../../../config/config'
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionToVector } from '../../misc/facing-direction'
-import { PlayerCommand } from '../components'
-import { UnitPrototype } from '../entities/composer'
+import {
+	ComponentNameType,
+	MovingDrawableComponent,
+	MovingUnitComponent,
+	PlayerCommand,
+	PredefinedDrawableComponent,
+} from '../components'
+import { Entity } from '../world'
 import { State, StateController, StateDeserializeContext, UnitState } from './state'
 
-const namespaceId = 'critter-ai/'
+const namespaceId = 'critter/'
+
+type UnitPrototype = Entity & MovingUnitComponent & MovingDrawableComponent & PredefinedDrawableComponent
 
 interface UnitState extends State {
-}
-
-export const createAiState = (entity: UnitPrototype, controller: StateController<UnitState>): UnitState => {
-	return RootState.create(entity, controller)
 }
 
 /**
@@ -29,6 +33,13 @@ class RootState implements State {
 	public static create(entity: UnitPrototype,
 	                     controller: StateController<UnitState>) {
 		return new RootState(entity, controller, 10)
+	}
+
+	public static isCompatibleWithComponents(components: Set<ComponentNameType>): boolean {
+		return components.has('MovingUnitComponent')
+			&& components.has('MovingDrawableComponent')
+			&& components.has('StateMachineHolderComponent')
+			&& components.has('PredefinedDrawableComponent')
 	}
 
 	public static deserialize(ctx: StateDeserializeContext, data: Config) {

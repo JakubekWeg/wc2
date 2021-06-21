@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import Config from '../../config/config'
 import { fetchDataPack } from '../../game/data-pack'
+import { DamageableComponent, PredefinedDrawableComponent, TilesIncumbentComponent } from '../../game/ecs/components'
+import { Entity } from '../../game/ecs/world'
 import { GameInstanceImpl } from '../../game/game-instance'
 import GameCanvas from './GameCanvas'
 import GameLeftTopControls from './GameLeftControls'
@@ -23,8 +25,8 @@ function Component() {
 				setGame(game)
 			} else {
 				const game = GameInstanceImpl.createNewGame({
-					mapWidth: 128,
-					mapHeight: 128,
+					mapWidth: 32,
+					mapHeight: 32,
 				}, dp)
 				setGame(game)
 			}
@@ -46,7 +48,33 @@ function Component() {
 		<div className="GameLayout">
 			<GameLeftTopControls/>
 			<ResourcesBar/>
-			<GameCanvas game={game} />
+			<GameCanvas game={game} tileClicked={(x, y,which: number) => {
+				game?.dispatchNextTick(world => {
+					if (which === 0) {
+						// const e = world.spawnEntity('castle') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+						// e.mostWestTile = x
+						// e.mostNorthTile = y
+						// e.destinationDrawX = x * 32
+						// e.destinationDrawY = y * 32
+						// e.myForce = game?.forces.getForce(1)
+
+						const e = world.spawnEntity('footman') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+						e.mostWestTile = x
+						e.mostNorthTile = y
+						e.destinationDrawX = x * 32 - 20
+						e.destinationDrawY = y * 32 - 20
+						e.myForce = game?.forces.getForce(1)
+					} else if (which === 2) {
+						const e = world.spawnEntity('footman') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+						e.mostWestTile = x
+						e.mostNorthTile = y
+						e.destinationDrawX = x * 32 - 20
+						e.destinationDrawY = y * 32 - 20
+						e.myForce = game?.forces.getForce(2)
+					}
+				})
+			}
+			}/>
 		</div>
 	)
 }

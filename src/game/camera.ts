@@ -112,7 +112,7 @@ export class CameraImpl implements Camera {
 	}
 
 	update(delta: number) {
-		const VELOCITY = 0.5 * delta / this.scale
+		const VELOCITY = 0.6 * delta / this.scale
 
 		this.centerX -= (this.movingLeft - this.movingRight) * VELOCITY
 		this.centerY -= (this.movingUp - this.movingDown) * VELOCITY

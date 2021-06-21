@@ -4,16 +4,16 @@
       "prototype": "unit",
       "prototypeData": {
         "texture": "critter",
-        "animations": {
-          "walk": "@animation/stand-zero",
-          "stand": "@animation/stand-zero",
-          "attack": "@animation/stand-zero"
-        },
-        "reloadDuration": 1,
-        "firstAttackLoadDuration": 1,
         "unitMovingSpeed": 7,
-        "attackRangeAmount": 1,
-        "sightAmount": 1
+        "ai": "critter"
+      }
+    },
+    "castle": {
+      "prototype": "building",
+      "prototypeData": {
+        "texture": "castle",
+        "occupySize": 4,
+        "sightAmount": 5
       }
     },
     "archer": {
@@ -25,10 +25,12 @@
           "stand": "@animation/stand-zero",
           "attack": "@animation/elven-archer-attack"
         },
-        "reloadDuration": 7,
-        "firstAttackLoadDuration": 6,
+        "attack": {
+          "reloadDuration": 7,
+          "firstDelay": 6,
+          "range": 3
+        },
         "unitMovingSpeed": 9,
-        "attackRangeAmount": 3,
         "sightAmount": 5
       }
     },
@@ -41,26 +43,31 @@
           "stand": "@animation/stand-zero",
           "attack": "@animation/catapult-attack"
         },
-        "reloadDuration": 9,
-        "firstAttackLoadDuration": 1,
+        "attack": {
+          "reloadDuration": 9,
+          "firstDelay": 1,
+          "range": 8
+        },
         "unitMovingSpeed": 5,
-        "attackRangeAmount": 8,
         "sightAmount": 9
       }
     },
     "footman": {
       "prototype": "unit",
       "prototypeData": {
+        "ai": "basic-unit",
         "texture": "footman",
         "animations": {
           "walk": "@animation/generic-walk",
           "stand": "@animation/stand-zero",
           "attack": "@animation/footman-attack"
         },
-        "reloadDuration": 4,
-        "firstAttackLoadDuration": 2,
+        "attack": {
+          "reloadDuration": 4,
+          "firstDelay": 2,
+          "range": 1
+        },
         "unitMovingSpeed": 8,
-        "attackRangeAmount": 1,
         "sightAmount": 4
       }
     }
@@ -85,6 +92,11 @@
       "name": "footman",
       "type": "unit",
       "spriteSize": 72
+    },
+    "castle": {
+      "name": "castle",
+      "type": "tileset",
+      "spriteSize": 128
     }
   },
   "animations": {

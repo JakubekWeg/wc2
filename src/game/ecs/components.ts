@@ -109,8 +109,7 @@ export type PossibleAttackTarget = Entity & TilesIncumbentComponent & Damageable
  */
 export interface DamageableComponent {
 	myForce: Force
-	readonly hitBoxCenterX: number
-	readonly hitBoxCenterY: number
+	calculateHitBoxCenter(): [number, number]
 }
 
 /**

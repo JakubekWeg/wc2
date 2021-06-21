@@ -3,24 +3,23 @@ import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
 import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination } from '../../misc/path-finder'
 import { DebugPath, Renderer } from '../../renderer'
-import { DamageableComponent, PlayerCommand, PossibleAttackTarget, TilesIncumbentComponent } from '../components'
+import {
+	ComponentNameType,
+	DamageableComponent,
+	PlayerCommand,
+	PossibleAttackTarget,
+	TilesIncumbentComponent,
+} from '../components'
 import { isInRectRange } from '../entities/common'
 import { UnitPrototype } from '../entities/composer'
 import { Entity } from '../world'
 import { State, StateController, StateDeserializeContext, UnitState } from './state'
 
-const namespaceId = 'basic-unit-ai/'
+const namespaceId = 'basic-unit/'
 
 interface UnitState extends State {
 }
 
-export const createAiState = (entity: UnitPrototype, controller: StateController<UnitState>): UnitState => {
-	return new RootState(entity, controller)
-}
-
-/**
- * Hello world
- */
 /**
  * State that handles commands, it switches immediately to something other
  */
@@ -30,6 +29,27 @@ class RootState implements State {
 
 	constructor(private readonly entity: UnitPrototype,
 	            private readonly controller: StateController<UnitState>) {
+	}
+
+	public static create(entity: UnitPrototype,
+	                     controller: StateController<UnitState>) {
+		return new RootState(entity, controller)
+	}
+
+	public static isCompatibleWithComponents(components: Set<ComponentNameType>): boolean {
+		return components.has('SerializableComponent')
+			&& components.has('PredefinedDrawableComponent')
+			&& components.has('StateMachineHolderComponent')
+			&& components.has('MovingDrawableComponent')
+			&& components.has('AnimatableDrawableComponent')
+			&& components.has('TilesIncumbentComponent')
+			&& components.has('DamageableComponent')
+			&& components.has('TileListenerComponent')
+			&& components.has('AttackComponent')
+			&& components.has('SightComponent')
+			&& components.has('UnitAnimationsComponent')
+			&& components.has('MovingUnitComponent')
+			&& components.has('SerializableComponent')
 	}
 
 	public static deserialize(ctx: StateDeserializeContext) {
@@ -383,6 +403,7 @@ class GoingTileState implements State {
 
 	private constructor(private readonly direction: FacingDirection,
 	                    private readonly entity: UnitPrototype,
+	                    private readonly game: GameInstance,
 	                    private readonly controller: StateController<UnitState>,
 	                    private progress: number,
 	                    private readonly ticksToMoveThisField: number,
@@ -411,7 +432,7 @@ class GoingTileState implements State {
 		entity.spriteVelocityY = oy * 32 / (ticksToMoveThisField * MILLIS_BETWEEN_TICKS)
 		entity.mostWestTile += ox
 		entity.mostNorthTile += oy
-		return new GoingTileState(direction, entity, controller, 0, ticksToMoveThisField, undefined)
+		return new GoingTileState(direction, entity, game, controller, 0, ticksToMoveThisField, undefined)
 	}
 
 	public static deserialize(ctx: StateDeserializeContext, data: Config) {
@@ -421,13 +442,15 @@ class GoingTileState implements State {
 		entity.sourceDrawX = direction * entity.spriteSize
 		entity.destinationDrawX = (entity.mostWestTile * 32 - entity.spriteSize / 4) | 0
 		entity.destinationDrawY = (entity.mostNorthTile * 32 - entity.spriteSize / 4) | 0
-		return new GoingTileState(direction, entity, ctx.controller,
+		return new GoingTileState(direction, entity, ctx.game,ctx.controller,
 			data.requireInt('progress'),
 			ticksToMoveThisField,
 			data.child('command').getRawObject() as PlayerCommand)
 	}
 
 	onPop(): void {
+		const entity = this.entity
+		this.game.world.notifyEntityModified(entity, 'PredefinedDrawableComponent')
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {
@@ -541,8 +564,9 @@ class AttackingState implements State {
 		const target = this.target
 		const unitRange = entity.attackRangeAmount
 		const targetSizeBonus = target.tileOccupySize - 1
+		const [hitBoxX, hitBoxY] = target.calculateHitBoxCenter()
 
-		if (!isInRectRange(target.hitBoxCenterX, target.hitBoxCenterY,
+		if (!isInRectRange(hitBoxX, hitBoxY,
 			entity.mostWestTile - unitRange,
 			entity.mostNorthTile - unitRange,
 			unitRange * 2 + targetSizeBonus + 1,
@@ -551,8 +575,8 @@ class AttackingState implements State {
 			this.controller.pop()
 			this.controller.push(GoingAndFindingPathAreaState.create(entity,
 				this.controller,
-				target.hitBoxCenterX | 0,
-				target.hitBoxCenterY | 0,
+				hitBoxX | 0,
+				hitBoxY | 0,
 				unitRange + targetSizeBonus)).update(game)
 			return
 		}
@@ -583,10 +607,13 @@ class AttackingState implements State {
 		const entity = this.entity
 		const target = this.target
 
-		const startPosX = entity.hitBoxCenterX * 32
-		const startPosY = entity.hitBoxCenterY * 32
-		const endPosX = target.hitBoxCenterX * 32
-		const endPosY = target.hitBoxCenterY * 32
+		const [myBoxX, myBoxY] = entity.calculateHitBoxCenter()
+		const [targetBoxX, targetBoxY] = target.calculateHitBoxCenter()
+
+		const startPosX = myBoxX * 32
+		const startPosY = myBoxY * 32
+		const endPosX = targetBoxX * 32
+		const endPosY = targetBoxY * 32
 
 		const x = endPosX - startPosX
 		const y = endPosY - startPosY
