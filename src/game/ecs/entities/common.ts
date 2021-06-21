@@ -31,8 +31,13 @@ export const isInRectRange = (px: number, py: number, l: number, t: number, w: n
 	return isInRectRange2(px, py, l, t, l + w, t + h)
 }
 export const isInRectRange2 = (px: number, py: number, l: number, t: number, r: number, b: number): boolean => {
-	return px >= l && px <= r && py >= t && py <= b
+	return px >= l && px < r && py >= t && py < b
 }
+
+// export const rectIntersectsOtherRect = (l1: number, t1: number, w1: number, h1: number,
+//                                         l2: number, t2: number, w2: number, h2: number): boolean => {
+//
+// }
 
 const forceAddSerializableComponent = (req: EntityRegistrationRequest) => {
 	req.components.add('SerializableComponent')
@@ -148,7 +153,7 @@ export const forceAddDamageableComponent = (req: EntityRegistrationRequest, stat
 			return hitBox
 		}
 	} else {
-		obj.calculateHitBoxCenter = function (this: Entity & DamageableComponent & PredefinedDrawableComponent& TilesIncumbentComponent) {
+		obj.calculateHitBoxCenter = function (this: Entity & DamageableComponent & PredefinedDrawableComponent & TilesIncumbentComponent) {
 			const hitBox: [number, number] = [this.mostWestTile + this.tileOccupySize / 2, this.mostNorthTile + this.tileOccupySize / 2]
 			return hitBox
 		}

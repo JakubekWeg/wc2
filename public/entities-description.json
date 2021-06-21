@@ -16,9 +16,10 @@
         "sightAmount": 5
       }
     },
-    "archer": {
+    "elven-archer": {
       "prototype": "unit",
       "prototypeData": {
+        "ai": "basic-unit",
         "texture": "elven-archer",
         "animations": {
           "walk": "@animation/generic-walk",
@@ -37,6 +38,7 @@
     "catapult": {
       "prototype": "unit",
       "prototypeData": {
+        "ai": "basic-unit",
         "texture": "catapult",
         "animations": {
           "walk": "@animation/catapult-go",
@@ -63,8 +65,8 @@
           "attack": "@animation/footman-attack"
         },
         "attack": {
-          "reloadDuration": 4,
-          "firstDelay": 2,
+          "reloadDuration": 3,
+          "firstDelay": 3,
           "range": 1
         },
         "unitMovingSpeed": 8,

@@ -50,22 +50,22 @@ function Component() {
 			<ResourcesBar/>
 			<GameCanvas game={game} tileClicked={(x, y,which: number) => {
 				game?.dispatchNextTick(world => {
-					if (which === 0) {
-						// const e = world.spawnEntity('castle') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
-						// e.mostWestTile = x
-						// e.mostNorthTile = y
-						// e.destinationDrawX = x * 32
-						// e.destinationDrawY = y * 32
-						// e.myForce = game?.forces.getForce(1)
-
-						const e = world.spawnEntity('footman') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+					if (which === 2) {
+						const e = world.spawnEntity('castle') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
 						e.mostWestTile = x
 						e.mostNorthTile = y
-						e.destinationDrawX = x * 32 - 20
-						e.destinationDrawY = y * 32 - 20
+						e.destinationDrawX = x * 32
+						e.destinationDrawY = y * 32
 						e.myForce = game?.forces.getForce(1)
-					} else if (which === 2) {
-						const e = world.spawnEntity('footman') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+
+						// const e = world.spawnEntity('catapult') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
+						// e.mostWestTile = x
+						// e.mostNorthTile = y
+						// e.destinationDrawX = x * 32 - 20
+						// e.destinationDrawY = y * 32 - 20
+						// e.myForce = game?.forces.getForce(1)
+					} else if (which === 0) {
+						const e = world.spawnEntity('elven-archer') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
 						e.mostWestTile = x
 						e.mostNorthTile = y
 						e.destinationDrawX = x * 32 - 20
