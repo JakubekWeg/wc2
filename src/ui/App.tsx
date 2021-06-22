@@ -1,62 +1,50 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import Config from '../config/config'
+import { fetchDataPack } from '../game/data-pack'
+import { GameInstanceImpl } from '../game/game-instance'
 import './App.css'
 import GameLayout from './game/GameLayout'
-//
-// const debugOptions: DebugOptions = {
-// 	showTilesOccupation: false,
-// 	showPaths: false,
-// 	showChunkBoundaries: false,
-// 	showTileListenersCount: false,
-// }
-//
-// function App() {
-// 	const [dataPack, setDataPack] = useState<DataPack>()
-// 	const [gameInstance, setGameInstance] = useState<GameInstanceImpl>()
-//
-// 	useEffect(() => {
-// 		(async () => {
-// 			const settings: GameSettings = {
-// 				mapWidth: 40,
-// 				mapHeight: 20,
-// 			}
-//
-// 			const dp = await fetchDataPack('/entities-description.json')
-//
-// 			setDataPack(dp)
-// 			setGameInstance(GameInstanceImpl.createNewGame(settings, dp))
-// 		})()
-// 	}, [])
-//
-// 	const reload = useCallback(() => {
-// 		if (dataPack == null) return
-// 		if (gameInstance) {
-// 			setGameInstance(undefined)
-// 			const x = localStorage.getItem('last-save')
-// 			if (x) {
-// 				const save = Config.createConfigFromObject(JSON.parse(x))
-// 				// const save = JSON.parse(x)
-// 				const game = GameInstanceImpl.loadGameFromObj(dataPack, save)
-// 				setGameInstance(game)
-// 			}
-// 		}
-// 	}, [gameInstance, dataPack])
-//
-// 	if (!gameInstance)
-// 		return (<p>Loading...</p>)
-// 	return (
-// 		<div className="App">
-// 			<Game debugOptions={debugOptions}
-// 			      settings={gameInstance.settings}
-// 			      reloadRequested={reload}
-// 			      gameInstance={gameInstance}/>
-// 		</div>
-// 	)
-// }
+
+export interface LoadMethod {
+	type: 'new' | 'saved'
+}
 
 function App() {
+	const [gameInstance, setGameInstance] = useState<GameInstanceImpl>()
+	const [loadMethod, setLoadMethod] = useState<LoadMethod>({type: 'saved'})
+
+
+	useEffect(() => {
+		let cancelled: boolean = false;
+		(async () => {
+			const dp = await fetchDataPack('/entities-description.json')
+			if (cancelled) return
+
+			let game: GameInstanceImpl
+			const str = localStorage.getItem('last-save')
+			if (str && loadMethod.type === 'saved') {
+				const save = Config.createConfigFromObject(JSON.parse(str))
+				game = GameInstanceImpl.loadGameFromObj(dp, save)
+			} else {
+				game = GameInstanceImpl.createNewGame({
+					mapWidth: 32,
+					mapHeight: 32,
+				}, dp)
+			}
+
+			setGameInstance(game)
+		})()
+		return () => {
+			cancelled = true
+		}
+	}, [loadMethod])
+
+	if (gameInstance == null)
+		return (<div>Loading... please wait</div>)
+
 	return (
 		<div className="App">
-			<GameLayout/>
+			<GameLayout game={gameInstance} reloadRequest={m => setLoadMethod(m)}/>
 		</div>
 	)
 }
