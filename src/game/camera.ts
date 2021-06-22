@@ -18,10 +18,6 @@ export interface Camera {
 
 	setZooming(in_: boolean, enabled: boolean): void
 
-	zoom(delta: number): void
-
-	isPointWithinViewport(x: number, y: number): boolean
-
 	serialize(): unknown
 
 	clone(): Camera
@@ -65,11 +61,6 @@ export class CameraImpl implements Camera {
 		return CameraImpl.deserialize(Config.createConfigFromObject(this.serialize()))
 	}
 
-	isPointWithinViewport(x: number, y: number): boolean {
-		// return isInRectRange2(x, y, this.left, this.top, this.right, this.bottom)
-		return true
-	}
-
 	setMoving(direction: CameraDirection, enabled: boolean): void {
 		const val = enabled ? 1 : 0
 		switch (direction) {
@@ -106,18 +97,13 @@ export class CameraImpl implements Camera {
 		}
 	}
 
-	zoom(delta: number): void {
-		// this.cameraSizeX += delta * 2
-		// this.cameraSizeY += delta * 2
-	}
-
 	update(delta: number) {
 		const VELOCITY = 0.6 * delta / this.scale
 
 		this.centerX -= (this.movingLeft - this.movingRight) * VELOCITY
 		this.centerY -= (this.movingUp - this.movingDown) * VELOCITY
 
-		this.scale += (this.zoomingIn - this.zoomingOut) * 0.01 * delta
+		this.scale *= (this.zoomingIn - this.zoomingOut) * delta * 0.003 + 1
 		if (this.scale < 0.2)
 			this.scale = 0.2
 		if (this.scale > 8)
