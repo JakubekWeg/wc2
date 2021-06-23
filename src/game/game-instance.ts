@@ -8,12 +8,12 @@ import {
 	SerializableComponent,
 } from './ecs/components'
 import './ecs/entities/composer'
-import { UnitPrototype } from './ecs/entities/composer'
 import createEventProcessor from './ecs/game-event-processor'
 import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system'
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
 import TileSystem from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
+import { TerrainSystem } from './ecs/terrain'
 import World, { createSimpleListIndex, Entity } from './ecs/world'
 import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
@@ -92,7 +92,8 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	private constructor(public readonly settings: GameSettings,
 	                    public readonly dataPack: DataPack,
 	                    public readonly forces: ForcesManager,
-	                    public readonly random: SeededRandom) {
+	                    public readonly random: SeededRandom,
+	                    public readonly terrain: TerrainSystem) {
 		// @ts-ignore
 		window.game = this
 		this.ecs.registerIndexAndListener(this.chunkEntityIndex)
@@ -191,6 +192,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			ForcesManager.createNew(),
 			// SeededRandom.createWithRandomSeed()
 			SeededRandom.fromSeed(1),
+			TerrainSystem.createNew(settings, dataPack),
 		)
 	}
 
@@ -203,7 +205,8 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 		const game = new GameInstanceImpl(settings,
 			dataPack,
 			ForcesManager.deserialize(obj.child('forces')),
-			SeededRandom.deserialize(obj.child('random')))
+			SeededRandom.deserialize(obj.child('random')),
+			TerrainSystem.createNew(settings, dataPack))
 
 		const entities: [Entity & SerializableComponent, Config][] = []
 		for (const [key, description] of obj.child('entities').objectEntries()) {

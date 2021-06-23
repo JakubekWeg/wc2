@@ -8,12 +8,10 @@ import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { Layer, LayerLevel } from './ecs/layers'
 import { TileImpl } from './ecs/systems/tiles-system'
-import {  getLayerCallback } from './ecs/terrain'
 import { Entity } from './ecs/world'
 import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
 import GameSettings from './misc/game-settings'
-import { registry } from './misc/resources-manager'
 
 export interface DebugOptions {
 	showTilesOccupation?: boolean
@@ -43,7 +41,6 @@ export class Renderer {
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
-	public readonly layerTerrain = new Layer(LayerLevel.TERRAIN, this.settings.mapWidth, false, this.renderTerrain.bind(this))
 
 	constructor(private readonly settings: GameSettings,
 	            private readonly camera: Camera) {
@@ -144,8 +141,9 @@ export class Renderer {
 					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
 					const viewPortTop = camera.centerY - viewPortHeight * 0.5
 
-					this.layerTerrain
-						.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
+					// this.layerTerrain
+					// 	.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
+					game.terrain.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
 
 					for (const e of game.chunkEntityIndex
 						.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
@@ -301,7 +299,9 @@ export class Renderer {
 					}
 
 					if (this.debugOptions.renderZoomedOut) {
-						const SIZE = 8
+						const SIZE = 12 / scale
+						context.strokeStyle = "#FF00FF"
+						context.lineWidth = SIZE
 						context.strokeRect(viewPortLeft - SIZE | 0, viewPortTop - SIZE | 0, viewPortWidth + SIZE * 2 | 0, viewPortHeight + SIZE * 2 | 0)
 					}
 
@@ -343,14 +343,6 @@ export class Renderer {
 
 
 	private renderTerrain(ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) {
-		getLayerCallback(ctx, chunkX, chunkY)
-		// chunkX *= CHUNK_TILE_SIZE
-		// chunkY *= CHUNK_TILE_SIZE
-		// const tileSet = registry[1]
-		// for (let x = 0; x < CHUNK_TILE_SIZE; x++) {
-		// 	for (let y = 0; y < CHUNK_TILE_SIZE; y++) {
-		// 		ctx.drawImage(tileSet, 384, 704, 32, 32, (chunkX + x) * 32, (chunkY + y) * 32, 32, 32)
-		// 	}
-		// }
+		this.game?.terrain?.layerDrawCallback(ctx, chunkX, chunkY)
 	}
 }

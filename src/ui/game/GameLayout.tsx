@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Camera, CameraDirection, CameraImpl } from '../../game/camera'
-import { setVariant, Variant } from '../../game/ecs/terrain'
+import { Variant } from '../../game/ecs/terrain'
 import { GameInstanceImpl } from '../../game/game-instance'
 import { Renderer } from '../../game/renderer'
 import { LoadMethod } from '../App'
@@ -141,22 +141,31 @@ function Component(props: Props) {
 	if (parts == null)
 		return (<div className="GameLayout">Loading... please wait</div>)
 
+	const getVariant = (btn: number | undefined): Variant => {
+		switch (btn) {
+			case 0:
+				return Variant.DarkWater
+			case 1:
+				return Variant.DarkGrass
+			case 2:
+				return Variant.DarkDirt
+			default:
+				throw new Error()
+		}
+	}
+
 	return (
 		<div className="GameLayout">
 			<GameLeftTopControls/>
 			<ResourcesBar/>
 			<GameCanvas game={parts}
 			            mouseDown={(e) => {
-				            setVariant(e.tileX, e.tileY, e.button === 2 ? Variant.Dirt : Variant.Grass)
-				            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX - 1, e.tileY - 1)
-				            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX, e.tileY)
+				            parts?.game.terrain.setVariantForTile(e.tileX, e.tileY, getVariant(e.button))
 			            }
 			            }
 			            mouseMoved={(e) => {
 				            if (e.button !== undefined) {
-					            setVariant(e.tileX, e.tileY, e.button === 2 ? Variant.Dirt : Variant.Grass)
-					            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX - 1, e.tileY - 1)
-					            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX, e.tileY)
+					            parts?.game.terrain.setVariantForTile(e.tileX, e.tileY, getVariant(e.button))
 				            }
 			            }
 			            }

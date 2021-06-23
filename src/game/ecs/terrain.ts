@@ -11,35 +11,175 @@
 // 	BorderL = 20,
 // }
 
-import { registry } from '../misc/resources-manager'
+import { DataPack } from '../data-pack'
+import GameSettings from '../misc/game-settings'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './chunk-indexer'
+import { Layer, LayerLevel } from './layers'
 
 export enum Variant {
-	Grass,
-	DarkGrass,
-	Dirt,
-	DarkDirt,
-	Water,
-	DarkWater,
+	Grass = 0,
+	DarkGrass = 1,
+	Dirt = 2,
+	DarkDirt = 3,
+	Water = 4,
+	DarkWater = 5,
 }
 
 
-interface Tile {
-	readonly x: number,
-	readonly y: number,
-
-	variant: Variant
-	spriteIndex: number
+type RandomIndexProducer = () => number
+const makeRandomProducer = (start: number): (count: number) => RandomIndexProducer => {
+	// switch (count) {
+	// 	case 1:
+	// 		return () => start
+	// 	case 2:
+	// 		return () => start + Math.random() * 2 | 0
+	// 		//return () => start + 1
+	// case 3:
+	// 	return () => start + Math.random() * 3 | 0
+	// //	return () => start + 2
+	// default:
+	// 	throw new Error(`makeRandomProducer: invalid count ${count}`)
+	// }
+	let current = start
+	return (count: number) => {
+		let myCurrent = current
+		current += count
+		return () => myCurrent + 0.6 * count | 0
+	}
 }
 
+const textureIndexes = new Map<number, RandomIndexProducer>()
 
-const GRASS_VARIANT_START_INDEX = 238
+const initTextureIndexes = () => {
+	textureIndexes.clear()
 
-class TileSystem {
+	textureIndexes.set(0, makeRandomProducer(356)(2))
+	// light dirt
+	{
+		textureIndexes.set(2222, makeRandomProducer(334)(2))
+
+		const tmp = makeRandomProducer(270)
+		textureIndexes.set(2000, tmp(2))
+		textureIndexes.set(200, tmp(2))
+		textureIndexes.set(2200, tmp(3))
+		textureIndexes.set(2, tmp(2))
+
+		textureIndexes.set(2002, tmp(3))
+		textureIndexes.set(202, tmp(2))
+		textureIndexes.set(2202, tmp(1))
+		textureIndexes.set(20, tmp(2))
+
+		textureIndexes.set(2020, tmp(2))
+		textureIndexes.set(220, tmp(3))
+		textureIndexes.set(2220, tmp(1))
+		textureIndexes.set(22, tmp(3))
+
+		textureIndexes.set(2022, tmp(2))
+		textureIndexes.set(222, tmp(2))
+	}
+	// dark grass
+	{
+		textureIndexes.set(1111, makeRandomProducer(364)(2))
+
+		const tmp = makeRandomProducer(238)
+		textureIndexes.set(1000, tmp(2))
+		textureIndexes.set(100, tmp(2))
+		textureIndexes.set(1100, tmp(3))
+		textureIndexes.set(1, tmp(2))
+
+		textureIndexes.set(1001, tmp(3))
+		textureIndexes.set(101, tmp(2))
+		textureIndexes.set(1101, tmp(2))
+		textureIndexes.set(10, tmp(2))
+
+		textureIndexes.set(1010, tmp(2))
+		textureIndexes.set(110, tmp(3))
+		textureIndexes.set(1110, tmp(2))
+		textureIndexes.set(11, tmp(3))
+
+		textureIndexes.set(1011, tmp(2))
+		textureIndexes.set(111, tmp(2))
+	}
+	// dark dirt
+	{
+		textureIndexes.set(3333, makeRandomProducer(345)(3))
+
+		const tmp = makeRandomProducer(180)
+		textureIndexes.set(3222, tmp(1))
+		textureIndexes.set(2322, tmp(2))
+		textureIndexes.set(3322, tmp(3))
+		textureIndexes.set(2223, tmp(1))
+		tmp(1) // ignore this empty
+
+		textureIndexes.set(3223, tmp(3))
+		textureIndexes.set(2323, tmp(2))
+		textureIndexes.set(3323, tmp(1))
+		textureIndexes.set(2232, tmp(1))
+
+		textureIndexes.set(3232, tmp(2))
+		textureIndexes.set(2332, tmp(3))
+		textureIndexes.set(3332, tmp(1))
+		textureIndexes.set(2233, tmp(3))
+
+		textureIndexes.set(3233, tmp(1))
+		textureIndexes.set(2333, tmp(1))
+	}
+	// light water
+	{
+		textureIndexes.set(4444, makeRandomProducer(328)(3))
+
+		const tmp = makeRandomProducer(206)
+		textureIndexes.set(4222, tmp(2))
+		textureIndexes.set(2422, tmp(2))
+		textureIndexes.set(4422, tmp(3))
+		textureIndexes.set(2224, tmp(2))
+
+		textureIndexes.set(4224, tmp(3))
+		textureIndexes.set(2424, tmp(1))
+		textureIndexes.set(4424, tmp(2))
+		textureIndexes.set(2242, tmp(2))
+
+		textureIndexes.set(4242, tmp(1))
+		textureIndexes.set(2442, tmp(3))
+		textureIndexes.set(4442, tmp(2))
+		textureIndexes.set(2244, tmp(3))
+
+		textureIndexes.set(4244, tmp(2))
+		textureIndexes.set(2444, tmp(2))
+	}
+	// dark water
+	{
+		textureIndexes.set(5555, makeRandomProducer(331)(3))
+
+		const tmp = makeRandomProducer(300)
+		textureIndexes.set(5444, tmp(2))
+		textureIndexes.set(4544, tmp(2))
+		textureIndexes.set(5544, tmp(3))
+		textureIndexes.set(4445, tmp(2))
+
+		textureIndexes.set(5445, tmp(3))
+		textureIndexes.set(4545, tmp(2))
+		textureIndexes.set(5545, tmp(1))
+		textureIndexes.set(4454, tmp(2))
+
+		textureIndexes.set(5454, tmp(2))
+		textureIndexes.set(4554, tmp(3))
+		textureIndexes.set(5554, tmp(1))
+		textureIndexes.set(4455, tmp(3))
+
+		textureIndexes.set(5455, tmp(1))
+		textureIndexes.set(4555, tmp(1))
+	}
+}
+initTextureIndexes()
+
+export class TerrainSystem {
 	private readonly points: Variant[] = []
 	private readonly pointsSize = this.tilesSize + 1
+	private readonly image = this.pack.resources.getImage('summer')
 
-	constructor(public readonly tilesSize: number) {
+	private constructor(public readonly tilesSize: number,
+	                    private pack: DataPack) {
 		const pointsSize = this.pointsSize
 		this.points.length = pointsSize * pointsSize
 		for (let i = 0; i < pointsSize; i++) {
@@ -47,21 +187,20 @@ class TileSystem {
 				// let index = GRASS_VARIANT_START_INDEX + 8 * 16 - 10
 				// if (Math.random() < 0.5)
 				// 	index++
-				this.points[i * pointsSize + j] = Variant.Grass
+				this.points[i * pointsSize + j] = Variant.Dirt
 			}
 		}
+	}
+
+	public static createNew(settings: GameSettings,
+	                        pack: DataPack) {
+		return new TerrainSystem(settings.mapWidth, pack)
 	}
 
 	public getPoint(x: number, y: number): Variant {
 		if (x < 0 || x >= this.pointsSize || y < 0 || y >= this.pointsSize)
 			throw new Error(`Invalid point index x=${x} y=${y}`)
 		return this.points[y * this.pointsSize + x]
-	}
-
-	public setPoint(x: number, y: number, v: Variant): void {
-		if (x < 0 || x >= this.pointsSize || y < 0 || y >= this.pointsSize)
-			throw new Error(`Invalid point index x=${x} y=${y}`)
-		this.points[y * this.pointsSize + x] = v
 	}
 
 	public getPointDefault(x: number, y: number, def: Variant): Variant {
@@ -82,97 +221,164 @@ class TileSystem {
 		const rb = this.getPointDefault(x + 1, y + 1, lt)
 		const lb = this.getPointDefault(x, y + 1, lt)
 
-		let output = GRASS_VARIANT_START_INDEX + 32
-
 		const key = (((lt * 10) + rt) * 10 + rb) * 10 + lb
-		// console.log(key)
-		switch (key) {
-			case 0: // full grass
-				output = 356
-				break
-			case 2222: // full dirt
-				output = 334
-				break
-			case 2202:
-				output += 14 // or 15
-				break
-			case 2220:
-				output += 22
-				break
-			case 2022:
-				output += 26 // or 27
-				break
-			case 2000:
-				output += 0 // or 1
-				break
-			case 200:
-				output += 3 // or 4
-				break
-			case 222:
-				output += 28 // or 29
-				break
-			case 20:
-				output += 15 // or 16
-				break
-			case 2:
-				output += 7 // or 8
-				break
-			case 2200:
-				output += 4 //or 5 or 6
-				break
-			case 2002:
-				output += 9 //or 10 or 11
-				break
-			case 220:
-				output += 19 //or 20 or 21
-				break
-			case 22:
-				output += 23 //or 24 or 25
-				break
-			case 2020:
-				output += 17 //or 18
-				break
-			case 202:
-				output += 12 //or 13
-				break
-			default:
-				console.warn('DEFAULT CASE')
-				return output - 1
+
+		const index = textureIndexes.get(key)
+		if (index === undefined) {
+			console.error('Tile index not found!')
+			return 16
 		}
 
-		// return 334
-
-		return output
+		return index()
 	}
-}
 
-const size = 128
-const table = new TileSystem(size)
-for (let i = 0; i < size + 1; i++) {
-	for (let j = 0; j < size + 1; j++) {
-		if (Math.random() < 0.4)
-			table.setPoint(i, j, Variant.Dirt)
-	}
-}
+	setVariantForPoint(pX: number, pY: number, v: Variant) {
 
-export const setVariant = (x: number, y: number, v: Variant) => {
-	table.setPoint(x, y, v)
-}
 
-export const getLayerCallback = (ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) => {
-	const TILE_SET_WIDTH = 512 / 32
-	const image = registry[1]
+		const check = (x: number, y: number) => {
+			const other = this.getPointDefault(x, y, v)
+			if (other === v) return
+			let between: Variant = v
+			switch (v) {
+				case Variant.DarkGrass:
+					switch (other) {
+						case Variant.Dirt:
+						case Variant.DarkDirt:
+						case Variant.Water:
+						case Variant.DarkWater:
+							between = Variant.Grass
+							break
+						default:
+							return
+					}
+					break
+				case Variant.Grass:
+					switch (other) {
+						case Variant.DarkDirt:
+						case Variant.Water:
+						case Variant.DarkWater:
+							between = Variant.Dirt
+							break
+						default:
+							return
+					}
+					break
+				case Variant.Dirt:
+					switch (other) {
+						case Variant.DarkGrass:
+							between = Variant.Grass
+							break
+						case Variant.DarkWater:
+							between = Variant.Water
+							break
+						default:
+							return
+					}
+					break
+				case Variant.DarkDirt:
+					switch (other) {
+						case Variant.DarkGrass:
+						case Variant.Grass:
+						case Variant.Water:
+						case Variant.DarkWater:
+							between = Variant.Dirt
+							break
+						default:
+							return
+					}
+					break
+				case Variant.Water:
+					switch (other) {
+						case Variant.DarkGrass:
+						case Variant.Grass:
+						case Variant.DarkDirt:
+							between = Variant.Dirt
+							break
+						default:
+							return
+					}
+					break
+				case Variant.DarkWater:
+					switch (other) {
+						case Variant.DarkGrass:
+						case Variant.Grass:
+						case Variant.Dirt:
+						case Variant.DarkDirt:
+							between = Variant.Water
+							break
+						default:
+							return
+					}
+					break
+			}
 
-	for (let x = 0; x < CHUNK_TILE_SIZE; x++) {
-		for (let y = 0; y < CHUNK_TILE_SIZE; y++) {
-			const index = table.getSpriteIndex(chunkX * CHUNK_TILE_SIZE + x, chunkY * CHUNK_TILE_SIZE + y)
-			const sx = index % TILE_SET_WIDTH
-			const sy = index / TILE_SET_WIDTH | 0
-			ctx.drawImage(image,
-				sx * 32, sy * 32,
-				32, 32,
-				(chunkX * CHUNK_REAL_PX_SIZE) + x * 32, (chunkY * CHUNK_REAL_PX_SIZE) + y * 32,
-				32, 32)
+			if (between !== v) {
+				this.setVariantForPoint(x, y, between)
+			}
+
+			// const lvl2 = getLevelOfVariant(this.getPointDefault(x, y, v))
+			// const abs = Math.abs(lvl2 - lvl)
+			// if (abs > 1) {
+			// 	this.setVariantForPoint(x, y, getVariantBetweenLevel(lvl > lvl2 ? lvl - 1 : lvl + 1))
+			// }
 		}
+		check(pX - 1, pY - 1)
+		check(pX + 1, pY - 1)
+		check(pX + 1, pY + 1)
+		check(pX - 1, pY + 1)
+		check(pX - 1, pY)
+		check(pX, pY - 1)
+		check(pX + 1, pY)
+		check(pX, pY + 1)
+
+		this.setPoint(pX, pY, v)
+		// this.setPoint(tileX + 1, tileY, v)
+		// this.setPoint(tileX + 1, tileY + 1, v)
+		// this.setPoint(tileX, tileY + 1, v)
+
+		this.layerTerrain.markChunkDirty(pX - 2, pY - 2)
+		this.layerTerrain.markChunkDirty(pX - 2, pY + 2)
+		this.layerTerrain.markChunkDirty(pX + 2, pY + 2)
+		this.layerTerrain.markChunkDirty(pX + 2, pY - 2)
+	}
+
+	setVariantForTile(tileX: number, tileY: number, v: Variant) {
+		this.setVariantForPoint(tileX, tileY, v)
+		this.setVariantForPoint(tileX, tileY + 1, v)
+		this.setVariantForPoint(tileX + 1, tileY, v)
+		this.setVariantForPoint(tileX + 1, tileY + 1, v)
+	}
+
+	public readonly layerDrawCallback = (ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) => {
+		const TILE_SET_WIDTH = 512 / 32
+		const image = this.image
+
+		for (let x = 0; x < CHUNK_TILE_SIZE; x++) {
+			for (let y = 0; y < CHUNK_TILE_SIZE; y++) {
+				const index = this.getSpriteIndex(chunkX * CHUNK_TILE_SIZE + x, chunkY * CHUNK_TILE_SIZE + y)
+				const sx = index % TILE_SET_WIDTH
+				const sy = index / TILE_SET_WIDTH | 0
+				ctx.drawImage(image,
+					sx * 32, sy * 32,
+					32, 32,
+					(chunkX * CHUNK_REAL_PX_SIZE) + x * 32, (chunkY * CHUNK_REAL_PX_SIZE) + y * 32,
+					32, 32)
+			}
+		}
+	}
+
+	private readonly layerTerrain = new Layer(LayerLevel.TERRAIN, this.tilesSize, false, this.layerDrawCallback)
+
+	public render(ctx: CanvasRenderingContext2D, l: number,
+	              t: number,
+	              w: number,
+	              h: number): void {
+		this.layerTerrain.render(ctx, l, t, w, h)
+	}
+
+	private setPoint(x: number, y: number, v: Variant): void {
+		if (x < 0 || x >= this.pointsSize || y < 0 || y >= this.pointsSize)
+			throw new Error(`Invalid point index x=${x} y=${y}`)
+		this.points[y * this.pointsSize + x] = v
 	}
 }
