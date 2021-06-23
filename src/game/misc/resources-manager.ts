@@ -33,14 +33,7 @@ const newEntry = (name: string, type: TextureType2) => {
 }
 
 newEntry('elven_archer', 'unit')
-newEntry('winter', 'tileset')
-newEntry('pig_farm', 'tileset')
-newEntry('troll_axethrower', 'unit')
-newEntry('guard_tower', 'tileset')
-newEntry('arrow', 'arrow')
-newEntry('footman', 'unit')
-newEntry('ogre', 'unit')
-newEntry('axe', 'unit')
+newEntry('summer', 'tileset')
 
 export type TextureType = 'unit' | 'tileset'
 
@@ -124,7 +117,7 @@ export class ResourcesManager {
 				case 'tileset': {
 					const img = (entry.image as HTMLImageElement)
 					img.onload = () => resolve(entry)
-					img.onerror = () => reject(entry)
+					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)
 					img.crossOrigin = 'anonymous'
 					img.src = `/res/${entry.fileName}.png`
 					break

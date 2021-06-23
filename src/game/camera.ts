@@ -28,7 +28,7 @@ export interface Camera {
 export class CameraImpl implements Camera {
 	centerX: number = 300
 	centerY: number = 300
-	scale: number = 2
+	scale: number = 1
 
 	private movingLeft = 0
 	private movingRight = 0

@@ -19,7 +19,8 @@ body {
   grid-template-areas:
     'left resources-bar'
     'left game-canvas';
-  grid-template-columns: 20vw 1fr;
+  /*grid-template-columns: 20vw 1fr;*/
+  grid-template-columns: 0 1fr;
   grid-template-rows: 30px 1fr;
 }
 .GameLeftControls {

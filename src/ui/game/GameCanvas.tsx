@@ -15,7 +15,7 @@ interface CanvasMouseEvent {
 	y: number
 	tileX: number
 	tileY: number
-	button: number
+	button: number | undefined
 }
 
 const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent): CanvasMouseEvent => {
@@ -93,6 +93,9 @@ function Component(props: Props) {
 		}
 	}, [props])
 
+
+	const [pressed, setPressed] = useState<number>()
+
 	const [lastClickTime, setLastClickTime] = useState(0)
 	const onMouseEvent = useCallback((ev: React.MouseEvent<HTMLCanvasElement>) => {
 		// const now = Date.now()
@@ -101,13 +104,17 @@ function Component(props: Props) {
 
 		switch (ev.type) {
 			case 'mousedown':
+				setPressed(ev.button)
 				props.mouseDown?.(produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent))
 				break
 			case 'mouseup':
+				setPressed(undefined)
 				props.mouseUp?.(produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent))
 				break
 			case 'mousemove':
-				props.mouseMoved?.(produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent))
+				const event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent)
+				event.button = pressed
+				props.mouseMoved?.(event)
 				break
 			default:
 				return
@@ -116,14 +123,14 @@ function Component(props: Props) {
 		ev.preventDefault()
 		console.log()
 
-	}, [lastClickTime,props])
+	}, [lastClickTime, props, pressed])
 
 	return (
 		<div className="GameCanvas">
 			<canvas ref={ref}
-					onMouseDown={onMouseEvent}
-					onMouseUp={onMouseEvent}
-					onMouseMove={onMouseEvent}
+			        onMouseDown={onMouseEvent}
+			        onMouseUp={onMouseEvent}
+			        onMouseMove={onMouseEvent}
 			        onContextMenu={e => e.preventDefault()}
 			        style={{width: '100%', height: '100%'}}/>
 		</div>

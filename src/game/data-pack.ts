@@ -52,6 +52,6 @@ export const fetchDataPack = async (url: string): Promise<DataPack> => {
 			resources: mgr,
 		}
 	} catch (e) {
-		throw new Error(`Failed to parse data pack due to error ${e.message}`)
+		throw new Error(`Failed to parse data pack due to error ${e}`)
 	}
 }

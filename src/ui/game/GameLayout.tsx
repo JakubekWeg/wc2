@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Camera, CameraDirection, CameraImpl } from '../../game/camera'
+import { setVariant, Variant } from '../../game/ecs/terrain'
 import { GameInstanceImpl } from '../../game/game-instance'
 import { Renderer } from '../../game/renderer'
 import { LoadMethod } from '../App'
@@ -45,17 +46,33 @@ function Component(props: Props) {
 		const keydownCallback = (ev: KeyboardEvent) => {
 			if (!game) return
 			let dir: CameraDirection | undefined = undefined
-			console.log(ev.code)
 			switch (ev.code) {
-				case 'Digit5': {
+				case 'Digit1':
+					game.renderer.toggleDebugOptions('showTilesOccupation')
+					break
+				case 'Digit2':
+					game.renderer.toggleDebugOptions('showPaths')
+					break
+				case 'Digit3':
+					game.renderer.toggleDebugOptions('showChunkBoundaries')
+					break
+				case 'Digit4':
+					game.renderer.toggleDebugOptions('showTileListenersCount')
+					break
+				case 'Digit5':
+					game.renderer.toggleDebugOptions('renderZoomedOut')
+					break
+				case 'KeyN': {
 					const obj = game.game.generateSaveJson()
 					localStorage.setItem('last-save', JSON.stringify(obj))
 					break
 				}
-				case 'Digit6': {
+				case 'KeyM':
 					props.reloadRequest({type: 'saved'})
 					break
-				}
+				case 'KeyB':
+					props.reloadRequest({type: 'new'})
+					break
 				case 'ArrowRight':
 					dir = CameraDirection.Right
 					break
@@ -120,6 +137,7 @@ function Component(props: Props) {
 		return () => parts?.game.stopGame()
 	}, [parts])
 
+
 	if (parts == null)
 		return (<div className="GameLayout">Loading... please wait</div>)
 
@@ -129,7 +147,17 @@ function Component(props: Props) {
 			<ResourcesBar/>
 			<GameCanvas game={parts}
 			            mouseDown={(e) => {
-				            console.log(e)
+				            setVariant(e.tileX, e.tileY, e.button === 2 ? Variant.Dirt : Variant.Grass)
+				            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX - 1, e.tileY - 1)
+				            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX, e.tileY)
+			            }
+			            }
+			            mouseMoved={(e) => {
+				            if (e.button !== undefined) {
+					            setVariant(e.tileX, e.tileY, e.button === 2 ? Variant.Dirt : Variant.Grass)
+					            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX - 1, e.tileY - 1)
+					            parts?.renderer?.layerTerrain?.markChunkDirty(e.tileX, e.tileY)
+				            }
 			            }
 			            }
 				// tileClicked={(x, y, which: number) => {

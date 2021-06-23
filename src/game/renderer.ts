@@ -6,7 +6,9 @@ import { Camera } from './camera'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
 import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
+import { Layer, LayerLevel } from './ecs/layers'
 import { TileImpl } from './ecs/systems/tiles-system'
+import {  getLayerCallback } from './ecs/terrain'
 import { Entity } from './ecs/world'
 import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
@@ -41,7 +43,7 @@ export class Renderer {
 	private nextFrameBind = this.nextFrame.bind(this)
 	private animationHandle: number = -1
 	private hasFocus: boolean = true
-	private terrainLayer: HTMLCanvasElement = document.createElement('canvas')
+	public readonly layerTerrain = new Layer(LayerLevel.TERRAIN, this.settings.mapWidth, false, this.renderTerrain.bind(this))
 
 	constructor(private readonly settings: GameSettings,
 	            private readonly camera: Camera) {
@@ -60,6 +62,17 @@ export class Renderer {
 	public updateDebugOptions(options: DebugOptions) {
 		this.debugOptions = {...this.debugOptions, ...options}
 	}
+
+	public toggleDebugOptions(key: keyof DebugOptions) {
+		const value = this.debugOptions[key]
+		if (value === true)
+			this.debugOptions[key] = false
+		else if (value === false)
+			this.debugOptions[key] = true
+		else
+			throw new Error(`Unable to toggle debug option ${key}, because it is not a boolean`)
+	}
+
 	public getDebugOptions(): DebugOptions {
 		return this.debugOptions
 	}
@@ -99,7 +112,7 @@ export class Renderer {
 					context.fillRect(0, 0, this.width, this.height)
 				} else {
 					// context.fillStyle = '#333'
-					context.fillStyle = '#6a3a00'
+					context.fillStyle = '#2a1a00'
 					context.fillRect(0, 0, this.width, this.height)
 
 					const camera = this.camera
@@ -116,8 +129,6 @@ export class Renderer {
 						context.translate(-camera.centerX + viewPortWidth * 0.5, -camera.centerY + viewPortHeight * 0.5)
 					}
 
-					context.drawImage(this.terrainLayer, 0, 0)
-
 					const now = Date.now()
 					for (let e of game.delayedHideEntities()) {
 						if (e.hideMeAtMillis <= now)
@@ -132,7 +143,12 @@ export class Renderer {
 
 					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
 					const viewPortTop = camera.centerY - viewPortHeight * 0.5
-					for (const e of game.chunkEntityIndex.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
+
+					this.layerTerrain
+						.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
+
+					for (const e of game.chunkEntityIndex
+						.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
 						e.render(context)
 					}
 
@@ -304,6 +320,7 @@ export class Renderer {
 		this.context = this.canvas?.getContext('2d', {
 			alpha: false,
 		}) ?? undefined
+
 		if (this.context) {
 			if (this.canvas != null) {
 				this.canvas.width = this.width
@@ -314,21 +331,26 @@ export class Renderer {
 			this.context.fillRect(0, 0, this.width, this.height)
 		}
 
+		// if (this.game)
+		// 	foo(this.game!.dataPack, this.context!)
+
 		if (this.enabled && !wasEnabled) {
-			this.terrainLayer.width = 32 * this.settings.mapWidth
-			this.terrainLayer.height = 32 * this.settings.mapHeight
-			const ctx = this.terrainLayer.getContext('2d')
-			if (ctx != null) {
-				const tileSet = registry[1]
-				for (let i = 0; i < this.settings.mapWidth; i++) {
-					for (let j = 0; j < this.settings.mapHeight; j++) {
-						ctx.drawImage(tileSet, 384, 704, 32, 32, i * 32, j * 32, 32, 32)
-					}
-				}
-			}
 			cancelAnimationFrame(this.animationHandle)
+
 			this.animationHandle = requestAnimationFrame(this.nextFrameBind)
 		}
 	}
 
+
+	private renderTerrain(ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) {
+		getLayerCallback(ctx, chunkX, chunkY)
+		// chunkX *= CHUNK_TILE_SIZE
+		// chunkY *= CHUNK_TILE_SIZE
+		// const tileSet = registry[1]
+		// for (let x = 0; x < CHUNK_TILE_SIZE; x++) {
+		// 	for (let y = 0; y < CHUNK_TILE_SIZE; y++) {
+		// 		ctx.drawImage(tileSet, 384, 704, 32, 32, (chunkX + x) * 32, (chunkY + y) * 32, 32, 32)
+		// 	}
+		// }
+	}
 }

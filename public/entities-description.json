@@ -99,6 +99,11 @@
       "name": "castle",
       "type": "tileset",
       "spriteSize": 128
+    },
+    "summer": {
+      "name": "summer",
+      "type": "tileset",
+      "spriteSize": 1
     }
   },
   "animations": {
