@@ -5,12 +5,11 @@ import { GameComponents } from './GameLayout'
 
 interface Props {
 	game: GameComponents
-	mouseDown?: (ev: CanvasMouseEvent) => void
-	mouseMoved?: (ev: CanvasMouseEvent) => void
-	mouseUp?: (ev: CanvasMouseEvent) => void
+	mouseEvent?: (ev: CanvasMouseEvent) => void
 }
 
-interface CanvasMouseEvent {
+export interface CanvasMouseEvent {
+	type: 'down' | 'move' | 'up'
 	x: number
 	y: number
 	tileX: number
@@ -18,7 +17,7 @@ interface CanvasMouseEvent {
 	button: number | undefined
 }
 
-const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent): CanvasMouseEvent => {
+const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, type: 'down' | 'up' | 'move'): CanvasMouseEvent => {
 	ev.preventDefault()
 
 	const offsetX = ev.offsetX
@@ -31,6 +30,7 @@ const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent): 
 	const y = (offsetY / scale + camera.centerY - h * 0.5 / scale) / 32 | 0
 
 	return {
+		type,
 		x: offsetX,
 		y: offsetY,
 		tileX: x,
@@ -102,26 +102,32 @@ function Component(props: Props) {
 		// if (lastClickTime + 50 > now) return
 		// setLastClickTime(now)
 
+		let event: CanvasMouseEvent | undefined = undefined
+
 		switch (ev.type) {
 			case 'mousedown':
 				setPressed(ev.button)
-				props.mouseDown?.(produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent))
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'down')
 				break
+			case 'mouseleave':
 			case 'mouseup':
+				if (pressed !== ev.button)
+					return
 				setPressed(undefined)
-				props.mouseUp?.(produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent))
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'up')
 				break
 			case 'mousemove':
-				const event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent)
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'move')
 				event.button = pressed
-				props.mouseMoved?.(event)
 				break
 			default:
 				return
 		}
 
 		ev.preventDefault()
-		console.log()
+		if (props.game.game.terrain
+			.isValidTile(event.tileX, event.tileY))
+			props.mouseEvent?.(event)
 
 	}, [lastClickTime, props, pressed])
 
@@ -131,6 +137,7 @@ function Component(props: Props) {
 			        onMouseDown={onMouseEvent}
 			        onMouseUp={onMouseEvent}
 			        onMouseMove={onMouseEvent}
+			        onMouseLeave={onMouseEvent}
 			        onContextMenu={e => e.preventDefault()}
 			        style={{width: '100%', height: '100%'}}/>
 		</div>

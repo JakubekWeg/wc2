@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { createContext, useEffect, useState } from 'react'
 import { Camera, CameraDirection, CameraImpl } from '../../game/camera'
 import { Variant } from '../../game/ecs/terrain'
 import { GameInstanceImpl } from '../../game/game-instance'
 import { Renderer } from '../../game/renderer'
 import { LoadMethod } from '../App'
+import { EditorFrontedController, FrontedControllerContext, FrontendController } from './frontend-controller'
 import GameCanvas from './GameCanvas'
 import GameLeftTopControls from './GameLeftControls'
 import ResourcesBar from './ResourcesBar'
@@ -12,12 +13,15 @@ export interface GameComponents {
 	game: GameInstanceImpl
 	camera: Camera
 	renderer: Renderer
+	controller: FrontendController
 }
 
 interface Props {
 	game: GameInstanceImpl
 	reloadRequest: (method: LoadMethod) => void
 }
+
+export const GameContext = createContext<GameInstanceImpl | null>(null)
 
 function Component(props: Props) {
 	const [parts, setGame] = useState<GameComponents>()
@@ -33,6 +37,7 @@ function Component(props: Props) {
 			game,
 			camera,
 			renderer,
+			controller: new EditorFrontedController(game),
 		})
 
 		return () => {
@@ -137,7 +142,6 @@ function Component(props: Props) {
 		return () => parts?.game.stopGame()
 	}, [parts])
 
-
 	if (parts == null)
 		return (<div className="GameLayout">Loading... please wait</div>)
 
@@ -155,49 +159,15 @@ function Component(props: Props) {
 	}
 
 	return (
-		<div className="GameLayout">
-			<GameLeftTopControls/>
-			<ResourcesBar/>
-			<GameCanvas game={parts}
-			            mouseDown={(e) => {
-				            parts?.game.terrain.setVariantForTile(e.tileX, e.tileY, getVariant(e.button))
-			            }
-			            }
-			            mouseMoved={(e) => {
-				            if (e.button !== undefined) {
-					            parts?.game.terrain.setVariantForTile(e.tileX, e.tileY, getVariant(e.button))
-				            }
-			            }
-			            }
-				// tileClicked={(x, y, which: number) => {
-				//     game?.dispatchNextTick(world => {
-				//         if (which === 2) {
-				//             const e = world.spawnEntity('castle') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
-				//             e.mostWestTile = x
-				//             e.mostNorthTile = y
-				//             e.destinationDrawX = x * 32
-				//             e.destinationDrawY = y * 32
-				//             e.myForce = game?.forces.getForce(1)
-				//
-				//             // const e = world.spawnEntity('catapult') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
-				//             // e.mostWestTile = x
-				//             // e.mostNorthTile = y
-				//             // e.destinationDrawX = x * 32 - 20
-				//             // e.destinationDrawY = y * 32 - 20
-				//             // e.myForce = game?.forces.getForce(1)
-				//         } else if (which === 0) {
-				//             const e = world.spawnEntity('elven-archer') as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
-				//             e.mostWestTile = x
-				//             e.mostNorthTile = y
-				//             e.destinationDrawX = x * 32 - 20
-				//             e.destinationDrawY = y * 32 - 20
-				//             e.myForce = game?.forces.getForce(2)
-				//         }
-				//     })
-				// }
-				// }
-			/>
-		</div>
+		<GameContext.Provider value={parts.game}>
+			<FrontedControllerContext.Provider value={parts.controller as EditorFrontedController}>
+				<div className="GameLayout">
+					<GameLeftTopControls/>
+					<ResourcesBar/>
+					<GameCanvas game={parts} mouseEvent={e => parts?.controller?.mouseEvent?.(e)}/>
+				</div>
+			</FrontedControllerContext.Provider>
+		</GameContext.Provider>
 	)
 }
 

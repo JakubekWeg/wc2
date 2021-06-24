@@ -25,26 +25,19 @@ export enum Variant {
 	DarkWater = 5,
 }
 
+export const TILE_SET_WIDTH = 512 / 32
+
+// noinspection SuspiciousTypeOfGuard
+export const allVariants: Variant[] = Array.from(Object.values(Variant)).filter(it => typeof it === 'number') as Variant[]
 
 type RandomIndexProducer = () => number
 const makeRandomProducer = (start: number): (count: number) => RandomIndexProducer => {
-	// switch (count) {
-	// 	case 1:
-	// 		return () => start
-	// 	case 2:
-	// 		return () => start + Math.random() * 2 | 0
-	// 		//return () => start + 1
-	// case 3:
-	// 	return () => start + Math.random() * 3 | 0
-	// //	return () => start + 2
-	// default:
-	// 	throw new Error(`makeRandomProducer: invalid count ${count}`)
-	// }
 	let current = start
 	return (count: number) => {
 		let myCurrent = current
 		current += count
-		return () => myCurrent + 0.6 * count | 0
+		// return () => myCurrent + Math.random() * count | 0
+		return () => myCurrent
 	}
 }
 
@@ -173,6 +166,13 @@ const initTextureIndexes = () => {
 }
 initTextureIndexes()
 
+export const getFullTextureOfVariant = (v: Variant): RandomIndexProducer => {
+	const textureProducer = textureIndexes.get(((v * 10 + v) * 10 + v) * 10 + v)
+	if (textureProducer === undefined)
+		throw new Error(`Unknown variant ${v}`)
+	return textureProducer
+}
+
 export class TerrainSystem {
 	private readonly points: Variant[] = []
 	private readonly pointsSize = this.tilesSize + 1
@@ -187,7 +187,7 @@ export class TerrainSystem {
 				// let index = GRASS_VARIANT_START_INDEX + 8 * 16 - 10
 				// if (Math.random() < 0.5)
 				// 	index++
-				this.points[i * pointsSize + j] = Variant.Dirt
+				this.points[i * pointsSize + j] = Variant.Grass
 			}
 		}
 	}
@@ -342,6 +342,10 @@ export class TerrainSystem {
 		this.layerTerrain.markChunkDirty(pX + 2, pY - 2)
 	}
 
+	isValidTile(x: number, y: number): boolean {
+		return !(x < 0 || x >= this.pointsSize || y < 0 || y >= this.pointsSize)
+	}
+
 	setVariantForTile(tileX: number, tileY: number, v: Variant) {
 		this.setVariantForPoint(tileX, tileY, v)
 		this.setVariantForPoint(tileX, tileY + 1, v)
@@ -350,7 +354,6 @@ export class TerrainSystem {
 	}
 
 	public readonly layerDrawCallback = (ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) => {
-		const TILE_SET_WIDTH = 512 / 32
 		const image = this.image
 
 		for (let x = 0; x < CHUNK_TILE_SIZE; x++) {
