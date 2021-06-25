@@ -1,14 +1,19 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { getFullTextureOfVariant, TILE_SET_WIDTH, Variant } from '../../game/ecs/terrain'
+import React, { useContext, useEffect, useRef } from 'react'
+import { getFullTextureOfVariant, TILE_SET_WIDTH } from '../../game/ecs/terrain'
+import { MouseAction } from './frontend-controller'
 import { GameContext } from './GameLayout'
 import TileVariantPicker from './TileVariantPicker'
 
 interface Props {
-	variant: Variant
+	action: MouseAction
 	opened: boolean
+
 	onClicked?(): void
-	onPicked?(v: Variant): void
+
+	onPicked?(a: MouseAction): void
 }
+export const ICONS_SET_SIZE_W = 5
+const CANVAS_OPTIONS = {alpha: false} as CanvasRenderingContext2DSettings
 
 function Component(props: Props) {
 	const game = useContext(GameContext)
@@ -18,21 +23,40 @@ function Component(props: Props) {
 		const canvas = ref.current
 		if (canvas == null) return
 
-		canvas.width = canvas.height = 32
-		const ctx = canvas.getContext('2d', {alpha: false})
+		const ctx = canvas.getContext('2d', CANVAS_OPTIONS)
 		if (ctx == null) return
+		if (props.action.type === 'set-tile') {
+			canvas.width = canvas.height = 32
 
-		const {image} = game!.resources.getEntry('summer')
+			const {image} = game!.resources.getEntry('summer')
 
-		const index = getFullTextureOfVariant(props.variant)()
-		const sx = index % TILE_SET_WIDTH * 32
-		const sy = (index / TILE_SET_WIDTH | 0) * 32
+			const index = getFullTextureOfVariant(props.action.iconIndex)()
+			const sx = index % TILE_SET_WIDTH * 32
+			const sy = (index / TILE_SET_WIDTH | 0) * 32
 
-		ctx.drawImage(image,
-			sx, sy,
-			32, 32,
-			0, 0,
-			32, 32)
+			ctx.drawImage(image,
+				sx, sy,
+				32, 32,
+				0, 0,
+				32, 32)
+		} else if (props.action.type === 'spawn-entity') {
+			canvas.width = 46
+			canvas.height = 38
+
+			const {image} = game!.resources.getEntry('icons')
+
+			const index = props.action.iconIndex
+			const sx = index % ICONS_SET_SIZE_W * 46
+			const sy = (index / ICONS_SET_SIZE_W | 0) * 38
+
+			ctx.drawImage(image,
+				sx, sy,
+				46, 38,
+				0, 0,
+				46, 38)
+		} else {
+			console.error('what?', props.action.type)
+		}
 	})
 
 	return (

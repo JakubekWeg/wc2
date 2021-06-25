@@ -34,6 +34,8 @@ export interface EntityType {
 	componentNames: Set<ComponentNameType>
 
 	spawn(): Entity
+
+	getTemplate(): Entity
 }
 
 interface EntityTypeImpl extends EntityType {
@@ -165,6 +167,13 @@ export class World {
 		return entity
 	}
 
+	getEntityTemplate(name: string): Entity {
+		const type = this.allEntityTypes.get(name)
+		if (type == null)
+			throw new Error('Entity type ' + name + ' is not registered')
+		return type.getTemplate()
+	}
+
 	/**
 	 * Queues entity to be added, this method doesn't call indexes
 	 * This method can only be called after locking prototypes and only during game logic execution
@@ -186,12 +195,8 @@ export class World {
 		return entity
 	}
 
-	resumeFromTick(tick: number, nextEntityId: number) {
-		if (this.currentTick !== 0)
-			throw new Error('Game has already worked')
-		this.currentTick = tick
-		this.nextEntityId = nextEntityId
-
+	commitAddedEntities() {
+		if (!this.executingTick && this.currentTick !== 0) throw new Error('Game logic is not executing now')
 		while (this.entitiesAboutToAdd.length > 0) {
 			for (let i = 0; i < this.entitiesAboutToAdd.length; i++) {
 				const [entity, type] = this.entitiesAboutToAdd[i]
@@ -202,6 +207,15 @@ export class World {
 			}
 			this.entitiesAboutToAdd.length = 0
 		}
+	}
+
+	resumeFromTick(tick: number, nextEntityId: number) {
+		if (this.currentTick !== 0)
+			throw new Error('Game has already worked')
+		this.nextEntityId = nextEntityId
+
+		this.commitAddedEntities()
+		this.currentTick = tick
 	}
 
 	get publicNextEntityId() {
@@ -245,14 +259,7 @@ export class World {
 		this.executingTick = true
 		func(this.currentTick++)
 		while (this.entitiesAboutToAdd.length > 0 || this.entityIdsToRemove.length > 0) {
-			for (let i = 0; i < this.entitiesAboutToAdd.length; i++) {
-				const [entity, type] = this.entitiesAboutToAdd[i]
-				this.allEntities.set(entity.id, entity)
-				for (const trigger of type.triggers) {
-					trigger.entityAdded(entity)
-				}
-			}
-			this.entitiesAboutToAdd.length = 0
+			this.commitAddedEntities()
 			for (let i = 0; i < this.entityIdsToRemove.length; i++) {
 				const id = this.entityIdsToRemove[i]
 				const entity = this.allEntities.get(id)

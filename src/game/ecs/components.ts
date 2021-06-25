@@ -23,6 +23,7 @@ export type ComponentNameType =
 	| 'UnitAnimationsComponent'
 	| 'MovingUnitComponent'
 	| 'SerializableComponent'
+	| 'IconComponent'
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 
@@ -109,6 +110,7 @@ export type PossibleAttackTarget = Entity & TilesIncumbentComponent & Damageable
  */
 export interface DamageableComponent {
 	myForce: Force
+
 	calculateHitBoxCenter(): [number, number]
 }
 
@@ -180,3 +182,8 @@ export interface SerializableComponent {
 
 	postSetup(ctx: DeserializationUnitContext, data: Config): void
 }
+
+export interface IconComponent {
+	iconIndex: number
+}
+

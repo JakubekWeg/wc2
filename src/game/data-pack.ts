@@ -28,7 +28,7 @@ export const fetchDataPack = async (url: string): Promise<DataPack> => {
 			.map(([key, obj]) => mgr
 				.addAsset(key,
 					obj.requireString('name'),
-					obj.requirePositiveInt('spriteSize'),
+					obj.child('spriteSize').getRawObject() as number | undefined,
 					obj.requireString('type') as TextureType),
 			),
 		)

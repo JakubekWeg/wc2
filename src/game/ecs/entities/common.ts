@@ -4,6 +4,7 @@ import {
 	AnimatableDrawableComponent,
 	AttackComponent,
 	DamageableComponent,
+	IconComponent,
 	MovingDrawableComponent,
 	MovingUnitComponent,
 	PredefinedDrawableComponent,
@@ -58,8 +59,15 @@ const forceAddSerializableComponent = (req: EntityRegistrationRequest) => {
 	obj.postSetup = function (ctx, obj) {
 		req.postSetup(this, ctx, obj)
 	}
-
 }
+
+const forceAddIconComponent = (req: EntityRegistrationRequest) => {
+	req.components.add('IconComponent')
+	const obj = req.entity as unknown as IconComponent
+
+	obj.iconIndex = req.data.requireInt('iconIndex')
+}
+
 const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => {
 	req.components.add('DrawableBaseComponent')
 	req.components.add('PredefinedDrawableComponent')
@@ -214,6 +222,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 	forceAddSerializableComponent(req)
 	forceAddPredefinedDrawableComponent(req)
 	forceAddTilesIncumbentComponent(req)
+	forceAddIconComponent(req)
 	addSightComponent(req)
 	forceAddDamageableComponent(req, true)
 	addAttackComponent(req)
@@ -228,6 +237,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 			fork(tmp)
 			return tmp
 		},
+		getTemplate: () => entity
 	}
 }
 
@@ -237,6 +247,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	forceAddPredefinedDrawableComponent(req)
 	forceAddTilesIncumbentComponent(req, 1)
 	forceAddDamageableComponent(req, false)
+	forceAddIconComponent(req)
 	addSightComponent(req)
 	addMovingComponent(req)
 	addUnitAnimationComponent(req)
@@ -252,6 +263,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 			fork(tmp)
 			return tmp
 		},
+		getTemplate: () => entity
 	}
 
 }

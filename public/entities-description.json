@@ -4,6 +4,7 @@
       "prototype": "unit",
       "prototypeData": {
         "texture": "critter",
+        "iconIndex": 115,
         "unitMovingSpeed": 7,
         "ai": "critter"
       }
@@ -12,6 +13,7 @@
       "prototype": "building",
       "prototypeData": {
         "texture": "castle",
+        "iconIndex": 70,
         "occupySize": 4,
         "sightAmount": 5
       }
@@ -21,6 +23,7 @@
       "prototypeData": {
         "ai": "basic-unit",
         "texture": "elven-archer",
+        "iconIndex": 4,
         "animations": {
           "walk": "@animation/generic-walk",
           "stand": "@animation/stand-zero",
@@ -40,6 +43,7 @@
       "prototypeData": {
         "ai": "basic-unit",
         "texture": "catapult",
+        "iconIndex": 17,
         "animations": {
           "walk": "@animation/catapult-go",
           "stand": "@animation/stand-zero",
@@ -59,6 +63,7 @@
       "prototypeData": {
         "ai": "basic-unit",
         "texture": "footman",
+        "iconIndex": 2,
         "animations": {
           "walk": "@animation/generic-walk",
           "stand": "@animation/stand-zero",
@@ -97,13 +102,16 @@
     },
     "castle": {
       "name": "castle",
-      "type": "tileset",
+      "type": "building",
       "spriteSize": 128
     },
     "summer": {
       "name": "summer",
-      "type": "tileset",
-      "spriteSize": 1
+      "type": "tileset"
+    },
+    "icons": {
+      "name": "icons",
+      "type": "icons"
     }
   },
   "animations": {

@@ -1,41 +1,4 @@
-/** @deprecated */
-export const registry: CanvasImageSource[] = []
-/** @deprecated */
-export type TextureType2 = 'unit' | 'tileset' | 'arrow'
-const newEntry = (name: string, type: TextureType2) => {
-	switch (type) {
-		case 'arrow':
-		case 'unit': {
-			const canvas = document.createElement('canvas')
-			const size = (type === 'arrow' ? 40 : 72)
-			canvas.width = 8 * size
-			const img = document.createElement('img')
-			img.src = `/res/${name}.png`
-			img.onload = () => {
-				canvas.height = img.height
-				const context = canvas.getContext('2d')!
-				context.scale(-1, 1)
-				context.drawImage(img, size, 0, 4 * size, img.height, -size * 3, 0, 4 * size, img.height)
-				context.scale(-1, 1)
-				context.drawImage(img, size * 3, 0)
-			}
-			registry.push(canvas)
-		}
-			break
-		case 'tileset':
-			const img = document.createElement('img')
-			img.src = `/res/${name}.png`
-			registry.push(img)
-			break
-		default:
-			throw new Error(`Invalid texture type ${type}`)
-	}
-}
-
-newEntry('elven_archer', 'unit')
-newEntry('summer', 'tileset')
-
-export type TextureType = 'unit' | 'tileset'
+export type TextureType = 'unit' | 'tileset' | 'building' | 'icons'
 
 export interface ResourceEntry {
 	readonly id: string
@@ -57,6 +20,8 @@ export class ResourcesManager {
 			case 'unit':
 				image = document.createElement('canvas')
 				break
+			case 'building':
+			case 'icons':
 			case 'tileset':
 				image = document.createElement('img')
 				break
@@ -81,12 +46,15 @@ export class ResourcesManager {
 		return entry
 	}
 
-	public addAsset(id: string, fileName: string, spriteSize: number, type: TextureType): Promise<ResourceEntry> {
+	public addAsset(id: string, fileName: string, spriteSize: number | undefined, type: TextureType): Promise<ResourceEntry> {
 		if (this.assetsById.has(id))
 			throw new Error(`Asset with id ${id} already exists`)
-		if (spriteSize <= 0 || spriteSize !== (spriteSize | 0))
+		if (spriteSize === undefined
+			? (type !== 'tileset' && type !== 'icons')
+			: (spriteSize <= 0 || spriteSize !== (spriteSize | 0)))
 			throw new Error(`Invalid sprite size ${spriteSize}`)
-		const entry = ResourcesManager.createEntry(id, fileName, spriteSize, type)
+
+		const entry = ResourcesManager.createEntry(id, fileName, spriteSize ?? 0, type)
 		this.assetsById.set(id, entry)
 		return this.loadResource(entry)
 	}
@@ -114,6 +82,8 @@ export class ResourcesManager {
 					img.src = `/res/${entry.fileName}.png`
 					break
 				}
+				case 'icons':
+				case 'building':
 				case 'tileset': {
 					const img = (entry.image as HTMLImageElement)
 					img.onload = () => resolve(entry)
@@ -122,6 +92,8 @@ export class ResourcesManager {
 					img.src = `/res/${entry.fileName}.png`
 					break
 				}
+				default:
+					reject(`Unknown resource type ${entry.type}`)
 			}
 		})
 	}

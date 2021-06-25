@@ -4,15 +4,32 @@ import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } fr
 import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination2 } from '../../misc/path-finder'
 import { DebugPath, Renderer } from '../../renderer'
 import {
+	AnimatableDrawableComponent,
+	AttackComponent,
 	ComponentNameType,
 	DamageableComponent,
+	MovingDrawableComponent, MovingUnitComponent,
 	PlayerCommand,
+	PlayerCommandTakerComponent,
 	PossibleAttackTarget,
-	TilesIncumbentComponent,
+	PredefinedDrawableComponent, SerializableComponent,
+	SightComponent,
+	StateMachineHolderComponent,
+	TileListenerComponent,
+	TilesIncumbentComponent, UnitAnimationsComponent,
 } from '../components'
-import { UnitPrototype } from '../entities/composer'
 import { Entity } from '../world'
 import { State, StateController, StateDeserializeContext, UnitState } from './state'
+
+
+type UnitPrototype = Entity & (
+	PredefinedDrawableComponent & StateMachineHolderComponent &
+	MovingDrawableComponent & AnimatableDrawableComponent &
+	TilesIncumbentComponent & DamageableComponent &
+	PlayerCommandTakerComponent & TileListenerComponent &
+	AttackComponent & SightComponent
+	& UnitAnimationsComponent & MovingUnitComponent
+	& SerializableComponent)
 
 const namespaceId = 'basic-unit/'
 

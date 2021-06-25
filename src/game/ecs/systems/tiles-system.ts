@@ -190,6 +190,23 @@ export default class TileSystem {
 	}
 
 	/**
+	 * Returns true if are tile at this position are walkable
+	 * Returns false if any of tile is occupied or coords of any are invalid
+	 */
+	public areTilesWalkableNoThrow(x: number, y: number, s: number): boolean {
+		if (x < 0 || x + s >= this.sizeX || y < 0 || y + s >= this.sizeY)
+			return false
+		for (let i = 0; i < s; i++) {
+			for (let j = 0; j < s; j++) {
+				if (this.tiles[(y + j) * this.sizeX + (x + i)].occupiedBy != null) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+
+	/**
 	 * Updates occupation field inside index
 	 * Throws if attempt to occupy a field that is being occupied by a different entity
 	 */
@@ -252,9 +269,9 @@ export default class TileSystem {
 	 * Returns true if field was updated successfully
 	 */
 	public moveOccupationAtOnceNoThrow(sx: number,
-	                            sy: number,
-	                            dx: number,
-	                            dy: number): boolean {
+	                                   sy: number,
+	                                   dx: number,
+	                                   dy: number): boolean {
 		if (!this.checkCoords(sx, sy) || !this.checkCoords(dx, dy))
 			return false
 

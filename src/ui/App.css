@@ -29,7 +29,7 @@ body {
 .GameLeftControls {
     display: flex;
     padding: 8px 2px;
-    justify-content: start;
+    justify-content: flex-start;
     align-items: center;
     flex-flow: column nowrap;
     background: #111;
@@ -69,8 +69,8 @@ body {
 
 .MouseActionIcon > .IconCanvas {
     cursor: pointer;
-    width: 32px;
-    height: 32px;
+    /*width: 32px;*/
+    /*height: 32px;*/
 }
 
 .MouseActionIcon:hover::before {
@@ -110,15 +110,21 @@ body {
     left: -14px;
     background-color: #151515;
     display: flex;
-    width: auto;
+    align-items: center;
+    /*width: auto;*/
+    width: 330px;
+    justify-content: center;
+    flex-flow: row wrap;
     /*grid-auto-flow: column;*/
     padding: 8px;
     border-radius: 8px;
-    animation: FadeInAnimation .15s;
+    animation-name: FadeInAnimation;
+    animation-delay: .1s;
+    animation-duration: .15s;
+    animation-fill-mode: both;
 }
 
 .TileSelector > * {
-
-    width: 32px;
-    height: 32px;
+    /*width: 32px;*/
+    /*height: 32px;*/
 }
