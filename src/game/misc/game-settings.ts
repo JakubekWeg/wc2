@@ -1,8 +1,5 @@
-import { EntityType } from '../ecs/world'
-
 interface GameSettings {
-	mapWidth: number
-	mapHeight: number
+	mapSize: number
 }
 
 export default GameSettings

@@ -148,8 +148,9 @@ export class Renderer {
 
 					if (this.debugOptions.showTilesOccupation) {
 						const tileSizeInPixels = 32
-						for (let i = 0; i < this.settings.mapWidth; i++) {
-							for (let j = 0; j < this.settings.mapHeight; j++) {
+						const s = this.settings.mapSize
+						for (let i = 0; i < s; i++) {
+							for (let j = 0; j < s; j++) {
 								const walkable = game.tiles.isTileWalkableNoThrow(i, j)
 								const buildable = game.tiles.isTileBuildableNoThrow(i, j)
 								context.fillStyle = walkable ? (buildable ? '#00FF0077' : '#88005577') : '#FF000077'
@@ -185,14 +186,13 @@ export class Renderer {
 
 					if (this.debugOptions.showChunkBoundaries) {
 						context.lineWidth = 2
-						const {mapWidth, mapHeight} = game.settings
-						const chunksX = Math.ceil(mapWidth / CHUNK_TILE_SIZE)
-						const chunksY = Math.ceil(mapHeight / CHUNK_TILE_SIZE)
+						const {mapSize} = game.settings
+						const chunks = Math.ceil(mapSize / CHUNK_TILE_SIZE)
 						const margin = 4
 						context.font = '12px Roboto'
 						context.fillStyle = 'black'
-						for (let i = 0; i < chunksX; i++) {
-							for (let j = 0; j < chunksY; j++) {
+						for (let i = 0; i < chunks; i++) {
+							for (let j = 0; j < chunks; j++) {
 								const count = game
 									.chunkEntityIndex
 									.getChunkByChunkCoords(i, j)
@@ -212,9 +212,9 @@ export class Renderer {
 					}
 
 					if (this.debugOptions.showTileListenersCount) {
-						const {mapWidth, mapHeight} = game.settings
-						for (let i = 0; i < mapWidth; i++) {
-							for (let j = 0; j < mapHeight; j++) {
+						const {mapSize} = game.settings
+						for (let i = 0; i < mapSize; i++) {
+							for (let j = 0; j < mapSize; j++) {
 								const tile = game.tiles.get(i, j) as TileImpl
 								const count = tile.getListenersCount()
 								if (count > 0) {
@@ -267,10 +267,5 @@ export class Renderer {
 
 			this.animationHandle = requestAnimationFrame(this.nextFrameBind)
 		}
-	}
-
-
-	private renderTerrain(ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) {
-		this.game?.terrain?.layerDrawCallback(ctx, chunkX, chunkY)
 	}
 }

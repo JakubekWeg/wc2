@@ -288,12 +288,12 @@ class TerrainSystemImpl implements TerrainSystem {
 export const createNewTerrainSystem = (settings: GameSettings,
                                        tileSystem: TileTerrainSystem,
                                        pack: DataPack): TerrainSystem => {
-	return new TerrainSystemImpl(settings.mapWidth, tileSystem, pack, undefined)
+	return new TerrainSystemImpl(settings.mapSize, tileSystem, pack, undefined)
 }
 
 export const deserializeTerrainSystem = (settings: GameSettings,
                                          obj: Config,
                                          tileSystem: TileTerrainSystem,
                                          pack: DataPack): TerrainSystemImpl => {
-	return new TerrainSystemImpl(settings.mapWidth, tileSystem, pack, obj)
+	return new TerrainSystemImpl(settings.mapSize, tileSystem, pack, obj)
 }

@@ -48,9 +48,10 @@ export class ChunkIndexer implements Index <ChunkIndexableEntity>, ModificationL
 
 	private chunks = new Map<number, ChunkImpl>()
 
-	constructor(private readonly settings: GameSettings) {
-		for (let x = 0, w = Math.ceil(settings.mapWidth / CHUNK_TILE_SIZE); x < w; x++) {
-			for (let y = 0, h = Math.ceil(settings.mapHeight / CHUNK_TILE_SIZE); y < h; y++) {
+	constructor(settings: GameSettings) {
+		let s = Math.ceil(settings.mapSize / CHUNK_TILE_SIZE)
+		for (let x = 0; x < s; x++) {
+			for (let y = 0; y < s; y++) {
 				const key = ChunkIndexer.coordsToChunkKey(x * CHUNK_REAL_PX_SIZE, y * CHUNK_REAL_PX_SIZE)
 				this.chunks.set(key, new ChunkImpl(key, x, y))
 			}

@@ -20,8 +20,6 @@ export interface Camera {
 
 	serialize(): unknown
 
-	clone(): Camera
-
 	update(delta: number): void
 }
 
@@ -37,28 +35,20 @@ export class CameraImpl implements Camera {
 	private zoomingIn: number = 0
 	private zoomingOut: number = 0
 
-	private constructor(private readonly mapSizeX: number,
-	                    private readonly mapSizeY: number) {
+	private constructor() {
 	}
 
-	public static createNew(settings: GameSettings): Camera {
-		return new CameraImpl(settings.mapWidth * 32, settings.mapHeight * 32)
+	public static createNew(): Camera {
+		return new CameraImpl()
 	}
 
-	public static deserialize(obj: Config): Camera {
+	public static deserialize(settings: GameSettings, obj: Config): Camera {
 		const tmp = new CameraImpl(
-			obj.requirePositiveInt('mw'),
-			obj.requirePositiveInt('mh'),
+
 		)
 		tmp.centerX = obj.requirePositiveInt('x')
 		tmp.centerY = obj.requirePositiveInt('y')
-		// tmp.cameraSizeX = obj.requirePositiveInt('w')
-		// tmp.cameraSizeY = obj.requirePositiveInt('h')
 		return tmp
-	}
-
-	clone(): Camera {
-		return CameraImpl.deserialize(Config.createConfigFromObject(this.serialize()))
 	}
 
 	setMoving(direction: CameraDirection, enabled: boolean): void {
@@ -88,10 +78,6 @@ export class CameraImpl implements Camera {
 
 	serialize(): unknown {
 		return {
-			// w: this.cameraSizeX,
-			// h: this.cameraSizeY,
-			mw: this.mapSizeX,
-			mh: this.mapSizeY,
 			x: this.centerX,
 			y: this.centerY,
 		}

@@ -27,8 +27,7 @@ function App() {
 				game = GameInstanceImpl.loadGameFromObj(dp, save)
 			} else {
 				game = GameInstanceImpl.createNewGame({
-					mapWidth: 32,
-					mapHeight: 32,
+					mapSize: 32,
 				}, dp)
 			}
 

@@ -25,10 +25,6 @@ export class TileImpl implements Tile {
 	) {
 	}
 
-	getListeners() {
-		return this.listeners.values()
-	}
-
 	getListenersCount() {
 		return this.listeners.size
 	}
@@ -142,19 +138,17 @@ export interface TileTerrainSystem {
  * Index of tiles data, stores information about entities that occupy certain tiles
  */
 class TileSystemImpl implements TileSystem, TileTerrainSystem {
-	private readonly sizeX: number
-	private readonly sizeY: number
+	private readonly size: number
 	private readonly tiles: TileImpl[] = []
 
 	constructor(private readonly settings: GameSettings,
 	            // private readonly game: GameInstanceImpl,
 	            private readonly world: World) {
-		this.sizeX = settings.mapWidth
-		this.sizeY = settings.mapHeight
-		this.tiles.length = this.sizeX * this.sizeY
-		for (let i = 0; i < this.sizeX; i++) {
-			for (let j = 0; j < this.sizeX; j++) {
-				this.tiles[i * this.sizeX + j] = new TileImpl(j, i)
+		this.size = settings.mapSize
+		this.tiles.length = this.size * this.size
+		for (let i = 0; i < this.size; i++) {
+			for (let j = 0; j < this.size; j++) {
+				this.tiles[i * this.size + j] = new TileImpl(j, i)
 			}
 		}
 		const self = this
@@ -209,11 +203,11 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 			h -= -y
 			y = 0
 		}
-		const right = Math.min(x + w, this.sizeX)
-		const bottom = Math.min(y + h, this.sizeY)
+		const right = Math.min(x + w, this.size)
+		const bottom = Math.min(y + h, this.size)
 		for (let i = x; i < right; i++) {
 			for (let j = y; j < bottom; j++) {
-				this.tiles[j * this.sizeX + i].addListener(listener)
+				this.tiles[j * this.size + i].addListener(listener)
 			}
 		}
 	}
@@ -231,11 +225,11 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 			h -= -y
 			y = 0
 		}
-		const right = Math.min(x + w, this.sizeX)
-		const bottom = Math.min(y + h, this.sizeY)
+		const right = Math.min(x + w, this.size)
+		const bottom = Math.min(y + h, this.size)
 		for (let i = x; i < right; i++) {
 			for (let j = y; j < bottom; j++) {
-				const tile = this.tiles[j * this.sizeX + i]
+				const tile = this.tiles[j * this.size + i]
 				tile.addListener(listener)
 				if (tile.occupiedBy != null && filter(tile.occupiedBy as T))
 					entities.add(tile.occupiedBy as T)
@@ -270,7 +264,7 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	}
 
 	public areTilesBuildableNoThrow(x: number, y: number, s: number): boolean {
-		if (x < 0 || x + s >= this.sizeX || y < 0 || y + s >= this.sizeY)
+		if (x < 0 || x + s >= this.size || y < 0 || y + s >= this.size)
 			return false
 		for (let i = 0; i < s; i++) {
 			for (let j = 0; j < s; j++) {
@@ -286,9 +280,9 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	public updateRegistryThrow(x: number,
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): void {
-		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+		if (x < 0 || x >= this.size || y < 0 || y >= this.size)
 			throw new Error(`Invalid tile index x=${x} y=${y}`)
-		const tile = this.tiles[y * this.sizeX + x]
+		const tile = this.tiles[y * this.size + x]
 		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
 			throw new Error(`Attempt to make tile occupied, but there is someone who already occupies it x=${x} y=${y} now=${tile.occupiedBy.id} new=${occupiedBy.id}`)
 		tile.forceSetOccupiedByAndCallListeners(occupiedBy)
@@ -298,7 +292,7 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): boolean {
 		this.forceValidateCoords(x, y)
-		const tile = this.tiles[y * this.sizeX + x]
+		const tile = this.tiles[y * this.size + x]
 		if (tile.occupiedBy != null && occupiedBy != null && tile.occupiedBy !== occupiedBy)
 			return false
 		tile.forceSetOccupiedByAndCallListeners(occupiedBy)
@@ -325,17 +319,17 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	}
 
 	private getUnsafe(x: number, y: number): TileImpl {
-		return this.tiles[y * this.sizeX + x]
+		return this.tiles[y * this.size + x]
 	}
 
 	private moveOccupationAtOnceUnsafe(sx: number,
 	                                   sy: number,
 	                                   dx: number,
 	                                   dy: number) {
-		const destination = this.tiles[dy * this.sizeX + dx]
+		const destination = this.tiles[dy * this.size + dx]
 		if (!destination.walkable || destination.occupiedBy != null)
 			return false
-		const source = this.tiles[sy * this.sizeX + sx]
+		const source = this.tiles[sy * this.size + sx]
 		const tmp = source.occupiedBy
 		source.forceSetOccupiedByAndCallListeners(undefined)
 		destination.forceSetOccupiedByAndCallListeners(tmp)
@@ -348,7 +342,7 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	}
 
 	private checkCoords(x: number, y: number) {
-		return !(x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+		return !(x < 0 || x >= this.size || y < 0 || y >= this.size)
 
 	}
 }

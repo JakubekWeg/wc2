@@ -123,9 +123,9 @@ export class GameInstanceImpl implements GameInstance {
 	public static loadGameFromObj(dataPack: DataPack,
 	                              obj: Config): GameInstanceImpl {
 		const settings: GameSettings = {
-			mapHeight: obj.requirePositiveInt('mapHeight'),
-			mapWidth: obj.requirePositiveInt('mapWidth'),
+			mapSize: obj.requirePositiveInt('mapSize'),
 		}
+
 		const world = new World()
 		const tiles = createTileSystem(settings, world)
 		const game = new GameInstanceImpl(world,
@@ -209,8 +209,7 @@ export class GameInstanceImpl implements GameInstance {
 		const obj: any = {
 			tick: this.ecs.lastExecutedTick,
 			nextEntityId: this.ecs.publicNextEntityId,
-			mapWidth: this.settings.mapWidth,
-			mapHeight: this.settings.mapHeight,
+			mapSize: this.settings.mapSize,
 			entities: {},
 			forces: this.forces.serialize(),
 			random: this.random.serialize(),

@@ -27,7 +27,7 @@ function Component(props: Props) {
 
 	useEffect(() => {
 		const game = props.game
-		const camera = CameraImpl.createNew(game.settings)
+		const camera = CameraImpl.createNew()
 		const renderer = new Renderer(game.settings, camera)
 
 		renderer.setGameInstance(game)
