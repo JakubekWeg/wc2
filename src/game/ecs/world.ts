@@ -71,7 +71,7 @@ export class World {
 	 * This method can only be called before locking prototypes
 	 * @throws Error if world is locked or entity prototype with this name is registered
 	 */
-	registerEntityType<T extends Entity>(entityType_: EntityType): void {
+	registerEntityType(entityType_: EntityType): void {
 		if (this.prototypesLocked) throw new Error('World is locked')
 		const entityType = {...entityType_, triggers: []} as EntityTypeImpl
 		const name = entityType.id

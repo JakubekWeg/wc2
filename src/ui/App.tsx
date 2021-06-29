@@ -26,10 +26,9 @@ function App() {
 				const save = Config.createConfigFromObject(JSON.parse(str))
 				game = GameInstanceImpl.loadGameFromObj(dp, save)
 			} else {
-				console.log('new')
 				game = GameInstanceImpl.createNewGame({
-					mapWidth: 128,
-					mapHeight: 128,
+					mapWidth: 32,
+					mapHeight: 32,
 				}, dp)
 			}
 

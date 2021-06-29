@@ -40,8 +40,11 @@ export class Layer {
 		return x * 1_000_000 + y
 	}
 
-	markChunkDirty(tileX: number, tileY: number) {
+	markChunkDirtyNoThrow(tileX: number, tileY: number) {
 		const key = Layer.coordsToChunkKey(tileX, tileY)
+		if (tileX >= this.mapSize || tileY >= this.mapSize)
+			// throw new Error(`Cannot mark chunk at ${tileX} ${tileY} dirty, because it's out of bounds!`)
+			return
 		this.dirtyChunks.add(key)
 	}
 

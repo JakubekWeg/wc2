@@ -97,10 +97,13 @@ const forceAddTilesIncumbentComponent = (req: EntityRegistrationRequest, constan
 		const e = e_ as unknown as TilesIncumbentComponent & PredefinedDrawableComponent
 		e.mostWestTile = o.requireInt('x')
 		e.mostNorthTile = o.requireInt('y')
-		// e.destinationDrawX = e.mostWestTile * 32 - (32 - e.spriteSize) / 2
-		e.destinationDrawX = e.mostWestTile * 32
-		// e.destinationDrawY = e.mostNorthTile * 32 - (32 - e.spriteSize) / 2
-		e.destinationDrawY = e.mostNorthTile * 32
+		if (e.tileOccupySize === 1) {
+			e.destinationDrawX = e.mostWestTile * 32 - (e.spriteSize - 32) / 2
+			e.destinationDrawY = e.mostNorthTile * 32 - (e.spriteSize - 32) / 2
+		} else {
+			e.destinationDrawX = e.mostWestTile * 32
+			e.destinationDrawY = e.mostNorthTile * 32
+		}
 	})
 
 }
@@ -230,15 +233,15 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 
 	const entity = req.entity
 	const fork = req.fork
-	return <EntityRegistrationResult>{
+	return {
 		components: req.components,
 		spawn: () => {
 			const tmp = {...entity}
 			fork(tmp)
 			return tmp
 		},
-		getTemplate: () => entity
-	}
+		getTemplate: () => entity,
+	} as EntityRegistrationResult
 }
 
 
@@ -256,14 +259,14 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 
 	const entity = req.entity
 	const fork = req.fork
-	return <EntityRegistrationResult>{
+	return {
 		components: req.components,
 		spawn: () => {
 			const tmp = {...entity}
 			fork(tmp)
 			return tmp
 		},
-		getTemplate: () => entity
-	}
+		getTemplate: () => entity,
+	} as EntityRegistrationResult
 
 }

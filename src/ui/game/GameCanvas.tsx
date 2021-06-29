@@ -42,7 +42,15 @@ const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, t
 function Component(props: Props) {
 
 	const ref = useRef<HTMLCanvasElement>(null)
-	const [lastSize, setLastSize] = useState<[number, number]>([0, 0])
+
+	useEffect(() => {
+		const game = props.game
+		const canvas = ref.current
+		if (!canvas) return
+		const thisSize = [canvas.offsetWidth, canvas.offsetHeight] as [number, number]
+			game.renderer.setSize(thisSize[0], thisSize[1])
+		return () => {}
+	}, [props.game])
 
 	useEffect(() => {
 		if (ref.current == null)
@@ -58,16 +66,10 @@ function Component(props: Props) {
 		})
 		game.renderer.setCanvas(canvas)
 
-		const thisSize = [canvas.offsetWidth, canvas.offsetHeight] as [number, number]
-		if (thisSize[0] !== lastSize[0] || thisSize[1] !== lastSize[1]) {
-			setLastSize(thisSize)
-			game.renderer.setSize(thisSize[0], thisSize[1])
-		}
 		game.renderer.setPageFocused(document.hasFocus())
 
 		const resizeCallback = () => {
 			const thisSize = [canvas.offsetWidth, canvas.offsetHeight] as [number, number]
-			setLastSize(thisSize)
 			game.renderer.setSize(thisSize[0], thisSize[1])
 		}
 
@@ -79,6 +81,7 @@ function Component(props: Props) {
 			game.camera.setMoving(CameraDirection.Up, false)
 			game.camera.setMoving(CameraDirection.Down, false)
 		}
+		focusCallback()
 
 
 		window.addEventListener('focus', focusCallback, {passive: true})
@@ -96,12 +99,7 @@ function Component(props: Props) {
 
 	const [pressed, setPressed] = useState<number>()
 
-	const [lastClickTime, setLastClickTime] = useState(0)
 	const onMouseEvent = useCallback((ev: React.MouseEvent<HTMLCanvasElement>) => {
-		// const now = Date.now()
-		// if (lastClickTime + 50 > now) return
-		// setLastClickTime(now)
-
 		let event: CanvasMouseEvent | undefined = undefined
 
 		switch (ev.type) {
@@ -129,7 +127,7 @@ function Component(props: Props) {
 			.isValidTile(event.tileX, event.tileY))
 			props.mouseEvent?.(event)
 
-	}, [lastClickTime, props, pressed])
+	}, [props, pressed])
 
 	return (
 		<div className="GameCanvas">

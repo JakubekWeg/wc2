@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { Variant } from '../../game/ecs/terrain'
 import { EditorFrontedController, FrontedControllerContext, MouseAction } from './frontend-controller'
 import MouseActionIcon from './MouseActionIcon'
 

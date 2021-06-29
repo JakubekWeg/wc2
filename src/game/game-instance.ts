@@ -1,19 +1,14 @@
 import Config from '../config/config'
 import { DataPack } from './data-pack'
 import { ChunkIndexer } from './ecs/chunk-indexer'
-import {
-	DelayedHideComponent,
-	DrawableBaseComponent,
-	MovingDrawableComponent,
-	SerializableComponent,
-} from './ecs/components'
+import { DelayedHideComponent, MovingDrawableComponent, SerializableComponent } from './ecs/components'
 import './ecs/entities/composer'
 import createEventProcessor from './ecs/game-event-processor'
 import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system'
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
-import TileSystem from './ecs/systems/tiles-system'
+import { createTileSystem, TileSystem } from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
-import { TerrainSystem } from './ecs/terrain'
+import { createNewTerrainSystem, TerrainSystem } from './ecs/terrain'
 import World, { createSimpleListIndex, Entity } from './ecs/world'
 import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
@@ -43,6 +38,8 @@ export interface System {
 export interface GameInstance {
 	readonly tiles: TileSystem
 
+	readonly terrain: TerrainSystem
+
 	readonly settings: GameSettings
 
 	readonly walkableTester: (x: number, y: number) => boolean
@@ -63,25 +60,17 @@ export interface GameInstance {
 	generateSaveJson(): unknown
 }
 
-export interface GameInstanceForRenderer {
-	readonly drawableEntities: () => IterableIterator<Entity & DrawableBaseComponent>
-	readonly movingEntities: () => IterableIterator<Entity & MovingDrawableComponent>
-	readonly delayedHideEntities: () => IterableIterator<Entity & DelayedHideComponent>
-}
-
-export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
+export class GameInstanceImpl implements GameInstance {
 	// public readonly tiles = new TileSystem(this.settings)
 	public readonly eventProcessor = createEventProcessor()
 	// public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
 	public readonly resources: ResourcesManager = this.dataPack.resources
 	public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
-	// public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
-	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
-	private readonly ecs = new World()
-	public readonly tiles = new TileSystem(this.settings, this, this.ecs)
-	public readonly drawableEntities = createSimpleListIndex<DrawableBaseComponent>(this.ecs, ['DrawableBaseComponent'])
+	// public readonly tiles = createTileSystem(this.settings, this, this.ecs)
 	public readonly movingEntities = createSimpleListIndex<MovingDrawableComponent>(this.ecs, ['MovingDrawableComponent'])
 	public readonly delayedHideEntities = createSimpleListIndex<DelayedHideComponent>(this.ecs, ['DelayedHideComponent'])
+	// public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
+	private readonly nextTickExecutionEvent = this.eventProcessor.registerNewEvent<(world: World) => void>()
 	private readonly serializableEntities = createSimpleListIndex<SerializableComponent>(this.ecs, ['SerializableComponent'])
 	private readonly allSystems: System[] = []
 	private nextTickIsOnlyForAnimations: number = 0
@@ -89,94 +78,25 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 	private isRunning: boolean = false
 	private lastIntervalId: number = -1
 
-	private constructor(public readonly settings: GameSettings,
-	                    public readonly dataPack: DataPack,
-	                    public readonly forces: ForcesManager,
-	                    public readonly random: SeededRandom,
-	                    public readonly terrain: TerrainSystem) {
+	private constructor(
+		private readonly ecs: World,
+		public readonly settings: GameSettings,
+		public readonly dataPack: DataPack,
+		public readonly forces: ForcesManager,
+		public readonly random: SeededRandom,
+		public readonly tiles: TileSystem,
+		public readonly terrain: TerrainSystem) {
 		// @ts-ignore
 		window.game = this
 		this.ecs.registerIndexAndListener(this.chunkEntityIndex)
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
 		this.addSystem(this.advanceAnimationsSystem)
 		this.ecs.registerIndex(new LifecycleNotifierSystem(this))
-		// this.ecs.registerEntityType(ArrowImpl)
+
 		for (const entityType of this.dataPack.entityTypes) {
 			this.ecs.registerEntityType(entityType)
 		}
-		// this.ecs.registerEntityType(ArcherImpl)
-		// this.ecs.registerEntityType(GuardTowerImpl)
-		// this.ecs.registerEntityType(FarmImpl)
-		//
-		// const force1 = new ForceImpl(1, 'One')
-		// const force2 = new ForceImpl(2, 'Two')
-
 		this.ecs.lockTypes()
-		this.dispatchNextTick((world) => {
-			// const createCastle = (left: number, top: number) => {
-			// 	const archer = world.spawnEntity('critter') as UnitPrototype
-			// 	archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
-			// 	archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
-			// 	archer.mostWestTile = left
-			// 	archer.mostNorthTile = top
-			// 	return archer
-			// }
-			// for (let i = 0; i < this.settings.mapWidth; i++) {
-			// 	const n = this.random.intMax(this.settings.mapHeight)
-			// 	const s = 4
-			// 	const m = settings.mapHeight / s | 0
-			// 	for (let j = n; j < m * s; j += s) {
-			// 		createCastle(i, j % settings.mapHeight)
-			// 	}
-			// }
-
-			// const createCastle = (left: number, top: number) => {
-			// 	const archer = world.spawnEntity('castle') as UnitPrototype
-			// 	archer.destinationDrawX = 32 * left
-			// 	archer.destinationDrawY = 32 * top
-			// 	archer.mostWestTile = left
-			// 	archer.mostNorthTile = top
-			// 	return archer
-			// }
-			//
-			//
-			// for (let x = 0; x < settings.mapWidth - 4; x += 4 + random.intMax(10)) {
-			// 	for (let y = 0; y < settings.mapHeight - 4; y += 4 + random.intMax(5)) {
-			// 		createCastle(x, y)
-			// 	}
-			// }
-
-			// setTimeout(() => {
-			// 	const obj = this.generateSaveJson()
-			// 	console.log(obj)
-			// }, 1000)
-
-
-			setTimeout(() => {
-				this.dispatchNextTick((world) => {
-
-					// const createCritter = (left: number, top: number) => {
-					// 	const archer = world.spawnEntity('critter') as UnitPrototype
-					// 	archer.destinationDrawX = 32 * left - (32 - archer.spriteSize) / 2
-					// 	archer.destinationDrawY = 32 * top - (32 - archer.spriteSize) / 2
-					// 	archer.mostWestTile = left
-					// 	archer.mostNorthTile = top
-					// 	return archer
-					// }
-					// // for (let i = 0; i < this.settings.mapWidth; i++) {
-					// // 	const n = this.random.intMax(this.settings.mapHeight)
-					// // 	const s = 4
-					// // 	const m = settings.mapHeight / s | 0
-					// // 	for (let j = n; j < m * s; j += s) {
-					// // 		const y = j % settings.mapHeight
-					// // 		if (this.tiles.isTileWalkableNoThrow(i, y))
-					// // 			createCritter(i, y)
-					// // 	}
-					// // }
-					// createCritter(20, 20)
-				})
-			}, 1000)
-		})
 
 		this.nextTickExecutionEvent.listen(foo => foo(this.ecs))
 	}
@@ -187,12 +107,16 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 	public static createNewGame(settings: GameSettings,
 	                            dataPack: DataPack): GameInstanceImpl {
-		return new GameInstanceImpl(settings,
+		const world = new World()
+		const tiles = createTileSystem(settings, world)
+		return new GameInstanceImpl(world,
+			settings,
 			dataPack,
 			ForcesManager.createNew(),
 			// SeededRandom.createWithRandomSeed()
 			SeededRandom.fromSeed(1),
-			TerrainSystem.createNew(settings, dataPack),
+			tiles,
+			createNewTerrainSystem(settings, tiles, dataPack),
 		)
 	}
 
@@ -202,11 +126,15 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 			mapHeight: obj.requirePositiveInt('mapHeight'),
 			mapWidth: obj.requirePositiveInt('mapWidth'),
 		}
-		const game = new GameInstanceImpl(settings,
+		const world = new World()
+		const tiles = createTileSystem(settings, world)
+		const game = new GameInstanceImpl(world,
+			settings,
 			dataPack,
 			ForcesManager.deserialize(obj.child('forces')),
 			SeededRandom.deserialize(obj.child('random')),
-			TerrainSystem.createNew(settings, dataPack))
+			tiles,
+			createNewTerrainSystem(settings, tiles, dataPack))
 
 		const entities: [Entity & SerializableComponent, Config][] = []
 		for (const [key, description] of obj.child('entities').objectEntries()) {
@@ -235,7 +163,7 @@ export class GameInstanceImpl implements GameInstance, GameInstanceForRenderer {
 
 	// lastTick: number = 0
 	tick(): void {
-		const startTime = performance.now()
+		// const startTime = performance.now()
 		try {
 			if (--this.nextTickIsOnlyForAnimations > 0) {
 				this.advanceAnimationsSystem.onTick(0)

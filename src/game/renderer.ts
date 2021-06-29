@@ -6,7 +6,6 @@ import { Camera } from './camera'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
 import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
-import { Layer, LayerLevel } from './ecs/layers'
 import { TileImpl } from './ecs/systems/tiles-system'
 import { Entity } from './ecs/world'
 import { GameInstanceImpl } from './game-instance'
@@ -108,7 +107,6 @@ export class Renderer {
 					context.fillStyle = '#880000'
 					context.fillRect(0, 0, this.width, this.height)
 				} else {
-					// context.fillStyle = '#333'
 					context.fillStyle = '#2a1a00'
 					context.fillRect(0, 0, this.width, this.height)
 
@@ -141,8 +139,6 @@ export class Renderer {
 					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
 					const viewPortTop = camera.centerY - viewPortHeight * 0.5
 
-					// this.layerTerrain
-					// 	.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
 					game.terrain.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
 
 					for (const e of game.chunkEntityIndex
@@ -150,18 +146,13 @@ export class Renderer {
 						e.render(context)
 					}
 
-
-					// for (const e of game.drawableEntities()) {
-					// 	e.render(context)
-					// }
-
-
 					if (this.debugOptions.showTilesOccupation) {
 						const tileSizeInPixels = 32
 						for (let i = 0; i < this.settings.mapWidth; i++) {
 							for (let j = 0; j < this.settings.mapHeight; j++) {
 								const walkable = game.tiles.isTileWalkableNoThrow(i, j)
-								context.fillStyle = walkable ? '#00FF0077' : '#FF000077'
+								const buildable = game.tiles.isTileBuildableNoThrow(i, j)
+								context.fillStyle = walkable ? (buildable ? '#00FF0077' : '#88005577') : '#FF000077'
 								context.fillRect(
 									(i + 0.3) * tileSizeInPixels,
 									(j + 0.3) * tileSizeInPixels,
@@ -190,53 +181,7 @@ export class Renderer {
 							context.stroke()
 							context.closePath()
 						}
-						// for (const entity of game.walkingEntities()) {
-						// 	if (entity.pathDirections.length > 0) {
-						// 		context.beginPath()
-						// 		context.lineWidth = 2
-						// 		let lastX = entity.occupiedTilesWest * 32 + 16
-						// 		let lastY = entity.occupiedTilesNorth * 32 + 16
-						// 		context.moveTo(lastX, lastY)
-						// 		for (const dir of entity.pathDirections) {
-						// 			const [ox, oy] = facingDirectionToVector(dir)
-						// 			lastX += ox * 32
-						// 			lastY += oy * 32
-						// 			context.lineTo(lastX, lastY)
-						// 		}
-						// 		context.stroke()
-						// 		context.closePath()
-						// 	}
-						// }
 					}
-					//
-					// if (this.debugOptions.showChunkBoundaries) {
-					// 	context.lineWidth = 2
-					// 	const {mapWidth, mapHeight, chunkSize} = game.settings
-					// 	const chunksX = Math.ceil(mapWidth / chunkSize)
-					// 	const chunksY = Math.ceil(mapHeight / chunkSize)
-					// 	const margin = 4
-					// 	context.font = '12px Roboto'
-					// 	context.fillStyle = 'black'
-					// 	for (let i = 0; i < chunksX; i++) {
-					// 		for (let j = 0; j < chunksY; j++) {
-					// 			const count = game
-					// 				.chunkEntityIndex
-					// 				.getChunkByChunkCoords(i, j)
-					// 				.getEntitiesCount()
-					//
-					// 			context.fillText(`${count}`,
-					// 				i * 32 * chunkSize + 2 * margin,
-					// 				j * 32 * chunkSize + 4 * margin)
-					//
-					// 			context.strokeRect(
-					// 				i * 32 * chunkSize + margin,
-					// 				j * 32 * chunkSize + margin,
-					// 				chunkSize * 32 - margin * 2,
-					// 				chunkSize * 32 - margin * 2)
-					// 		}
-					// 	}
-					// }
-					//
 
 					if (this.debugOptions.showChunkBoundaries) {
 						context.lineWidth = 2
@@ -280,27 +225,13 @@ export class Renderer {
 								context.fillText(`${count}`,
 									i * 32 + 12,
 									j * 32 + 20)
-								// let any = false
-								// for (const listener of tile.getListeners()) {
-								// 	any = true
-								// 	const sprite = (listener as unknown as SpriteDrawableComponent);
-								// 	if (sprite.spriteSize !== undefined) {
-								// 		context.beginPath()
-								// 		context.lineWidth = 2
-								// 		context.moveTo(i * 32, j * 32)
-								// 		context.lineTo(sprite.destinationDrawX + 36, sprite.destinationDrawY + 36)
-								// 		context.closePath()
-								// 		context.stroke()
-								//
-								// 	}
-								// }
 							}
 						}
 					}
 
 					if (this.debugOptions.renderZoomedOut) {
 						const SIZE = 12 / scale
-						context.strokeStyle = "#FF00FF"
+						context.strokeStyle = '#FF00FF'
 						context.lineWidth = SIZE
 						context.strokeRect(viewPortLeft - SIZE | 0, viewPortTop - SIZE | 0, viewPortWidth + SIZE * 2 | 0, viewPortHeight + SIZE * 2 | 0)
 					}
@@ -330,9 +261,6 @@ export class Renderer {
 			this.context.fillStyle = 'black'
 			this.context.fillRect(0, 0, this.width, this.height)
 		}
-
-		// if (this.game)
-		// 	foo(this.game!.dataPack, this.context!)
 
 		if (this.enabled && !wasEnabled) {
 			cancelAnimationFrame(this.animationHandle)

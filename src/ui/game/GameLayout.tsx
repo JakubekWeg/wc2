@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react'
 import { Camera, CameraDirection, CameraImpl } from '../../game/camera'
-import { Variant } from '../../game/ecs/terrain'
 import { GameInstanceImpl } from '../../game/game-instance'
 import { Renderer } from '../../game/renderer'
 import { LoadMethod } from '../App'
@@ -135,7 +134,7 @@ function Component(props: Props) {
 			if (!game) return
 			game.renderer.setGameInstance(undefined)
 		}
-	}, [parts])
+	}, [parts,props])
 
 	useEffect(() => {
 		parts?.game.startGame()
@@ -144,19 +143,6 @@ function Component(props: Props) {
 
 	if (parts == null)
 		return (<div className="GameLayout">Loading... please wait</div>)
-
-	const getVariant = (btn: number | undefined): Variant => {
-		switch (btn) {
-			case 0:
-				return Variant.DarkWater
-			case 1:
-				return Variant.DarkGrass
-			case 2:
-				return Variant.DarkDirt
-			default:
-				throw new Error()
-		}
-	}
 
 	return (
 		<GameContext.Provider value={parts.game}>

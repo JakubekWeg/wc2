@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef } from 'react'
-import { getFullTextureOfVariant, TILE_SET_WIDTH } from '../../game/ecs/terrain'
+import { TILE_SET_WIDTH } from '../../game/ecs/terrain'
+import { getFullTextureOfVariant } from '../../game/ecs/variant'
 import { MouseAction } from './frontend-controller'
 import { GameContext } from './GameLayout'
 import TileVariantPicker from './TileVariantPicker'
@@ -12,6 +13,7 @@ interface Props {
 
 	onPicked?(a: MouseAction): void
 }
+
 export const ICONS_SET_SIZE_W = 5
 const CANVAS_OPTIONS = {alpha: false} as CanvasRenderingContext2DSettings
 

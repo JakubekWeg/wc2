@@ -1,6 +1,6 @@
 import React from 'react'
-import { PredefinedDrawableComponent, TilesIncumbentComponent } from '../../game/ecs/components'
-import { Variant } from '../../game/ecs/terrain'
+import { MovingUnitComponent, PredefinedDrawableComponent, TilesIncumbentComponent } from '../../game/ecs/components'
+import { Variant } from '../../game/ecs/variant'
 import { Entity } from '../../game/ecs/world'
 import { GameInstanceImpl } from '../../game/game-instance'
 import { CanvasMouseEvent } from './GameCanvas'
@@ -21,14 +21,12 @@ export interface MouseAction {
 
 export class EditorFrontedController implements FrontendController {
 	public readonly mouseActions: MouseAction[]
-	// public readonly variants: Variant[]
 	private lastTileX: number = -1
 	private lastTileY: number = -1
 
 	constructor(public readonly game: GameInstanceImpl) {
-		// this.variants = [Variant.Grass, Variant.Dirt, Variant.Water]
 		this.mouseActions = [
-			{type: 'set-tile', iconIndex: 0},
+			{type: 'set-tile', iconIndex: 1},
 			{type: 'set-tile', iconIndex: 2},
 			{type: 'set-tile', iconIndex: 4},
 		]
@@ -62,28 +60,29 @@ export class EditorFrontedController implements FrontendController {
 					break
 				}
 				this.game.dispatchNextTick(world => {
-					if (!this.game.tiles.areTilesWalkableNoThrow(e.tileX, e.tileY,
-						(world.getEntityTemplate(name) as Entity & TilesIncumbentComponent).tileOccupySize))
-						return
+					const template = world.getEntityTemplate(name) as Entity & TilesIncumbentComponent & MovingUnitComponent
+					const entityIsBuilding = template.unitMovingSpeed === undefined
+					if (entityIsBuilding) {
+						if (!this.game.tiles.areTilesBuildableNoThrow(e.tileX, e.tileY,
+							template.tileOccupySize))
+							return
+					} else {
+						if (!this.game.tiles.isTileWalkableNoThrow(e.tileX, e.tileY,))
+							return
+					}
 					const entity = world.spawnEntity(name) as Entity & TilesIncumbentComponent & PredefinedDrawableComponent
 					entity.mostWestTile = e.tileX
 					entity.mostNorthTile = e.tileY
-					if (entity.tileOccupySize === 1) {
-						entity.destinationDrawX = e.tileX * 32 - (entity.spriteSize - 32) / 2
-						entity.destinationDrawY = e.tileY * 32 - (entity.spriteSize - 32) / 2
-					} else {
+					if (entityIsBuilding) {
 						entity.destinationDrawX = e.tileX * 32
 						entity.destinationDrawY = e.tileY * 32
+					} else {
+						entity.destinationDrawX = e.tileX * 32 - (entity.spriteSize - 32) / 2
+						entity.destinationDrawY = e.tileY * 32 - (entity.spriteSize - 32) / 2
 					}
 					world.commitAddedEntities()
 				})
 				break
 		}
-
-		// const variant = this.variants[e.button]
-		// if (variant === undefined)
-		// 	return
-		//
-		// this.game.terrain.setVariantForTile(e.tileX, e.tileY, variant)
 	}
 }

@@ -1,6 +1,6 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react'
 import { IconComponent } from '../../game/ecs/components'
-import { allVariants } from '../../game/ecs/terrain'
+import { allVariants } from '../../game/ecs/variant'
 import { MouseAction } from './frontend-controller'
 import { GameContext } from './GameLayout'
 import MouseActionIcon from './MouseActionIcon'
@@ -15,7 +15,7 @@ function Component(props: Props) {
 	const [actions, setActions] = useState<ReactElement[]>([])
 
 	useEffect(() => {
-		if (game == undefined) return
+		if (!game) return
 		const entitiesWithIcons = game.dataPack.entityTypes
 			.filter((e) => e.componentNames.has('IconComponent'))
 
@@ -48,7 +48,7 @@ function Component(props: Props) {
 				/>
 			})
 		])
-	}, [game])
+	}, [game, props])
 
 	return (
 		<div className="TileSelector">

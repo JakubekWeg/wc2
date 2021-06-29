@@ -1,7 +1,5 @@
-import React, { useState } from 'react'
-import { GameInstanceImpl } from '../../game/game-instance'
+import React from 'react'
 import EditorControls from './EditorControls'
-import { FrontendController } from './frontend-controller'
 import Minimap from './Minimap'
 
 interface Props {

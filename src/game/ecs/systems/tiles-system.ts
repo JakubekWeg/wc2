@@ -1,4 +1,3 @@
-import { GameInstanceImpl } from '../../game-instance'
 import GameSettings from '../../misc/game-settings'
 import { TileListenerComponent, TilesIncumbentComponent } from '../components'
 import World, { Entity } from '../world'
@@ -7,6 +6,8 @@ export interface Tile {
 	readonly x: number,
 	readonly y: number,
 	readonly occupiedBy?: Entity & TilesIncumbentComponent
+	readonly buildable: boolean
+	readonly walkable: boolean
 
 	addListener(listener: Entity & TileListenerComponent): void
 
@@ -15,6 +16,8 @@ export interface Tile {
 
 export class TileImpl implements Tile {
 	public occupiedBy?: Entity & TilesIncumbentComponent
+	public buildable: boolean = false
+	public walkable: boolean = false
 	private listeners = new Set<Entity & TileListenerComponent>()
 
 	constructor(public readonly x: number,
@@ -49,17 +52,102 @@ export class TileImpl implements Tile {
 	}
 }
 
+export interface TileSystem {
+	addListenersForRect(x: number, y: number, w: number, h: number, listener: Entity & TileListenerComponent): void
+
+	addListenersForRectAndGet<T extends Entity & TilesIncumbentComponent>
+	(x: number, y: number, w: number, h: number,
+	 listener: Entity & TileListenerComponent,
+	 filter: (obj: T) => boolean): Set<T>
+
+	removeListenerFromAllTiles(listener: Entity & TileListenerComponent): void
+
+	/**
+	 * Returns tile at that position, throws if invalid coords
+	 */
+	get(x: number, y: number): Tile
+
+	/**
+	 * Returns true if tile at this position is walkable
+	 * Returns false if tile is occupied or coords are invalid
+	 */
+	isTileWalkableNoThrow(x: number, y: number): boolean
+
+	/**
+	 * Returns true if tile at this position is walkable
+	 * Returns false if tile is occupied or coords are invalid
+	 */
+	isTileBuildableNoThrow(x: number, y: number): boolean
+
+	/**
+	 * Returns true if are tile at this position are walkable
+	 * Returns false if any of tile is occupied or coords of any are invalid
+	 */
+	areTilesBuildableNoThrow(x: number, y: number, s: number): boolean
+
+	/**
+	 * Updates occupation field inside index
+	 * Throws if attempt to occupy a field that is being occupied by a different entity
+	 */
+	updateRegistryThrow(x: number,
+	                    y: number,
+	                    occupiedBy?: Entity & TilesIncumbentComponent): void
+
+
+	/**
+	 * Updates occupation field inside index
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity
+	 * Returns true if field was updated successfully
+	 * Throws only if invalid coords given
+	 */
+	updateRegistryCheck(x: number,
+	                    y: number,
+	                    occupiedBy?: Entity & TilesIncumbentComponent): boolean
+
+
+	/**
+	 * Moves occupation from one field to another
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity
+	 * Returns true if field was updated successfully
+	 * Throws only if invalid coords given
+	 */
+	moveOccupationAtOnce(sx: number,
+	                     sy: number,
+	                     dx: number,
+	                     dy: number): boolean
+
+	/**
+	 * Moves occupation from one field to another
+	 * Returns false if attempt to occupy a field that is being occupied by a different entity or coords are invalid
+	 * Returns true if field was updated successfully
+	 */
+	moveOccupationAtOnceNoThrow(sx: number,
+	                            sy: number,
+	                            dx: number,
+	                            dy: number): boolean
+}
+
+export interface TileTerrainSystem {
+
+	updateBuildableStatusNoThrow(x: number,
+	                             y: number,
+	                             buildable: boolean): void
+
+	updateWalkableStatusNoThrow(x: number,
+	                            y: number,
+	                            walkable: boolean): void
+}
 
 /**
  * Index of tiles data, stores information about entities that occupy certain tiles
  */
-export default class TileSystem {
+class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	private readonly sizeX: number
 	private readonly sizeY: number
 	private readonly tiles: TileImpl[] = []
 
 	constructor(private readonly settings: GameSettings,
-	            private readonly game: GameInstanceImpl,
+	            // private readonly game: GameInstanceImpl,
 	            private readonly world: World) {
 		this.sizeX = settings.mapWidth
 		this.sizeY = settings.mapHeight
@@ -69,20 +157,6 @@ export default class TileSystem {
 				this.tiles[i * this.sizeX + j] = new TileImpl(j, i)
 			}
 		}
-		// game.entityEnteredTileEvent.listen((event) => {
-		// 	for (let i = 0; i < event.entity.tileOccupySize; i++) {
-		// 		for (let j = 0; j < event.entity.tileOccupySize; j++) {
-		// 			this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, event.entity)
-		// 		}
-		// 	}
-		// })
-		// game.entityLeftTileEvent.listen((event) => {
-		// 	for (let i = 0; i < event.entity.tileOccupySize; i++) {
-		// 		for (let j = 0; j < event.entity.tileOccupySize; j++) {
-		// 			this.updateRegistryThrow(event.mostWestTile + i, event.mostNorthTile + j, undefined)
-		// 		}
-		// 	}
-		// })
 		const self = this
 
 		world.registerIndex({
@@ -93,9 +167,6 @@ export default class TileSystem {
 						self.updateRegistryThrow(entity.mostWestTile + i, entity.mostNorthTile + j, entity)
 					}
 				}
-				// game.entityEnteredTileEvent.publish({
-				// 	entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
-				// })
 			},
 			entityRemoved(entity: Entity & TilesIncumbentComponent) {
 				for (let i = 0; i < entity.tileOccupySize; i++) {
@@ -103,9 +174,6 @@ export default class TileSystem {
 						self.updateRegistryThrow(entity.mostWestTile + i, entity.mostNorthTile + j, undefined)
 					}
 				}
-				// game.entityEnteredTileEvent.publish({
-				// 	entity, mostNorthTile: entity.mostNorthTile, mostWestTile: entity.mostWestTile,
-				// })
 			},
 		})
 		world.registerIndex({
@@ -116,6 +184,18 @@ export default class TileSystem {
 				self.removeListenerFromAllTiles(entity)
 			},
 		})
+	}
+
+	updateWalkableStatusNoThrow(x: number, y: number, walkable: boolean): void {
+		if (!this.checkCoords(x, y))
+			return
+		this.getUnsafe(x, y).walkable = walkable
+	}
+
+	updateBuildableStatusNoThrow(x: number, y: number, buildable: boolean): void {
+		if (!this.checkCoords(x, y))
+			return
+		this.getUnsafe(x, y).buildable = buildable
 	}
 
 
@@ -170,35 +250,32 @@ export default class TileSystem {
 		// listener.subscribedToTiles.clear() // no need since removeListener removes too
 	}
 
-	/**
-	 * Returns tile at that position, throws if invalid coords
-	 */
 	public get(x: number, y: number): Tile {
-		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
-			throw new Error(`Invalid tile index x=${x} y=${y}`)
-		return this.tiles[y * this.sizeX + x]
+		this.forceValidateCoords(x, y)
+		return this.getUnsafe(x, y)
 	}
 
-	/**
-	 * Returns true if tile at this position is walkable
-	 * Returns false if tile is occupied or coords are invalid
-	 */
 	public isTileWalkableNoThrow(x: number, y: number): boolean {
-		if (x < 0 || x >= this.sizeX || y < 0 || y >= this.sizeY)
+		if (!this.checkCoords(x, y))
 			return false
-		return !this.tiles[y * this.sizeX + x].occupiedBy
+		const tile = this.getUnsafe(x, y)
+		return tile.walkable && !tile.occupiedBy
 	}
 
-	/**
-	 * Returns true if are tile at this position are walkable
-	 * Returns false if any of tile is occupied or coords of any are invalid
-	 */
-	public areTilesWalkableNoThrow(x: number, y: number, s: number): boolean {
+	public isTileBuildableNoThrow(x: number, y: number): boolean {
+		if (!this.checkCoords(x, y))
+			return false
+		const tile = this.getUnsafe(x, y)
+		return tile.buildable && !tile.occupiedBy
+	}
+
+	public areTilesBuildableNoThrow(x: number, y: number, s: number): boolean {
 		if (x < 0 || x + s >= this.sizeX || y < 0 || y + s >= this.sizeY)
 			return false
 		for (let i = 0; i < s; i++) {
 			for (let j = 0; j < s; j++) {
-				if (this.tiles[(y + j) * this.sizeX + (x + i)].occupiedBy != null) {
+				const tile = this.getUnsafe(x + i, y + j)
+				if (!tile.buildable || tile.occupiedBy != null) {
 					return false
 				}
 			}
@@ -206,10 +283,6 @@ export default class TileSystem {
 		return true
 	}
 
-	/**
-	 * Updates occupation field inside index
-	 * Throws if attempt to occupy a field that is being occupied by a different entity
-	 */
 	public updateRegistryThrow(x: number,
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): void {
@@ -221,13 +294,6 @@ export default class TileSystem {
 		tile.forceSetOccupiedByAndCallListeners(occupiedBy)
 	}
 
-
-	/**
-	 * Updates occupation field inside index
-	 * Returns false if attempt to occupy a field that is being occupied by a different entity
-	 * Returns true if field was updated successfully
-	 * Throws only if invalid coords given
-	 */
 	public updateRegistryCheck(x: number,
 	                           y: number,
 	                           occupiedBy?: Entity & TilesIncumbentComponent): boolean {
@@ -239,13 +305,6 @@ export default class TileSystem {
 		return true
 	}
 
-
-	/**
-	 * Moves occupation from one field to another
-	 * Returns false if attempt to occupy a field that is being occupied by a different entity
-	 * Returns true if field was updated successfully
-	 * Throws only if invalid coords given
-	 */
 	public moveOccupationAtOnce(sx: number,
 	                            sy: number,
 	                            dx: number,
@@ -253,30 +312,28 @@ export default class TileSystem {
 		this.forceValidateCoords(sx, sy)
 		this.forceValidateCoords(dx, dy)
 
-		const destination = this.tiles[dy * this.sizeX + dx]
-		if (destination.occupiedBy != null)
-			return false
-		const source = this.tiles[sy * this.sizeX + sx]
-		const tmp = source.occupiedBy
-		source.forceSetOccupiedByAndCallListeners(undefined)
-		destination.forceSetOccupiedByAndCallListeners(tmp)
-		return true
+		return this.moveOccupationAtOnceUnsafe(sx, sy, dx, dy)
 	}
 
-	/**
-	 * Moves occupation from one field to another
-	 * Returns false if attempt to occupy a field that is being occupied by a different entity or coords are invalid
-	 * Returns true if field was updated successfully
-	 */
 	public moveOccupationAtOnceNoThrow(sx: number,
 	                                   sy: number,
 	                                   dx: number,
 	                                   dy: number): boolean {
 		if (!this.checkCoords(sx, sy) || !this.checkCoords(dx, dy))
 			return false
+		return this.moveOccupationAtOnceUnsafe(sx, sy, dx, dy)
+	}
 
+	private getUnsafe(x: number, y: number): TileImpl {
+		return this.tiles[y * this.sizeX + x]
+	}
+
+	private moveOccupationAtOnceUnsafe(sx: number,
+	                                   sy: number,
+	                                   dx: number,
+	                                   dy: number) {
 		const destination = this.tiles[dy * this.sizeX + dx]
-		if (destination.occupiedBy != null)
+		if (!destination.walkable || destination.occupiedBy != null)
 			return false
 		const source = this.tiles[sy * this.sizeX + sx]
 		const tmp = source.occupiedBy
@@ -295,3 +352,6 @@ export default class TileSystem {
 
 	}
 }
+
+export const createTileSystem = (settings: GameSettings,
+                                 world: World) => new TileSystemImpl(settings, world)
