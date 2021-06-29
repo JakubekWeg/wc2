@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, CameraDirection } from '../../game/camera'
+import { getGlobalRendererDebugOptions } from '../../game/debug-renderer-options'
 import { Renderer } from '../../game/renderer'
 import { GameComponents } from './GameLayout'
 
@@ -24,7 +25,7 @@ const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, t
 	const offsetY = ev.offsetY
 	const w = (ev.target as HTMLCanvasElement).width
 	const h = (ev.target as HTMLCanvasElement).height
-	const scale = camera.scale * (renderer.getDebugOptions().renderZoomedOut ? 0.3 : 1)
+	const scale = camera.scale * (getGlobalRendererDebugOptions().renderZoomedOut ? 0.3 : 1)
 	// const scale = camera.scale
 	const x = (offsetX / scale + camera.centerX - w * 0.5 / scale) / 32 | 0
 	const y = (offsetY / scale + camera.centerY - h * 0.5 / scale) / 32 | 0
@@ -57,13 +58,6 @@ function Component(props: Props) {
 			return
 		const canvas: HTMLCanvasElement = ref.current
 		const game = props.game
-		game.renderer.updateDebugOptions({
-			showTilesOccupation: false,
-			showPaths: false,
-			showTileListenersCount: false,
-			showChunkBoundaries: false,
-			renderZoomedOut: false,
-		})
 		game.renderer.setCanvas(canvas)
 
 		game.renderer.setPageFocused(document.hasFocus())

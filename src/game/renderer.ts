@@ -3,6 +3,7 @@
 // const log = createLogger('Renderer')
 
 import { Camera } from './camera'
+import { DebugRendererOptions, getGlobalRendererDebugOptions } from './debug-renderer-options'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
 import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
@@ -11,14 +12,6 @@ import { Entity } from './ecs/world'
 import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
 import GameSettings from './misc/game-settings'
-
-export interface DebugOptions {
-	showTilesOccupation?: boolean
-	showPaths?: boolean
-	showChunkBoundaries?: boolean
-	showTileListenersCount?: boolean
-	renderZoomedOut?: boolean
-}
 
 export interface DebugPath {
 	current: number
@@ -29,7 +22,7 @@ export interface DebugPath {
 export class Renderer {
 	public static DEBUG_PATHS: Set<DebugPath> = new Set()
 
-	private debugOptions: DebugOptions = {}
+	private debugOptions: DebugRendererOptions = getGlobalRendererDebugOptions()
 	private enabled: boolean = false
 	private game?: GameInstanceImpl
 	private canvas?: HTMLCanvasElement
@@ -55,22 +48,14 @@ export class Renderer {
 		Renderer.DEBUG_PATHS.clear()
 	}
 
-	public updateDebugOptions(options: DebugOptions) {
-		this.debugOptions = {...this.debugOptions, ...options}
-	}
-
-	public toggleDebugOptions(key: keyof DebugOptions) {
-		const value = this.debugOptions[key]
+	public toggleDebugOptions(key: keyof DebugRendererOptions) {
+		const value: unknown = this.debugOptions[key]
 		if (value === true)
 			this.debugOptions[key] = false
 		else if (value === false)
 			this.debugOptions[key] = true
 		else
 			throw new Error(`Unable to toggle debug option ${key}, because it is not a boolean`)
-	}
-
-	public getDebugOptions(): DebugOptions {
-		return this.debugOptions
 	}
 
 	public setSize(width: number,
