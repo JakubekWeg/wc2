@@ -11,15 +11,13 @@
 // 	BorderL = 20,
 // }
 
+import Config from '../../config/config'
 import { DataPack } from '../data-pack'
 import GameSettings from '../misc/game-settings'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './chunk-indexer'
 import { Layer, LayerLevel } from './layers'
 import { TileTerrainSystem } from './systems/tiles-system'
 import { getIsBuildable, getIsWalkable, textureIndexes, Variant } from './variant'
-
-export const isVariantWalkable = (v: Variant) => v < Variant.Water
-export const isVariantBuildable = (v: Variant) => v < Variant.Dirt
 
 export const TILE_SET_WIDTH = 512 / 32
 
@@ -32,24 +30,34 @@ export interface TerrainSystem {
 	isValidTile(x: number, y: number): boolean
 
 	render(ctx: CanvasRenderingContext2D, l: number, t: number, w: number, h: number): void
+
+	serialize(): unknown
 }
 
 class TerrainSystemImpl implements TerrainSystem {
-	private readonly points: Variant[] = []
+	private readonly points: Variant[]
 	private readonly pointsSize = this.tilesSize + 1
 	private readonly image = this.pack.resources.getImage('summer')
 
 	public constructor(public readonly tilesSize: number,
 	                   private readonly tileSystem: TileTerrainSystem,
-	                   private pack: DataPack) {
-		const pointsSize = this.pointsSize
-		this.points.length = pointsSize * pointsSize
-		for (let i = 0; i < pointsSize; i++) {
-			for (let j = 0; j < pointsSize; j++) {
-				// let index = GRASS_VARIANT_START_INDEX + 8 * 16 - 10
-				// if (Math.random() < 0.5)
-				// 	index++
-				this.points[i * pointsSize + j] = Variant.Dirt
+	                   private pack: DataPack,
+	                   restoreFrom: Config | undefined) {
+		if (restoreFrom !== undefined) {
+			const tmp = restoreFrom.child('points').getAsNotEmptyListOfNonNegativeIntegers()
+			if (tmp.length !== this.pointsSize * this.pointsSize)
+				throw new Error('Length of points array is invalid')
+			this.points = tmp
+		} else {
+			const pointsSize = this.pointsSize
+			this.points = new Array(pointsSize * pointsSize)
+			for (let i = 0; i < pointsSize; i++) {
+				for (let j = 0; j < pointsSize; j++) {
+					// let index = GRASS_VARIANT_START_INDEX + 8 * 16 - 10
+					// if (Math.random() < 0.5)
+					// 	index++
+					this.points[i * pointsSize + j] = Variant.Dirt
+				}
 			}
 		}
 		for (let x = 0; x < tilesSize; x++) {
@@ -204,6 +212,10 @@ class TerrainSystemImpl implements TerrainSystem {
 		this.layerTerrain.render(ctx, l, t, w, h)
 	}
 
+	public serialize(): unknown {
+		return {points: this.points}
+	}
+
 	private getPoint(x: number, y: number): Variant {
 		if (x < 0 || x >= this.pointsSize || y < 0 || y >= this.pointsSize)
 			throw new Error(`Invalid point index x=${x} y=${y}`)
@@ -256,25 +268,32 @@ class TerrainSystemImpl implements TerrainSystem {
 		]
 
 		// left top
-		this.tileSystem.updateBuildableStatusNoThrow(x - 1, y - 1, getIsBuildable(around[0], around[1], around[7], v,))
-		this.tileSystem.updateWalkableStatusNoThrow(x - 1, y - 1, getIsWalkable(around[0], around[1], around[7], v,))
+		this.tileSystem.updateBuildableStatusNoThrow(x - 1, y - 1, getIsBuildable(around[0], around[1], around[7], v))
+		this.tileSystem.updateWalkableStatusNoThrow(x - 1, y - 1, getIsWalkable(around[0], around[1], around[7], v))
 
 		// right top
-		this.tileSystem.updateBuildableStatusNoThrow(x, y - 1, getIsBuildable(around[1], around[2], v, around[3],))
-		this.tileSystem.updateWalkableStatusNoThrow(x, y - 1, getIsWalkable(around[1], around[2], v, around[3],))
+		this.tileSystem.updateBuildableStatusNoThrow(x, y - 1, getIsBuildable(around[1], around[2], v, around[3]))
+		this.tileSystem.updateWalkableStatusNoThrow(x, y - 1, getIsWalkable(around[1], around[2], v, around[3]))
 
 		// right bottom
-		this.tileSystem.updateBuildableStatusNoThrow(x, y, getIsBuildable(v, around[3], around[5], around[4],))
-		this.tileSystem.updateWalkableStatusNoThrow(x, y, getIsWalkable(v, around[3], around[5], around[4],))
+		this.tileSystem.updateBuildableStatusNoThrow(x, y, getIsBuildable(v, around[3], around[5], around[4]))
+		this.tileSystem.updateWalkableStatusNoThrow(x, y, getIsWalkable(v, around[3], around[5], around[4]))
 
 		// left bottom
-		this.tileSystem.updateBuildableStatusNoThrow(x - 1, y, getIsBuildable(around[7], v, around[6], around[5],))
-		this.tileSystem.updateWalkableStatusNoThrow(x - 1, y, getIsWalkable(around[7], v, around[6], around[5],))
+		this.tileSystem.updateBuildableStatusNoThrow(x - 1, y, getIsBuildable(around[7], v, around[6], around[5]))
+		this.tileSystem.updateWalkableStatusNoThrow(x - 1, y, getIsWalkable(around[7], v, around[6], around[5]))
 	}
 }
 
 export const createNewTerrainSystem = (settings: GameSettings,
                                        tileSystem: TileTerrainSystem,
                                        pack: DataPack): TerrainSystem => {
-	return new TerrainSystemImpl(settings.mapWidth, tileSystem, pack)
+	return new TerrainSystemImpl(settings.mapWidth, tileSystem, pack, undefined)
+}
+
+export const deserializeTerrainSystem = (settings: GameSettings,
+                                         obj: Config,
+                                         tileSystem: TileTerrainSystem,
+                                         pack: DataPack): TerrainSystemImpl => {
+	return new TerrainSystemImpl(settings.mapWidth, tileSystem, pack, obj)
 }

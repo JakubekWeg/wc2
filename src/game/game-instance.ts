@@ -8,7 +8,7 @@ import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
 import { createTileSystem, TileSystem } from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
-import { createNewTerrainSystem, TerrainSystem } from './ecs/terrain'
+import { createNewTerrainSystem, deserializeTerrainSystem, TerrainSystem } from './ecs/terrain'
 import World, { createSimpleListIndex, Entity } from './ecs/world'
 import ForcesManager from './forces-manager'
 import GameSettings from './misc/game-settings'
@@ -134,7 +134,8 @@ export class GameInstanceImpl implements GameInstance {
 			ForcesManager.deserialize(obj.child('forces')),
 			SeededRandom.deserialize(obj.child('random')),
 			tiles,
-			createNewTerrainSystem(settings, tiles, dataPack))
+			deserializeTerrainSystem(settings, obj.child('terrain'), tiles, dataPack)
+		)
 
 		const entities: [Entity & SerializableComponent, Config][] = []
 		for (const [key, description] of obj.child('entities').objectEntries()) {
@@ -172,8 +173,7 @@ export class GameInstanceImpl implements GameInstance {
 			// console.log(Date.now() - this.lastTick)
 			// this.lastTick = Date.now()
 			this.nextTickIsOnlyForAnimations = ANIMATIONS_PER_TICK
-			const world = this.ecs
-			world.executeTick((tick: number) => {
+			this.ecs.executeTick((tick: number) => {
 				for (let s of this.allSystems) {
 					s.onTick(tick)
 				}
@@ -214,6 +214,7 @@ export class GameInstanceImpl implements GameInstance {
 			entities: {},
 			forces: this.forces.serialize(),
 			random: this.random.serialize(),
+			terrain: this.terrain.serialize(),
 		}
 
 		for (const entity of this.serializableEntities()) {
