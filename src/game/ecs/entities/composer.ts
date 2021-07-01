@@ -1,4 +1,4 @@
-import Config from '../../../config/config'
+import Config from '../../config'
 import { ComposedFunction, composeFunction } from '../../misc/functions-composer'
 import { ResourcesManager } from '../../misc/resources-manager'
 import { ComponentNameType, DeserializationUnitContext } from '../components'

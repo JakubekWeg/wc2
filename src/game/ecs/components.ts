@@ -1,4 +1,4 @@
-import Config from '../../config/config'
+import Config from '../config'
 import { Force } from '../forces-manager'
 import { GameInstanceImpl } from '../game-instance'
 import { AnimationFrames } from './entities/common'

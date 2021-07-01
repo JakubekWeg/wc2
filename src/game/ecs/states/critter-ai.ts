@@ -1,4 +1,4 @@
-import Config from '../../../config/config'
+import Config from '../../config'
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionToVector } from '../../misc/facing-direction'
 import {

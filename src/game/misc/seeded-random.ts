@@ -1,4 +1,4 @@
-import Config from '../../config/config'
+import Config from '../config'
 
 class SeededRandom {
 	private constructor(private seed: number) {

@@ -3,6 +3,7 @@ import { MovingUnitComponent, PredefinedDrawableComponent, TilesIncumbentCompone
 import { Variant } from '../../game/ecs/variant'
 import { Entity } from '../../game/ecs/world'
 import { GameInstanceImpl } from '../../game/game-instance'
+import { Renderer } from '../../game/renderer'
 import { CanvasMouseEvent } from './GameCanvas'
 
 export interface FrontendController {
@@ -24,7 +25,8 @@ export class EditorFrontedController implements FrontendController {
 	private lastTileX: number = -1
 	private lastTileY: number = -1
 
-	constructor(public readonly game: GameInstanceImpl) {
+	constructor(public readonly game: GameInstanceImpl,
+	            public readonly renderer: Renderer) {
 		this.mouseActions = [
 			{type: 'set-tile', iconIndex: 1},
 			{type: 'set-tile', iconIndex: 2},
@@ -33,15 +35,23 @@ export class EditorFrontedController implements FrontendController {
 	}
 
 	mouseEvent(e: CanvasMouseEvent) {
-		if (e.button === undefined)
+		if (e.button === undefined) {
+			this.handleMouseNotPressedHover(e)
 			return
-		if (e.tileX === this.lastTileX && e.tileY === this.lastTileY && e.type === 'move')
+		}
+
+		const movedOnTheSameTile = e.tileX === this.lastTileX && e.tileY === this.lastTileY && e.type === 'move'
+		if (movedOnTheSameTile)
 			return
 
+		this.handlePressedMouse(e)
+	}
+
+	private handlePressedMouse(e: CanvasMouseEvent) {
 		this.lastTileX = e.tileX
 		this.lastTileY = e.tileY
 
-		const action = this.mouseActions[e.button]
+		const action = this.mouseActions[e.button as number]
 		if (action === undefined)
 			return
 
@@ -67,7 +77,7 @@ export class EditorFrontedController implements FrontendController {
 							template.tileOccupySize))
 							return
 					} else {
-						if (!this.game.tiles.isTileWalkableNoThrow(e.tileX, e.tileY,))
+						if (!this.game.tiles.isTileWalkableNoThrow(e.tileX, e.tileY))
 							return
 					}
 					const entity = world.spawnEntity(name) as Entity & TilesIncumbentComponent & PredefinedDrawableComponent
@@ -84,5 +94,9 @@ export class EditorFrontedController implements FrontendController {
 				})
 				break
 		}
+	}
+
+	private handleMouseNotPressedHover(e: CanvasMouseEvent) {
+		this.renderer.currentlyShowingHoverPreview.onHover(e)
 	}
 }

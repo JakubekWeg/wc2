@@ -1,4 +1,4 @@
-import Config from '../../../config/config'
+import Config from '../../config'
 import { GameInstance } from '../../game-instance'
 import { ComponentNameType, PlayerCommand, StateMachineHolderComponent, TilesIncumbentComponent } from '../components'
 import World, { Entity } from '../world'

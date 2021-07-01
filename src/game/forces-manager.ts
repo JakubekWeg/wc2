@@ -3,7 +3,7 @@
  * This can either player, computer AI or neutral force
  * Force with id = 0 is always passive and created statically
  */
-import Config from '../config/config'
+import Config from './config'
 import { Camera } from './camera'
 
 

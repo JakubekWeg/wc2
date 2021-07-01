@@ -1,4 +1,4 @@
-import Config from '../config/config'
+import Config from './config'
 import { DataPack } from './data-pack'
 import { ChunkIndexer } from './ecs/chunk-indexer'
 import { DelayedHideComponent, MovingDrawableComponent, SerializableComponent } from './ecs/components'

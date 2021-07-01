@@ -36,7 +36,7 @@ function Component(props: Props) {
 			game,
 			camera,
 			renderer,
-			controller: new EditorFrontedController(game),
+			controller: new EditorFrontedController(game, renderer),
 		})
 
 		return () => {

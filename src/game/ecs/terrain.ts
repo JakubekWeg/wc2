@@ -11,7 +11,7 @@
 // 	BorderL = 20,
 // }
 
-import Config from '../../config/config'
+import Config from '../config'
 import { DataPack } from '../data-pack'
 import GameSettings from '../misc/game-settings'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './chunk-indexer'

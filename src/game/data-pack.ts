@@ -1,4 +1,4 @@
-import Config from '../config/config'
+import Config from './config'
 import { AnimationFrames } from './ecs/entities/common'
 import { createEntityType } from './ecs/entities/composer'
 import { EntityType } from './ecs/world'

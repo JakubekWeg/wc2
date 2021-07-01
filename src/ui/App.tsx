@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Config from '../config/config'
+import Config from '../game/config'
 import { fetchDataPack } from '../game/data-pack'
 import { GameInstanceImpl } from '../game/game-instance'
 import './App.css'

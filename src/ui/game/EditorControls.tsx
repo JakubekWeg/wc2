@@ -1,4 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
+import { PredefinedDrawableComponent, TilesIncumbentComponent } from '../../game/ecs/components'
+import { Entity } from '../../game/ecs/world'
+import { BuildingPreview, NullPreview } from '../../game/renderer'
 import { EditorFrontedController, FrontedControllerContext, MouseAction } from './frontend-controller'
 import MouseActionIcon from './MouseActionIcon'
 
@@ -18,9 +21,14 @@ function Component(props: Props) {
 
 	const picked = (i: number) => (a: MouseAction) => {
 		setOpenedIndex(-1)
-		// controller.variants[i] = v
-		// setVariants([...controller.variants])
 		controller.mouseActions[i] = a
+		if (a.type === 'spawn-entity' && a.entityName) {
+			const template = controller.game.world.getEntityTemplate(a.entityName) as Entity & PredefinedDrawableComponent & TilesIncumbentComponent
+			controller.renderer.currentlyShowingHoverPreview = new BuildingPreview(template, controller.game, 0, 0)
+		} else {
+			controller.renderer.currentlyShowingHoverPreview = new NullPreview()
+		}
+
 		setActions([...controller.mouseActions])
 	}
 

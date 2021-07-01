@@ -1,4 +1,4 @@
-import Config from '../../../config/config'
+import Config from '../../config'
 import { GameInstance, MILLIS_BETWEEN_TICKS } from '../../game-instance'
 import { FacingDirection, facingDirectionFromAngle, facingDirectionToVector } from '../../misc/facing-direction'
 import { findPathDirectionsCoarse, findPathDirectionsCoarseRectDestination2 } from '../../misc/path-finder'
