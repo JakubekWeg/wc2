@@ -16,38 +16,38 @@ function Component(props: Props) {
 
 	useEffect(() => {
 		if (!game) return
-		const entitiesWithIcons = game.dataPack.entityTypes
-			.filter((e) => e.componentNames.has('IconComponent'))
-
-
-		setActions([
-			...allVariants.map(v => {
-				const a = {
-					type: 'set-tile',
-					iconIndex: v as number,
-				} as MouseAction
-				return <MouseActionIcon
-					action={a}
-					opened={false}
-					onClicked={() => props.onPicked?.(a)}
-					key={`${v}`}
-				/>
-			}),
-			...entitiesWithIcons.map((e,i) => {
-				const entity = e.getTemplate() as unknown as IconComponent
-				const a = {
-					type: 'spawn-entity',
-					iconIndex: entity.iconIndex,
-					entityName: e.id,
-				} as MouseAction
-				return <MouseActionIcon
-					action={a}
-					opened={false}
-					onClicked={() => props.onPicked?.(a)}
-					key={`${i + allVariants.length}`}
-				/>
-			})
-		])
+		// const entitiesWithIcons = game.dataPack.entityTypes
+		// 	.filter((e) => e.componentNames.has('IconComponent'))
+		//
+		//
+		// setActions([
+		// 	...allVariants.map(v => {
+		// 		const a = {
+		// 			type: 'set-tile',
+		// 			iconIndex: v as number,
+		// 		} as MouseAction
+		// 		return <MouseActionIcon
+		// 			action={a}
+		// 			opened={false}
+		// 			onClicked={() => props.onPicked?.(a)}
+		// 			key={`${v}`}
+		// 		/>
+		// 	}),
+		// 	...entitiesWithIcons.map((e,i) => {
+		// 		const entity = e.getTemplate() as unknown as IconComponent
+		// 		const a = {
+		// 			type: 'spawn-entity',
+		// 			iconIndex: entity.iconIndex,
+		// 			entityName: e.id,
+		// 		} as MouseAction
+		// 		return <MouseActionIcon
+		// 			action={a}
+		// 			opened={false}
+		// 			onClicked={() => props.onPicked?.(a)}
+		// 			key={`${i + allVariants.length}`}
+		// 		/>
+		// 	})
+		// ])
 	}, [game, props])
 
 	return (

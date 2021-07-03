@@ -145,16 +145,6 @@ export class World {
 	spawnEntity(name: string): Entity {
 		if (!this.prototypesLocked) throw new Error('World is not locked')
 		if (!this.executingTick) throw new Error('Game logic is not executing now')
-		// const name = creator.name
-		// const type = this.allEntityTypes.get(name)
-		// if (type == null)
-		// 	throw new Error('Entity type ' + name + ' is not registered')
-		// const result: T = new type.creator() as T
-		// // @ts-ignore
-		// // noinspection JSConstantReassignment
-		// result.id = this.nextEntityId++
-		// this.entitiesAboutToAdd.push([result, type])
-		// return result
 
 		const type = this.allEntityTypes.get(name)
 		if (type == null)
@@ -167,6 +157,10 @@ export class World {
 		return entity
 	}
 
+	/**
+	 * Gets an entity that gets cloned when spawning this entity type
+	 * Throws if entity name is not registered
+	 */
 	getEntityTemplate(name: string): Entity {
 		const type = this.allEntityTypes.get(name)
 		if (type == null)

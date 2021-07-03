@@ -124,7 +124,22 @@ body {
     animation-fill-mode: both;
 }
 
-.TileSelector > * {
-    /*width: 32px;*/
-    /*height: 32px;*/
+.EditorControls {
+    width: 100%;
+
+}
+.EditorControls>label {
+    display: grid;
+    padding: 8px;
+    border-bottom: 1px solid gray;
+    grid-template-columns: 24px 1fr;
+    grid-template-rows: auto 1fr;
+    place-items: center;
+}
+.EditorControls>label>p {
+    margin: 2px;
+}
+.EditorMode {
+    grid-column-start: 1;
+    grid-column-end: 3;
 }

@@ -76,7 +76,7 @@ export interface TileSystem {
 	isTileBuildableNoThrow(x: number, y: number): boolean
 
 	/**
-	 * Returns true if are tile at this position are walkable
+	 * Returns true if are tile at this position are buildable
 	 * Returns false if any of tile is occupied or coords of any are invalid
 	 */
 	areTilesBuildableNoThrow(x: number, y: number, s: number): boolean
@@ -264,7 +264,7 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 	}
 
 	public areTilesBuildableNoThrow(x: number, y: number, s: number): boolean {
-		if (x < 0 || x + s >= this.size || y < 0 || y + s >= this.size)
+		if (x < 0 || x + s > this.size || y < 0 || y + s > this.size)
 			return false
 		for (let i = 0; i < s; i++) {
 			for (let j = 0; j < s; j++) {

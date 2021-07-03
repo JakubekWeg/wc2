@@ -2,103 +2,22 @@
 
 // const log = createLogger('Renderer')
 
-import { CanvasMouseEvent } from '../ui/game/GameCanvas'
 import { Camera } from './camera'
 import { DebugRendererOptions, getGlobalRendererDebugOptions } from './debug-renderer-options'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
-import { PredefinedDrawableComponent, TilesIncumbentComponent } from './ecs/components'
+import { TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { TileImpl } from './ecs/systems/tiles-system'
 import { Entity } from './ecs/world'
-import { GameInstance, GameInstanceImpl } from './game-instance'
+import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
 import GameSettings from './misc/game-settings'
+import { NullPreview, PointerPreview } from './renderer-pointers'
 
 export interface DebugPath {
 	current: number
 	entityFor: Entity & TilesIncumbentComponent,
 	path: FacingDirection[]
-}
-
-export interface PointerPreview {
-	onHover: (e: CanvasMouseEvent) => void
-	render: (ctx: CanvasRenderingContext2D) => void
-}
-
-export class NullPreview implements PointerPreview {
-	onHover = doNothingCallback
-	render = doNothingCallback
-}
-
-interface PreviewRect {
-	drawX: number
-	drawY: number
-	color: string
-}
-
-export class BuildingPreview implements PointerPreview {
-	private static BUILD_AVAILABLE_OUTLINE_COLOR: string = '#00FF00'
-	private static BUILD_NOT_AVAILABLE_OUTLINE_COLOR: string = '#AA0000'
-	private static TILE_AVAILABLE_COLOR: string = BuildingPreview.BUILD_AVAILABLE_OUTLINE_COLOR + '44'
-	private static TILE_NOT_AVAILABLE_COLOR: string = BuildingPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR + '77'
-	private static OUTLINE_WIDTH = 2
-	private drawRects: PreviewRect[] = []
-	private outlineColor: string = '#000000'
-
-	constructor(private readonly buildingTemplate: Entity & PredefinedDrawableComponent & TilesIncumbentComponent,
-	            private readonly game: GameInstance,
-	            private tileX: number,
-	            private tileY: number) {
-	}
-
-	onHover(e: CanvasMouseEvent) {
-		const notChangedHoveredTile = this.tileX === e.tileX && this.tileY === e.tileY
-		if (notChangedHoveredTile)
-			return
-
-		this.tileX = e.tileX
-		this.tileY = e.tileY
-		this.drawRects.length = 0
-		const size = this.buildingTemplate.tileOccupySize
-		let ok = true
-		for (let x = this.tileX, r = this.tileX + size; x < r; x++) {
-			for (let y = this.tileY, b = this.tileY + size; y < b; y++) {
-				const canBePlaced = this.game.tiles.isTileBuildableNoThrow(x, y)
-				if (!canBePlaced)
-					ok = false
-				this.drawRects.push({
-					color: canBePlaced ? BuildingPreview.TILE_AVAILABLE_COLOR : BuildingPreview.TILE_NOT_AVAILABLE_COLOR,
-					drawX: x * 32,
-					drawY: y * 32,
-				})
-			}
-		}
-		this.outlineColor = ok ? BuildingPreview.BUILD_AVAILABLE_OUTLINE_COLOR : BuildingPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR
-	}
-
-	render(ctx: CanvasRenderingContext2D) {
-		const {texture, spriteSize} = this.buildingTemplate
-		const destinationX = this.tileX * 32
-		const destinationY = this.tileY * 32
-
-		for (let rect of this.drawRects) {
-			ctx.fillStyle = rect.color
-			ctx.fillRect(rect.drawX, rect.drawY, 32, 32)
-		}
-
-		ctx.globalAlpha = (Math.sin(Date.now() * 0.004) + 1) * 0.15 + 0.5
-		ctx.drawImage(texture,
-			0, 0,
-			spriteSize, spriteSize,
-			destinationX, destinationY,
-			spriteSize, spriteSize)
-		ctx.globalAlpha = 1
-
-		ctx.strokeStyle = this.outlineColor
-		const size = BuildingPreview.OUTLINE_WIDTH
-		ctx.lineWidth = size * 2
-		ctx.strokeRect(destinationX - size, destinationY - size, spriteSize + size + size, spriteSize + size + size)
-	}
 }
 
 export class Renderer {
