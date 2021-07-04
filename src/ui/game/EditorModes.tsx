@@ -1,10 +1,10 @@
-import React, { ReactElement, useContext, useEffect, useState } from 'react'
+import React, { ReactElement, useContext, useEffect, useMemo, useState } from 'react'
 import { IconComponent } from '../../game/ecs/components'
 import { allVariants, Variant } from '../../game/ecs/variant'
 import { Entity, EntityType } from '../../game/ecs/world'
 import { SpawnEntityPreview } from '../../game/renderer-pointers'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
-import MouseActionIcon2 from './MouseActionIcon'
+import MouseActionIcon from './MouseActionIcon'
 
 export function NoneMode(): ReactElement {
 	return <div className="EditorMode"/>
@@ -13,7 +13,7 @@ export function NoneMode(): ReactElement {
 function TerrainPicker({onSelected}: { onSelected: (v: Variant) => void }): ReactElement {
 	return <div className="TileSelector">
 		{allVariants.map(v => {
-			return <MouseActionIcon2
+			return <MouseActionIcon
 				iconIndex={v}
 				image="tile-set"
 				onClicked={(e) => {
@@ -42,7 +42,7 @@ export function PlaceTerrainMode(): ReactElement {
 	}
 
 	return <div className="EditorMode MouseActionsParent">
-		{variants.map((v, i) => <MouseActionIcon2
+		{variants.map((v, i) => <MouseActionIcon
 			iconIndex={v}
 			key={`${i}`}
 			image="tile-set"
@@ -59,7 +59,7 @@ function EntityPicker({
 	return <div className="TileSelector">
 		{entities.map((e, i) => {
 			const icon = (e.getTemplate() as unknown as IconComponent).iconIndex
-			return <MouseActionIcon2
+			return <MouseActionIcon
 				iconIndex={icon}
 				image="icons"
 				onClicked={(e) => {
@@ -76,15 +76,21 @@ export function PlaceEntitiesMode(): ReactElement {
 	const controller = useContext(FrontedControllerContext) as EditorFrontedController
 	const [selectedIndex, setSelectedIndex] = useState(0)
 	const [isOpen, setOpen] = useState(false)
+	const forces = useMemo(() => controller.game.forces.getAll(), [])
+	const [selectedForceIndex, setForceIndex] = useState(forces.indexOf((controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithForce))
 
 	useEffect(() => {
 		setOpen(false)
-		const entity = controller.entityToSpawn = controller.entitiesToPickFrom[selectedIndex]
-		controller.renderer.currentlyShowingHoverPreview = new SpawnEntityPreview(entity.id, controller.game)
+		const entity = controller.entityToSpawn = controller.entitiesToPickFrom[selectedIndex];
+		(controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview)?.setEntityType?.(entity.id)
 	}, [selectedIndex])
 
+	useEffect(() => {
+		(controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithForce = forces[selectedForceIndex]
+	}, [selectedForceIndex])
+
 	return <div className="EditorMode PlaceEntitiesMode">
-		<MouseActionIcon2
+		<MouseActionIcon
 			iconIndex={(controller.entitiesToPickFrom[selectedIndex]?.getTemplate() as Entity & IconComponent)?.iconIndex}
 			image="icons"
 			key={controller.entitiesToPickFrom[selectedIndex]?.id}
@@ -92,5 +98,16 @@ export function PlaceEntitiesMode(): ReactElement {
 			children={isOpen ?
 				<EntityPicker entities={controller.entitiesToPickFrom} onSelected={setSelectedIndex}/> : undefined}
 		/>
+
+		<select value={forces[selectedForceIndex]?.id}
+		        onChange={e => setForceIndex(e.target.selectedIndex)}>
+			{forces.map(f =>
+				<option
+					key={`${f.id}`}
+					value={f.id}>
+					{f.name}
+				</option>)
+			}
+		</select>
 	</div>
 }

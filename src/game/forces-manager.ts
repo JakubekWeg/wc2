@@ -45,10 +45,14 @@ class ForcesManager {
 		this.forcesMap.set(0, neutralForce)
 	}
 
+	public getAll(): Force[] {
+		return Array.from(this.forcesMap.values())
+	}
+
 	public static createNew(): ForcesManager {
 		const f = new ForcesManager()
-		f.createNewForce('One')
-		f.createNewForce('Two')
+		f.createNewForce('Team red')
+		f.createNewForce('Team blue')
 		return f
 	}
 

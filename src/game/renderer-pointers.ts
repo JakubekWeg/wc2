@@ -1,8 +1,14 @@
 import { EditorFrontedController } from '../ui/game/frontend-controller'
 import { CanvasMouseEvent } from '../ui/game/GameCanvas'
-import { MovingUnitComponent, PredefinedDrawableComponent, TilesIncumbentComponent } from './ecs/components'
+import {
+	DamageableComponent,
+	MovingUnitComponent,
+	PredefinedDrawableComponent,
+	TilesIncumbentComponent,
+} from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { Entity } from './ecs/world'
+import { Force, neutralForce } from './forces-manager'
 import { GameInstance } from './game-instance'
 
 export interface PointerPreview {
@@ -27,6 +33,7 @@ export class SpawnEntityPreview implements PointerPreview {
 	private static TILE_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_AVAILABLE_OUTLINE_COLOR + '44'
 	private static TILE_NOT_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR + '77'
 	private static OUTLINE_WIDTH = 2
+	public spawnWithForce: Force = neutralForce
 	private drawRects: PreviewRect[] = []
 	private drawDestinationX: number = 0
 	private drawDestinationY: number = 0
@@ -34,16 +41,16 @@ export class SpawnEntityPreview implements PointerPreview {
 	private shouldUpdateTileColors: boolean = true
 	private tileX: number = 0
 	private tileY: number = 0
-	private buildingTemplate: Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent = undefined as any
+	private buildingTemplate: Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent & DamageableComponent = undefined as any
 
 	constructor(private templateName: string,
-	            private readonly game: GameInstance,) {
+	            private readonly game: GameInstance) {
 		this.setEntityType(templateName)
 	}
 
 	public setEntityType(name: string) {
 		this.templateName = name
-		this.buildingTemplate = this.game.world.getEntityTemplate(name) as Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent
+		this.buildingTemplate = this.game.world.getEntityTemplate(name) as Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent & DamageableComponent
 	}
 
 	render(ctx: CanvasRenderingContext2D) {
@@ -91,7 +98,7 @@ export class SpawnEntityPreview implements PointerPreview {
 						return
 				}
 
-				const entity = world.spawnEntity(this.templateName) as Entity & TilesIncumbentComponent & PredefinedDrawableComponent
+				const entity = world.spawnEntity(this.templateName) as Entity & TilesIncumbentComponent & PredefinedDrawableComponent & DamageableComponent
 				entity.mostWestTile = e.tileX
 				entity.mostNorthTile = e.tileY
 				if (entityIsBuilding) {
@@ -101,6 +108,8 @@ export class SpawnEntityPreview implements PointerPreview {
 					entity.destinationDrawX = e.tileX * 32 - (entity.spriteSize - 32) / 2
 					entity.destinationDrawY = e.tileY * 32 - (entity.spriteSize - 32) / 2
 				}
+				if (template.myForce !== undefined)
+					entity.myForce = this.spawnWithForce ?? neutralForce
 				world.commitAddedEntities()
 			})
 		}
