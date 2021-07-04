@@ -49,8 +49,12 @@ function Component(props: Props) {
 		const game = parts
 		const keydownCallback = (ev: KeyboardEvent) => {
 			ev.stopPropagation()
-			ev.stopImmediatePropagation()
-			ev.preventDefault()
+			const tmpElement = document.activeElement as any
+			if (tmpElement && tmpElement !== document.body) {
+				tmpElement.blur?.()
+				ev.stopPropagation()
+				ev.preventDefault()
+			}
 			if (!game) return
 			let dir: CameraDirection | undefined = undefined
 			switch (ev.code) {

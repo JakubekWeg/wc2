@@ -4,7 +4,7 @@ import { allVariants, Variant } from '../../game/ecs/variant'
 import { Entity, EntityType } from '../../game/ecs/world'
 import { SpawnEntityPreview } from '../../game/renderer-pointers'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
-import MouseActionIcon2 from './MouseActionIcon2'
+import MouseActionIcon2 from './MouseActionIcon'
 
 export function NoneMode(): ReactElement {
 	return <div className="EditorMode"/>
