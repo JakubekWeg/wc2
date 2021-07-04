@@ -1,65 +1,10 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react'
-import { allVariants, Variant } from '../../game/ecs/variant'
 import { NullPreview, SetVariantPreview, SpawnEntityPreview } from '../../game/renderer-pointers'
+import { NoneMode, PlaceEntitiesMode, PlaceTerrainMode } from './EditorModes'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
-import MouseActionIcon2 from './MouseActionIcon2'
-
-interface Props {
-}
-
-function NoneMode(): ReactElement {
-	return <div className="EditorMode"/>
-}
-
-function TerrainPicker({onSelected}: { onSelected: (v: Variant) => void }): ReactElement {
-	return <div className="TileSelector">
-		{allVariants.map(v => {
-			return <MouseActionIcon2
-				iconIndex={v}
-				image="tile-set"
-				onClicked={(e) => {e.stopPropagation(); onSelected(v)}}
-				key={`${v}`}
-			/>
-		})}
-	</div>
-}
-
-function PlaceTerrainMode(): ReactElement {
-	const controller = useContext(FrontedControllerContext) as EditorFrontedController
-	const [variants, setVariants] = useState(controller.variantsToPlace)
-	const [opened, setOpened] = useState(-1)
-
-	useEffect(() => {
-		controller.openedSelector = opened
-	}, [opened])
-
-	const selected = (i: number, v: Variant) => {
-		controller.variantsToPlace[i] = v
-		setVariants([...controller.variantsToPlace])
-		setOpened(-1)
-	}
-
-	return <div className="EditorMode MouseActionsParent">
-		{variants.map((v, i) => <MouseActionIcon2
-			iconIndex={v}
-			key={`${i}`}
-			image="tile-set"
-			onClicked={() => setOpened(i)}
-			children={opened === i ? <TerrainPicker onSelected={(v) => selected(i, v)}/> : undefined}
-		/>)}
-	</div>
-}
 
 
-function PlaceEntitiesMode(): ReactElement {
-	const controller = useContext(FrontedControllerContext) as EditorFrontedController
-
-	return <div className="EditorMode PlaceEntitiesMode">
-		entity?
-	</div>
-}
-
-function Component(props: Props) {
+function Component() {
 	const controller = useContext(FrontedControllerContext) as EditorFrontedController
 	const [checked, setChecked] = useState(0)
 	const [modes, setModes] = useState<ReactElement[]>([])
@@ -73,7 +18,7 @@ function Component(props: Props) {
 				controller.renderer.currentlyShowingHoverPreview = new SetVariantPreview(controller.game, controller)
 				break
 			case 2:
-				controller.renderer.currentlyShowingHoverPreview = new SpawnEntityPreview('castle', controller.game)
+				controller.renderer.currentlyShowingHoverPreview = new SpawnEntityPreview(controller.entityToSpawn.id, controller.game)
 				break
 		}
 	}, [checked])

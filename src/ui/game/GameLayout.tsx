@@ -48,6 +48,9 @@ function Component(props: Props) {
 	useEffect(() => {
 		const game = parts
 		const keydownCallback = (ev: KeyboardEvent) => {
+			ev.stopPropagation()
+			ev.stopImmediatePropagation()
+			ev.preventDefault()
 			if (!game) return
 			let dir: CameraDirection | undefined = undefined
 			switch (ev.code) {
@@ -125,8 +128,8 @@ function Component(props: Props) {
 			if (dir !== undefined)
 				game.camera.setMoving(dir, false)
 		}
-		window.addEventListener('keydown', keydownCallback, {passive: true})
-		window.addEventListener('keyup', keyupCallback, {passive: true})
+		window.addEventListener('keydown', keydownCallback)
+		window.addEventListener('keyup', keyupCallback)
 
 		return () => {
 			window.removeEventListener('keydown', keydownCallback)
@@ -134,7 +137,7 @@ function Component(props: Props) {
 			if (!game) return
 			game.renderer.setGameInstance(undefined)
 		}
-	}, [parts,props])
+	}, [parts, props])
 
 	useEffect(() => {
 		parts?.game.startGame()

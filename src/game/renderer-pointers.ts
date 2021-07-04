@@ -34,11 +34,16 @@ export class SpawnEntityPreview implements PointerPreview {
 	private shouldUpdateTileColors: boolean = true
 	private tileX: number = 0
 	private tileY: number = 0
-	private readonly buildingTemplate: Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent
+	private buildingTemplate: Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent = undefined as any
 
-	constructor(private readonly templateName: string,
+	constructor(private templateName: string,
 	            private readonly game: GameInstance,) {
-		this.buildingTemplate = game.world.getEntityTemplate(templateName) as Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent
+		this.setEntityType(templateName)
+	}
+
+	public setEntityType(name: string) {
+		this.templateName = name
+		this.buildingTemplate = this.game.world.getEntityTemplate(name) as Entity & PredefinedDrawableComponent & TilesIncumbentComponent & MovingUnitComponent
 	}
 
 	render(ctx: CanvasRenderingContext2D) {
