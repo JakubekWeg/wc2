@@ -1,3 +1,5 @@
+import paintTextureAndGetDataUrl from './texture-painter'
+
 export type TextureType = 'unit' | 'tileset' | 'building' | 'icons'
 
 export interface ResourceEntry {
@@ -66,16 +68,20 @@ export class ResourcesManager {
 				case 'unit': {
 					const canvas = (entry.image as HTMLCanvasElement)
 					const img = document.createElement('img')
+
 					img.onload = () => {
-						const size = entry.spriteSize
-						canvas.width = 8 * size
-						canvas.height = img.height
-						const context = canvas.getContext('2d')!
-						context.scale(-1, 1)
-						context.drawImage(img, size, 0, 4 * size, img.height, -size * 3, 0, 4 * size, img.height)
-						context.scale(-1, 1)
-						context.drawImage(img, size * 3, 0)
-						resolve(entry)
+						img.onload = () => {
+							const size = entry.spriteSize
+							canvas.width = 8 * size
+							canvas.height = img.height
+							const context = canvas.getContext('2d')!
+							context.scale(-1, 1)
+							context.drawImage(img, size, 0, 4 * size, img.height, -size * 3, 0, 4 * size, img.height)
+							context.scale(-1, 1)
+							context.drawImage(img, size * 3, 0)
+							resolve(entry)
+						}
+						img.src = paintTextureAndGetDataUrl(img)
 					}
 					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)
 					img.crossOrigin = 'anonymous'
@@ -86,7 +92,11 @@ export class ResourcesManager {
 				case 'building':
 				case 'tileset': {
 					const img = (entry.image as HTMLImageElement)
-					img.onload = () => resolve(entry)
+					img.onload = () => {
+						img.onload = null
+						img.src = paintTextureAndGetDataUrl(img)
+						resolve(entry)
+					}
 					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)
 					img.crossOrigin = 'anonymous'
 					img.src = `/res/${entry.fileName}.png`
