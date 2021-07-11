@@ -1,3 +1,4 @@
+import { EntityColor, getColorPalette } from './colors-palette'
 import paintTextureAndGetDataUrl from './texture-painter'
 
 export type TextureType = 'unit' | 'tileset' | 'building' | 'icons'
@@ -81,7 +82,7 @@ export class ResourcesManager {
 							context.drawImage(img, size * 3, 0)
 							resolve(entry)
 						}
-						img.src = paintTextureAndGetDataUrl(img)
+						img.src = paintTextureAndGetDataUrl(img, getColorPalette(EntityColor.Red), getColorPalette(EntityColor.White))
 					}
 					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)
 					img.crossOrigin = 'anonymous'
@@ -94,7 +95,7 @@ export class ResourcesManager {
 					const img = (entry.image as HTMLImageElement)
 					img.onload = () => {
 						img.onload = null
-						img.src = paintTextureAndGetDataUrl(img)
+						img.src = paintTextureAndGetDataUrl(img, getColorPalette(EntityColor.Red), getColorPalette(EntityColor.White))
 						resolve(entry)
 					}
 					img.onerror = () => reject(`Failed to load texture ${entry.id} ${entry.fileName}`)

@@ -1,3 +1,5 @@
+import { ColorsPalette } from './colors-palette'
+
 const VERTEX_SHADER_SOURCE = `
 attribute vec4 a_position;
 attribute vec2 a_texcoord;
@@ -143,16 +145,12 @@ const getTexture = () => {
 		const gl = getContext()
 		const tex = notNull(gl.createTexture(), 'texture')
 		gl.bindTexture(gl.TEXTURE_2D, tex)
-		// Fill the texture with a 1x1 blue pixel.
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-			new Uint8Array([0, 0, 255, 255]))
 
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 
 		gl.bindTexture(gl.TEXTURE_2D, tex)
-		/// gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, originalImg)
 		cachedTexture = tex
 	}
 	return cachedTexture
@@ -170,6 +168,9 @@ const bindBuffersBeforeDraw = () => {
 	gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texture)
 	gl.enableVertexAttribArray(program.texCoord)
 	gl.vertexAttribPointer(program.texCoord, 2, gl.FLOAT, false, 0, 0)
+
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+	gl.useProgram(program.program)
 }
 
 const bindTextureToImage = (img: HTMLImageElement | HTMLCanvasElement) => {
@@ -180,38 +181,40 @@ const bindTextureToImage = (img: HTMLImageElement | HTMLCanvasElement) => {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
 }
 
-const executePaint = () => {
+const prepareColorUniform = (location: WebGLUniformLocation, value: ColorsPalette) => {
 	const gl = getContext()
-	const program = getProgram()
-	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-	gl.useProgram(program.program)
-
-	gl.uniform1fv(program.sourceColors, [
-		68, 4, 0,
-		92, 4, 0,
-		124, 0, 0,
-		164, 0, 0,
-	].map(x => x / 255))
-
-	gl.uniform1fv(program.destinationColors, [
-		0, 4, 76,
-		0, 20, 108,
-		0, 36, 148,
-		0, 60, 192,
-	].map(x => x / 255))
-
-	gl.uniform1i(program.texture, 0)
-	gl.drawArrays(gl.TRIANGLES, 0, 6)
-
+	gl.uniform1fv(location, value)
 }
 
-export const paintTextureAndGetDataUrl = (source: HTMLImageElement | HTMLCanvasElement): string => {
+const setUniformsBeforePaint = (from: ColorsPalette, to: ColorsPalette) => {
+	const gl = getContext()
+	const program = getProgram()
+
+	prepareColorUniform(program.sourceColors, from)
+	prepareColorUniform(program.destinationColors, to)
+
+	gl.uniform1i(program.texture, 0)
+
+}
+const executePaint = () => {
+	const gl = getContext()
+	gl.drawArrays(gl.TRIANGLES, 0, 6)
+}
+
+const prepareCanvasForImage = (source: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement => {
 	const canvas = getCanvas()
 	canvas.width = source.width
 	canvas.height = source.height
+	return canvas
+}
+
+export const paintTextureAndGetDataUrl = (source: HTMLImageElement | HTMLCanvasElement,
+                                          from: ColorsPalette, to: ColorsPalette): string => {
+	const canvas = prepareCanvasForImage(source)
 
 	bindTextureToImage(source)
 	bindBuffersBeforeDraw()
+	setUniformsBeforePaint(from, to)
 	executePaint()
 
 	return canvas.toDataURL('image/png')

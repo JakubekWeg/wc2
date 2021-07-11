@@ -3,8 +3,8 @@
  * This can either player, computer AI or neutral force
  * Force with id = 0 is always passive and created statically
  */
-import Config from './config'
 import { Camera } from './camera'
+import Config from './config'
 
 
 export interface Force {
@@ -45,10 +45,6 @@ class ForcesManager {
 		this.forcesMap.set(0, neutralForce)
 	}
 
-	public getAll(): Force[] {
-		return Array.from(this.forcesMap.values())
-	}
-
 	public static createNew(): ForcesManager {
 		const f = new ForcesManager()
 		f.createNewForce('Team red')
@@ -58,6 +54,10 @@ class ForcesManager {
 
 	public static deserialize(config: Config): ForcesManager {
 		return new ForcesManager().restoreFromJson(config)
+	}
+
+	public getAll(): Force[] {
+		return Array.from(this.forcesMap.values())
 	}
 
 	public createNewForce(name: string): Force {
@@ -73,6 +73,16 @@ class ForcesManager {
 		return f
 	}
 
+	public serialize(): unknown {
+		return {
+			nextForceId: this.nextForceId,
+			forces: Array.from(this.forcesMap.values()).map(e => ({
+				id: e.id,
+				name: e.name,
+			})),
+		}
+	}
+
 	private restoreFromJson(obj: Config): ForcesManager {
 		this.nextForceId = obj.requirePositiveInt('nextForceId')
 		for (const entry of obj.child('forces').listEntries()) {
@@ -84,16 +94,6 @@ class ForcesManager {
 			this.forcesMap.set(id, new ForceImpl(id, name))
 		}
 		return this
-	}
-
-	public serialize(): unknown {
-		return {
-			nextForceId:this.nextForceId,
-			forces: Array.from(this.forcesMap.values()).map(e => ({
-				id: e.id,
-				name: e.name,
-			}))
-		}
 	}
 }
 
