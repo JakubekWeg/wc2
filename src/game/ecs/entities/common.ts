@@ -29,17 +29,9 @@ export type AnimationFrames = number[]
 export const doNothingCallback = () => {
 }
 
-export const isInRectRange = (px: number, py: number, l: number, t: number, w: number, h: number): boolean => {
-	return isInRectRange2(px, py, l, t, l + w, t + h)
-}
 export const isInRectRange2 = (px: number, py: number, l: number, t: number, r: number, b: number): boolean => {
 	return px >= l && px < r && py >= t && py < b
 }
-
-// export const rectIntersectsOtherRect = (l1: number, t1: number, w1: number, h1: number,
-//                                         l2: number, t2: number, w2: number, h2: number): boolean => {
-//
-// }
 
 const forceAddSerializableComponent = (req: EntityRegistrationRequest) => {
 	req.components.add('SerializableComponent')
@@ -80,6 +72,7 @@ const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => 
 	obj.sourceDrawX = obj.sourceDrawY = obj.destinationDrawY = obj.destinationDrawX = 0
 	obj.assignedToChunkId = -1
 	obj.spriteSize = entry.spriteSize
+	obj.paintedTexturesSet = entry.paintedImages
 	if (isDamageable)
 		obj.texture = entry.paintedImages[0]
 	else

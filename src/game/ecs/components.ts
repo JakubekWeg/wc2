@@ -40,6 +40,7 @@ export interface DrawableBaseComponent {
  */
 export interface PredefinedDrawableComponent extends DrawableBaseComponent {
 	texture: CanvasImageSource
+	paintedTexturesSet: CanvasImageSource[]
 	destinationDrawX: number
 	destinationDrawY: number
 	sourceDrawX: number

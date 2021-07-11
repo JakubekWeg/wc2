@@ -47,51 +47,6 @@ function Component() {
 	return <div className="EditorControls">
 		{modes}
 	</div>
-
-	// const [openedIndex, setOpenedIndex] = useState(-1)
-	// const [actions, setActions] = useState<MouseAction[]>([])
-	//
-	// useEffect(() => {
-	// 	setActions(controller.mouseActions)
-	// }, [controller])
-	//
-	// const picked = (i: number) => (a: MouseAction) => {
-	// 	setOpenedIndex(-1)
-	// 	controller.mouseActions[i] = a
-	// 	if (a.type === 'spawn-entity' && a.entityName) {
-	// 		// controller.renderer.currentlyShowingHoverPreview = new BuildingPreview(a.entityName, controller.game, 0, 0)
-	// 		controller.renderer.currentlyShowingHoverPreview = new SetVariantPreview(controller.game)
-	// 	} else {
-	// 		controller.renderer.currentlyShowingHoverPreview = new NullPreview()
-	// 	}
-	//
-	// 	setActions([...controller.mouseActions])
-	// }
-	//
-	// return (
-	// 	<div className="EditorControls">
-	// 		<div className="MouseActionsParent">
-	// 			{
-	// 				actions.map((a, i) => <MouseActionIcon
-	// 					action={a}
-	// 					key={`${i}`}
-	// 					childComponent={<p>Hello</p>}
-	// 					onClicked={() => setOpenedIndex(i)}
-	// 					onPicked={picked(i)}/>)
-	// 			}
-	// 		</div>
-	// 		{/*<div className="MouseActionsParent">*/}
-	// 		{/*	{*/}
-	// 		{/*		actions.map((a, i) => <MouseActionIcon*/}
-	// 		{/*			action={a}*/}
-	// 		{/*			key={`${i}`}*/}
-	// 		{/*			opened={openedIndex === i}*/}
-	// 		{/*			onClicked={() => setOpenedIndex(i)}*/}
-	// 		{/*			onPicked={picked(i)}/>)*/}
-	// 		{/*	}*/}
-	// 		{/*</div>*/}
-	// 	</div>
-	// )
 }
 
 export default Component

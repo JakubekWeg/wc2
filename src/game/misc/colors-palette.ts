@@ -27,6 +27,8 @@ export enum EntityColor {
 	Yellow = 7,
 }
 
+export const allColorNames = Object.values(EntityColor).slice(0, 8) as string[]
+
 const entityColorPalettes = [
 	'440400;5c0400;7c0000;a40000',
 	'00044c;00146c;002494;003cc0',

@@ -63,14 +63,17 @@ body {
 }
 
 .MouseActionIcon {
-    margin: 4px 8px;
+    margin: 2px 4px;
     position: relative;
 }
 
 .MouseActionIcon > .IconCanvas {
     cursor: pointer;
-    /*width: 32px;*/
-    /*height: 32px;*/
+}
+
+.ColorCanvas {
+    width: 32px;
+    height: 32px;
 }
 
 .MouseActionIcon:hover::before {
@@ -88,7 +91,7 @@ body {
     background-color: #00000022;
 }
 
-.MouseActionIcon canvas {
+.MouseActionIcon canvas, .MouseActionIcon .ColorCanvas {
     border-radius: 4px;
     border: 2px solid #777;
 }
@@ -111,11 +114,9 @@ body {
     background-color: #151515;
     display: flex;
     align-items: center;
-    /*width: auto;*/
-    width: 330px;
+    width: 360px;
     justify-content: center;
     flex-flow: row wrap;
-    /*grid-auto-flow: column;*/
     padding: 8px;
     border-radius: 8px;
     animation-name: FadeInAnimation;

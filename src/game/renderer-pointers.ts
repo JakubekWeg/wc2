@@ -10,6 +10,7 @@ import { doNothingCallback } from './ecs/entities/common'
 import { Entity } from './ecs/world'
 import { Force, neutralForce } from './forces-manager'
 import { GameInstance } from './game-instance'
+import { EntityColor } from './misc/colors-palette'
 
 export interface PointerPreview {
 	render: (ctx: CanvasRenderingContext2D) => void
@@ -33,6 +34,7 @@ export class SpawnEntityPreview implements PointerPreview {
 	private static TILE_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_AVAILABLE_OUTLINE_COLOR + '44'
 	private static TILE_NOT_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR + '77'
 	private static OUTLINE_WIDTH = 2
+	public spawnWithColor: EntityColor = EntityColor.Red
 	public spawnWithForce: Force = neutralForce
 	private drawRects: PreviewRect[] = []
 	private drawDestinationX: number = 0
@@ -110,6 +112,10 @@ export class SpawnEntityPreview implements PointerPreview {
 				}
 				if (template.myForce !== undefined)
 					entity.myForce = this.spawnWithForce ?? neutralForce
+				if (template.myColor !== undefined) {
+					entity.myColor = this.spawnWithColor ?? EntityColor.Red
+					entity.texture = entity.paintedTexturesSet[entity.myColor]
+				}
 				world.commitAddedEntities()
 			})
 		}
