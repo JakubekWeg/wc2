@@ -56,13 +56,15 @@ export function PlaceTerrainMode(): ReactElement {
 function EntityPicker({
 	                      onSelected,
 	                      entities,
-                      }: { entities: EntityType[], onSelected: (i: number) => void }): ReactElement {
+	                      color,
+                      }: { entities: EntityType[], onSelected: (i: number) => void, color: EntityColor }): ReactElement {
 	return <div className="TileSelector">
 		{entities.map((e, i) => {
 			const icon = (e.getTemplate() as unknown as IconComponent).iconIndex
 			return <MouseActionIcon
 				iconIndex={icon}
 				image="icons"
+				color={color}
 				onClicked={(e) => {
 					e.stopPropagation()
 					onSelected(i)
@@ -117,8 +119,9 @@ export function PlaceEntitiesMode(): ReactElement {
 			iconIndex={(controller.entitiesToPickFrom[selectedIndex]?.getTemplate() as Entity & IconComponent)?.iconIndex}
 			image="icons"
 			onClicked={() => setOpen(1)}
+			color={selectedColor}
 			children={isOpen === 1 ?
-				<EntityPicker entities={controller.entitiesToPickFrom} onSelected={setSelectedIndex}/> : undefined}
+				<EntityPicker entities={controller.entitiesToPickFrom} onSelected={setSelectedIndex} color={selectedColor}/> : undefined}
 		/>
 
 		<MouseActionIcon

@@ -31,9 +31,9 @@ interface PreviewRect {
 export class SpawnEntityPreview implements PointerPreview {
 	private static BUILD_AVAILABLE_OUTLINE_COLOR: string = '#00FF00'
 	private static BUILD_NOT_AVAILABLE_OUTLINE_COLOR: string = '#AA0000'
-	private static TILE_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_AVAILABLE_OUTLINE_COLOR + '44'
-	private static TILE_NOT_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR + '77'
-	private static OUTLINE_WIDTH = 2
+	private static TILE_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_AVAILABLE_OUTLINE_COLOR + '33'
+	private static TILE_NOT_AVAILABLE_COLOR: string = SpawnEntityPreview.BUILD_NOT_AVAILABLE_OUTLINE_COLOR + '99'
+	private static OUTLINE_WIDTH = 1
 	public spawnWithColor: EntityColor = EntityColor.Red
 	public spawnWithForce: Force = neutralForce
 	private drawRects: PreviewRect[] = []
@@ -59,7 +59,7 @@ export class SpawnEntityPreview implements PointerPreview {
 		if (this.shouldUpdateTileColors)
 			this.updateTilesAvailability()
 
-		const {texture, spriteSize, tileOccupySize} = this.buildingTemplate
+		const {texture, paintedTexturesSet, spriteSize, tileOccupySize} = this.buildingTemplate
 		const destinationX = this.drawDestinationX
 		const destinationY = this.drawDestinationY
 
@@ -68,8 +68,8 @@ export class SpawnEntityPreview implements PointerPreview {
 			ctx.fillRect(rect.drawX, rect.drawY, 32, 32)
 		}
 
-		ctx.globalAlpha = (Math.sin(Date.now() * 0.004) + 1) * 0.15 + 0.5
-		ctx.drawImage(texture,
+		ctx.globalAlpha = (Math.sin(Date.now() * 0.004) + 1) * 0.15 + 0.6
+		ctx.drawImage(paintedTexturesSet === undefined ? texture : paintedTexturesSet[this.spawnWithColor],
 			0, 0,
 			spriteSize, spriteSize,
 			destinationX, destinationY,

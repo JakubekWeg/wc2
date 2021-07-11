@@ -2,12 +2,13 @@ import React, { useContext, useEffect, useRef } from 'react'
 import { TILE_SET_WIDTH } from '../../game/ecs/terrain'
 import { getFullTextureOfVariant } from '../../game/ecs/variant'
 import { GameInstanceImpl } from '../../game/game-instance'
-import { allColorNames } from '../../game/misc/colors-palette'
+import { allColorNames, EntityColor } from '../../game/misc/colors-palette'
 import { GameContext } from './GameLayout'
 
 interface Props {
 	iconIndex: number
 	image: 'tile-set' | 'icons' | 'color'
+	color?: EntityColor
 
 	onClicked?(e: React.MouseEvent): void
 
@@ -37,7 +38,7 @@ function handleIcons(canvas: HTMLCanvasElement, game: GameInstanceImpl, props: P
 	canvas.width = 46
 	canvas.height = 38
 
-	const image = game.resources.getDefaultImage('icons')
+	const image = props.color === undefined ? game.resources.getDefaultImage('icons') : game.resources.getColorImage('icons', props.color)
 
 	const index = props.iconIndex
 	const sx = index % ICONS_SET_SIZE_W * 46
@@ -73,7 +74,7 @@ function Component(props: Props) {
 				console.error('invalid image', props.image)
 				break
 		}
-	})
+	}, [props])
 
 	if (props.image === 'color')
 		return (
