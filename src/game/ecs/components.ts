@@ -1,6 +1,7 @@
 import Config from '../config'
 import { Force } from '../forces-manager'
 import { GameInstanceImpl } from '../game-instance'
+import { EntityColor } from '../misc/colors-palette'
 import { AnimationFrames } from './entities/common'
 import { State, StateController } from './states/state'
 import { Tile } from './systems/tiles-system'
@@ -108,8 +109,9 @@ export type PossibleAttackTarget = Entity & TilesIncumbentComponent & Damageable
 /**
  * Component for entities that can accept damage and do belong to a force (team)
  */
-export interface DamageableComponent {
+export interface DamageableComponent extends PredefinedDrawableComponent {
 	myForce: Force
+	myColor: EntityColor
 
 	calculateHitBoxCenter(): [number, number]
 }

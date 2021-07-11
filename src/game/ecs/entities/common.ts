@@ -1,4 +1,5 @@
 import { neutralForce } from '../../forces-manager'
+import { EntityColor } from '../../misc/colors-palette'
 import { composeFunction } from '../../misc/functions-composer'
 import {
 	AnimatableDrawableComponent,
@@ -71,15 +72,25 @@ const forceAddIconComponent = (req: EntityRegistrationRequest) => {
 const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => {
 	req.components.add('DrawableBaseComponent')
 	req.components.add('PredefinedDrawableComponent')
+	const isDamageable = req.components.has('DamageableComponent')
 	const obj = req.entity as unknown as PredefinedDrawableComponent
 
-	const {defaultImage, spriteSize} = req.resources.getEntry(req.data.requireString('texture'))
+	const entry = req.resources.getEntry(req.data.requireString('texture'))
 
 	obj.sourceDrawX = obj.sourceDrawY = obj.destinationDrawY = obj.destinationDrawX = 0
 	obj.assignedToChunkId = -1
-	obj.spriteSize = spriteSize
-	obj.texture = defaultImage
+	obj.spriteSize = entry.spriteSize
+	if (isDamageable)
+		obj.texture = entry.paintedImages[0]
+	else
+		obj.texture = entry.defaultImage
 	obj.render = PredefinedDrawableComponent_render
+
+	if (isDamageable)
+		req.postSetup.then((_e) => {
+			const me = (_e as unknown as DamageableComponent)
+			me.texture = entry.paintedImages[me.myColor]
+		})
 }
 const forceAddTilesIncumbentComponent = (req: EntityRegistrationRequest, constantOccupySize?: number) => {
 	req.components.add('TilesIncumbentComponent')
@@ -150,12 +161,10 @@ export const addMovingComponent = (req: EntityRegistrationRequest) => {
 }
 
 export const forceAddDamageableComponent = (req: EntityRegistrationRequest, staticHitBox: boolean) => {
-	if (!req.components.has('PredefinedDrawableComponent') || !req.components.has('TilesIncumbentComponent'))
-		throw new Error('DamageableComponent requires PredefinedDrawableComponent and TilesIncumbentComponent')
-
 	req.components.add('DamageableComponent')
 	const obj = req.entity as unknown as DamageableComponent
 	obj.myForce = neutralForce
+	obj.myColor = EntityColor.Red
 
 	if (staticHitBox) {
 		obj.calculateHitBoxCenter = function (this: Entity & DamageableComponent & PredefinedDrawableComponent & TilesIncumbentComponent) {
@@ -170,9 +179,15 @@ export const forceAddDamageableComponent = (req: EntityRegistrationRequest, stat
 		}
 	}
 
-	req.serialize.then((e, o) => o.myForce = (e as unknown as DamageableComponent).myForce.id)
+	req.serialize.then((e, o) => {
+		const me = (e as unknown as DamageableComponent)
+		o.force = me.myForce.id
+		o.color = me.myColor
+	})
 	req.postSetup.then((e, ctx, o) => {
-		(e as unknown as DamageableComponent).myForce = ctx.game.forces.getForce(o.requireInt('myForce'))
+		const me = e as unknown as DamageableComponent
+		me.myForce = ctx.game.forces.getForce(o.requireInt('force'))
+		me.myColor = o.requireInt('color')
 	})
 }
 
@@ -223,11 +238,11 @@ export const addAttackComponent = (req: EntityRegistrationRequest) => {
 
 export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
+	forceAddDamageableComponent(req, true)
 	forceAddPredefinedDrawableComponent(req)
 	forceAddTilesIncumbentComponent(req)
 	forceAddIconComponent(req)
 	addSightComponent(req)
-	forceAddDamageableComponent(req, true)
 	addAttackComponent(req)
 	addStateMachineComponent(req)
 
@@ -247,9 +262,9 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 
 export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
+	forceAddDamageableComponent(req, false)
 	forceAddPredefinedDrawableComponent(req)
 	forceAddTilesIncumbentComponent(req, 1)
-	forceAddDamageableComponent(req, false)
 	forceAddIconComponent(req)
 	addSightComponent(req)
 	addMovingComponent(req)

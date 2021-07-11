@@ -56,7 +56,7 @@ class TerrainSystemImpl implements TerrainSystem {
 					// let index = GRASS_VARIANT_START_INDEX + 8 * 16 - 10
 					// if (Math.random() < 0.5)
 					// 	index++
-					this.points[i * pointsSize + j] = Variant.Dirt
+					this.points[i * pointsSize + j] = Variant.Grass
 				}
 			}
 		}

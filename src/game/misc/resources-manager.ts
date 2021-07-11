@@ -30,7 +30,7 @@ const doUnitFlip = async (img: HTMLImageElement, spriteSize: number): Promise<HT
 
 const doRepaints = async (img: HTMLImageElement | HTMLCanvasElement): Promise<HTMLImageElement[]> => {
 	const redPalette = getColorPalette(EntityColor.Red)
-	return await Promise.all(new Array(8)
+	return await Promise.all([...new Array(8)]
 		.map((_, i) => loadImgAsync(
 			paintTextureAndGetDataUrl(img, redPalette, getColorPalette(i)))))
 }
@@ -93,7 +93,7 @@ export class ResourcesManager {
 		if (needsAdditionalFlip)
 			img = await doUnitFlip(img, spriteSize)
 
-		const repaintedImages = needsRepaint ? await doRepaints(img) : new Array(8).map(() => img)
+		const repaintedImages = needsRepaint ? await doRepaints(img) : [...new Array(8)].map(() => img)
 
 		return {
 			defaultImage: img,
