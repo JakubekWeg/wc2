@@ -37,7 +37,7 @@ export interface TerrainSystem {
 class TerrainSystemImpl implements TerrainSystem {
 	private readonly points: Variant[]
 	private readonly pointsSize = this.tilesSize + 1
-	private readonly image = this.pack.resources.getImage('summer')
+	private readonly image = this.pack.resources.getDefaultImage('summer')
 
 	public constructor(public readonly tilesSize: number,
 	                   private readonly tileSystem: TileTerrainSystem,

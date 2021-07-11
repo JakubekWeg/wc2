@@ -28,7 +28,7 @@ function Component(props: Props) {
 		if (props.image === 'tile-set') {
 			canvas.width = canvas.height = 32
 
-			const {image} = game!.resources.getEntry('summer')
+			const image = game!.resources.getDefaultImage('summer')
 
 			const index = getFullTextureOfVariant(props.iconIndex)()
 			const sx = index % TILE_SET_WIDTH * 32
@@ -43,7 +43,7 @@ function Component(props: Props) {
 			canvas.width = 46
 			canvas.height = 38
 
-			const {image} = game!.resources.getEntry('icons')
+			const image = game!.resources.getDefaultImage('icons')
 
 			const index = props.iconIndex
 			const sx = index % ICONS_SET_SIZE_W * 46

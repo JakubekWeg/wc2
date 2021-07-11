@@ -73,12 +73,12 @@ const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => 
 	req.components.add('PredefinedDrawableComponent')
 	const obj = req.entity as unknown as PredefinedDrawableComponent
 
-	const {image, spriteSize} = req.resources.getEntry(req.data.requireString('texture'))
+	const {defaultImage, spriteSize} = req.resources.getEntry(req.data.requireString('texture'))
 
 	obj.sourceDrawX = obj.sourceDrawY = obj.destinationDrawY = obj.destinationDrawX = 0
 	obj.assignedToChunkId = -1
 	obj.spriteSize = spriteSize
-	obj.texture = image
+	obj.texture = defaultImage
 	obj.render = PredefinedDrawableComponent_render
 }
 const forceAddTilesIncumbentComponent = (req: EntityRegistrationRequest, constantOccupySize?: number) => {
