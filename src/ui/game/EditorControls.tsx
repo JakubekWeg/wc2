@@ -1,5 +1,5 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react'
-import { NullPreview} from '../../game/pointer-previews/previews'
+import { SelectEntitiesPreview } from '../../game/pointer-previews/previews'
 import { SetVariantPreview } from '../../game/pointer-previews/set-variant-preview'
 import { SpawnEntityPreview } from '../../game/pointer-previews/spawn-entity-preview'
 import { NoneMode, PlaceEntitiesMode, PlaceTerrainMode } from './EditorModes'
@@ -14,7 +14,7 @@ function Component() {
 	useEffect(() => {
 		switch (checked) {
 			case 0:
-				controller.renderer.currentlyShowingHoverPreview = new NullPreview()
+				controller.renderer.currentlyShowingHoverPreview = new SelectEntitiesPreview(controller)
 				break
 			case 1:
 				controller.renderer.currentlyShowingHoverPreview = new SetVariantPreview(controller.game, controller)

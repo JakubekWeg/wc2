@@ -1,7 +1,3 @@
-// import createLogger from './log'
-
-// const log = createLogger('Renderer')
-
 import { Camera } from './camera'
 import { DebugRendererOptions, getGlobalRendererDebugOptions } from './debug-renderer-options'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'

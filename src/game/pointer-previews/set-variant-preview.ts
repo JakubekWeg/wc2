@@ -21,6 +21,7 @@ export class SetVariantPreview implements PointerPreview {
 	}
 
 	handleMouse(e: CanvasMouseEvent) {
+		if (e.type === 'leave') return
 		this.rectDestinationX = e.tileX * 32 - this.RECT_OUTLINE_SIZE
 		this.rectDestinationY = e.tileY * 32 - this.RECT_OUTLINE_SIZE
 

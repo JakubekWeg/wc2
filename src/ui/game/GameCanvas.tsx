@@ -10,7 +10,7 @@ interface Props {
 }
 
 export interface CanvasMouseEvent {
-	type: 'down' | 'move' | 'up'
+	type: 'down' | 'move' | 'up' | 'leave'
 	x: number
 	y: number
 	tileX: number
@@ -26,16 +26,15 @@ const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, t
 	const w = (ev.target as HTMLCanvasElement).width
 	const h = (ev.target as HTMLCanvasElement).height
 	const scale = camera.scale * (getGlobalRendererDebugOptions().renderZoomedOut ? 0.3 : 1)
-	// const scale = camera.scale
-	const x = (offsetX / scale + camera.centerX - w * 0.5 / scale) / 32 | 0
-	const y = (offsetY / scale + camera.centerY - h * 0.5 / scale) / 32 | 0
+	const x = (offsetX / scale + camera.centerX - w * 0.5 / scale) | 0
+	const y = (offsetY / scale + camera.centerY - h * 0.5 / scale) | 0
 
 	return {
 		type,
-		x: offsetX,
-		y: offsetY,
-		tileX: x,
-		tileY: y,
+		x: x,
+		y: y,
+		tileX: x / 32 | 0,
+		tileY: y / 32 | 0,
 		button: ev.button,
 	}
 }
@@ -49,8 +48,9 @@ function Component(props: Props) {
 		const canvas = ref.current
 		if (!canvas) return
 		const thisSize = [canvas.offsetWidth, canvas.offsetHeight] as [number, number]
-			game.renderer.setSize(thisSize[0], thisSize[1])
-		return () => {}
+		game.renderer.setSize(thisSize[0], thisSize[1])
+		return () => {
+		}
 	}, [props.game])
 
 	useEffect(() => {
@@ -120,6 +120,10 @@ function Component(props: Props) {
 		if (props.game.game.terrain
 			.isValidTile(event.tileX, event.tileY))
 			props.mouseEvent?.(event)
+		else {
+			event.type = 'leave'
+			props.mouseEvent?.(event)
+		}
 
 	}, [props, pressed])
 

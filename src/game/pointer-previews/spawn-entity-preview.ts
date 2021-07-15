@@ -74,6 +74,7 @@ export class SpawnEntityPreview implements PointerPreview {
 
 
 	handleMouse(e: CanvasMouseEvent) {
+		if (e.type === 'leave') return
 		this.tileX = e.tileX
 		this.tileY = e.tileY
 		this.shouldUpdateTileColors = true
