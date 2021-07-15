@@ -3,7 +3,7 @@ import { Force } from '../forces-manager'
 import { GameInstanceImpl } from '../game-instance'
 import { EntityColor } from '../misc/colors-palette'
 import { AnimationFrames } from './entities/common'
-import { State, StateController } from './states/state'
+import { StateController } from './states/state'
 import { Tile } from './systems/tiles-system'
 import World, { Entity } from './world'
 
@@ -91,8 +91,8 @@ export interface UnitAnimationsComponent extends AnimatableDrawableComponent, Mo
 /**
  * Component for entities that needs to be updated every frame
  */
-export interface StateMachineHolderComponent<T extends State = State> {
-	myCurrentState: StateController<T>
+export interface StateMachineHolderComponent {
+	myCurrentState: StateController
 }
 
 

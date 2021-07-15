@@ -20,31 +20,31 @@ export interface State {
 	entityEnteredSightRange?(which: Entity & TilesIncumbentComponent): void
 }
 
-export interface StateController<S extends State> {
+export interface StateController {
 
-	push<T extends S>(newState: T): T
+	push<T extends State>(newState: T): T
 
 	pop(): void
 
 	clear(): void
 
-	replace<T extends S>(newState: T): T
+	replace<T extends State>(newState: T): T
 
-	get(): S
+	get(): State
 
 	execute(ctx: GameInstance): void
 
 	serializeToJson(): unknown
 }
 
-export const createState = <S extends State>(first: (controller: StateController<S>) => S): StateController<S> => {
+export const createState = <S extends State>(first: (controller: StateController) => S): StateController => {
 	const stack: State[] = []
 	const c = {
 		pop() {
 			// @ts-ignore
 			stack.shift().onPop()
 		},
-		push<T extends S>(newState: T) {
+		push<T extends State>(newState: T) {
 			stack.unshift(newState)
 			// newState.onPush()
 			return newState
@@ -52,7 +52,7 @@ export const createState = <S extends State>(first: (controller: StateController
 		clear() {
 			stack.length = 0
 		},
-		replace<T extends S>(newState: T) {
+		replace<T extends State>(newState: T) {
 			stack[0].onPop()
 			stack[0] = newState
 			// newState.onPush()
@@ -69,7 +69,7 @@ export const createState = <S extends State>(first: (controller: StateController
 				stack: stack.map(e => e.serializeToJson()),
 			}
 		},
-	} as StateController<S>
+	} as StateController
 	stack.push(first(c))
 	return c
 }
@@ -93,7 +93,7 @@ export const nullState = (): any => ({
 export interface StateDeserializeContext {
 	entity: Entity & any,
 	game: GameInstance,
-	controller: StateController<State>,
+	controller: StateController,
 	world: World,
 }
 
@@ -102,9 +102,8 @@ export const addState = (which: any) => {
 	const id: string | undefined = which.ID
 	if (!id) throw new Error('State requires ID!')
 	const indexOfSlash = id.indexOf('/')
+
 	if (indexOfSlash < 0) throw new Error('State requires namespaceID and type name!')
-	// if (states.has(id))
-	// 	throw new Error('State with id ' + id + ' is already registered')
 	if (typeof which.deserialize !== 'function')
 		throw new Error('State with id ' + id + ' is missing deserialize static function')
 	if (id.substring(indexOfSlash + 1) === 'root') {
@@ -120,7 +119,7 @@ export function UnitState(constructor: Function) {
 	addState(constructor)
 }
 
-export const getRootStateByAiName = (name: string, components: Set<ComponentNameType>): (entity: Entity & StateMachineHolderComponent, controller: StateController<any>) => State => {
+export const getRootStateByAiName = (name: string, components: Set<ComponentNameType>): (entity: Entity & StateMachineHolderComponent, controller: StateController) => State => {
 	const state = states.get(name + '/root')
 	if (state === undefined)
 		throw new Error(`Root state of group ${name} not found`)
@@ -166,7 +165,7 @@ export const deserializeUnitState = (entity: Entity,
 				stack: stack.map(e => e.serializeToJson()),
 			}
 		},
-	} as StateController<State>
+	} as StateController
 
 	const ctx = {
 		entity: entity,

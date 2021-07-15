@@ -3,7 +3,7 @@ import { IconComponent } from '../../game/ecs/components'
 import { allVariants, Variant } from '../../game/ecs/variant'
 import { Entity, EntityType } from '../../game/ecs/world'
 import { allColorNames, EntityColor } from '../../game/misc/colors-palette'
-import { SpawnEntityPreview } from '../../game/renderer-pointers'
+import { SpawnEntityPreview } from '../../game/pointer-previews/spawn-entity-preview'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
 import MouseActionIcon from './MouseActionIcon'
 
@@ -34,7 +34,7 @@ export function PlaceTerrainMode(): ReactElement {
 
 	useEffect(() => {
 		controller.openedSelector = opened
-	}, [opened])
+	}, [opened, controller])
 
 	const selected = (i: number, v: Variant) => {
 		controller.variantsToPlace[i] = v
@@ -95,7 +95,7 @@ export function PlaceEntitiesMode(): ReactElement {
 	const controller = useContext(FrontedControllerContext) as EditorFrontedController
 	const [selectedIndex, setSelectedIndex] = useState(0)
 	const [isOpen, setOpen] = useState(0)
-	const forces = useMemo(() => controller.game.forces.getAll(), [])
+	const forces = useMemo(() => controller.game.forces.getAll(), [controller])
 	const [selectedForceIndex, setForceIndex] = useState(forces.indexOf((controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithForce))
 	const [selectedColor, setSelectedColor] = useState((controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithColor ?? EntityColor.Red)
 
@@ -103,16 +103,16 @@ export function PlaceEntitiesMode(): ReactElement {
 		setOpen(0)
 		const entity = controller.entityToSpawn = controller.entitiesToPickFrom[selectedIndex];
 		(controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview)?.setEntityType?.(entity.id)
-	}, [selectedIndex])
+	}, [selectedIndex, controller])
 
 	useEffect(() => {
 		(controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithForce = forces[selectedForceIndex]
-	}, [selectedForceIndex])
+	}, [selectedForceIndex, controller, forces])
 
 	useEffect(() => {
 		setOpen(0);
 		(controller.renderer.currentlyShowingHoverPreview as SpawnEntityPreview).spawnWithColor = selectedColor
-	}, [selectedColor])
+	}, [selectedColor, controller])
 
 	return <div className="EditorMode PlaceEntitiesMode">
 		<MouseActionIcon
@@ -121,7 +121,8 @@ export function PlaceEntitiesMode(): ReactElement {
 			onClicked={() => setOpen(1)}
 			color={selectedColor}
 			children={isOpen === 1 ?
-				<EntityPicker entities={controller.entitiesToPickFrom} onSelected={setSelectedIndex} color={selectedColor}/> : undefined}
+				<EntityPicker entities={controller.entitiesToPickFrom} onSelected={setSelectedIndex}
+				              color={selectedColor}/> : undefined}
 		/>
 
 		<MouseActionIcon

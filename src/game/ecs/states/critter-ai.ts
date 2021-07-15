@@ -15,23 +15,21 @@ const namespaceId = 'critter/'
 
 type UnitPrototype = Entity & MovingUnitComponent & MovingDrawableComponent & PredefinedDrawableComponent
 
-interface UnitState extends State {
-}
-
 /**
  * State that handles commands, it switches immediately to something other
  */
 @UnitState
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class RootState implements State {
 	public static ID = namespaceId + 'root'
 
 	private constructor(private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private nextMoveIn: number) {
 	}
 
 	public static create(entity: UnitPrototype,
-	                     controller: StateController<UnitState>) {
+	                     controller: StateController) {
 		return new RootState(entity, controller, 10)
 	}
 
@@ -80,7 +78,7 @@ class GoingTileState implements State {
 
 	private constructor(private readonly direction: FacingDirection,
 	                    private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private readonly game: GameInstance,
 	                    private progress: number,
 	                    private readonly ticksToMoveThisField: number,
@@ -90,7 +88,7 @@ class GoingTileState implements State {
 
 	public static tryToWalkThisWay(direction: FacingDirection,
 	                               entity: UnitPrototype,
-	                               controller: StateController<UnitState>,
+	                               controller: StateController,
 	                               game: GameInstance): State | undefined {
 		entity.sourceDrawX = direction * entity.spriteSize
 		const [ox, oy] = facingDirectionToVector(direction)

@@ -74,7 +74,7 @@ function Component(props: Props) {
 				console.error('invalid image', props.image)
 				break
 		}
-	}, [props])
+	}, [props, game])
 
 	if (props.image === 'color')
 		return (

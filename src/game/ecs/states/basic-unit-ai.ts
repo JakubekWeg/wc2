@@ -8,15 +8,18 @@ import {
 	AttackComponent,
 	ComponentNameType,
 	DamageableComponent,
-	MovingDrawableComponent, MovingUnitComponent,
+	MovingDrawableComponent,
+	MovingUnitComponent,
 	PlayerCommand,
 	PlayerCommandTakerComponent,
 	PossibleAttackTarget,
-	PredefinedDrawableComponent, SerializableComponent,
+	PredefinedDrawableComponent,
+	SerializableComponent,
 	SightComponent,
 	StateMachineHolderComponent,
 	TileListenerComponent,
-	TilesIncumbentComponent, UnitAnimationsComponent,
+	TilesIncumbentComponent,
+	UnitAnimationsComponent,
 } from '../components'
 import { Entity } from '../world'
 import { State, StateController, StateDeserializeContext, UnitState } from './state'
@@ -33,22 +36,20 @@ type UnitPrototype = Entity & (
 
 const namespaceId = 'basic-unit/'
 
-interface UnitState extends State {
-}
-
 /**
  * State that handles commands, it switches immediately to something other
  */
 @UnitState
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class RootState implements State {
 	public static ID = namespaceId + 'root'
 
 	constructor(private readonly entity: UnitPrototype,
-	            private readonly controller: StateController<UnitState>) {
+	            private readonly controller: StateController) {
 	}
 
 	public static create(entity: UnitPrototype,
-	                     controller: StateController<UnitState>) {
+	                     controller: StateController) {
 		return new RootState(entity, controller)
 	}
 
@@ -106,13 +107,13 @@ class IdlePatrollingState implements State {
 
 	private constructor(private readonly entity: UnitPrototype,
 	                    private readonly game: GameInstance,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private readonly isMyEnemy: (e: Entity) => boolean) {
 	}
 
 	public static create(entity: UnitPrototype,
 	                     game: GameInstance,
-	                     controller: StateController<UnitState>): State {
+	                     controller: StateController): State {
 		const isMyEnemy = (e: Entity) => entity.myForce.isAggressiveTowards((e as unknown as DamageableComponent).myForce)
 
 		const enemiesInRange = game.tiles.addListenersForRectAndGet(
@@ -168,7 +169,7 @@ class CommandDelayerState implements State {
 	public static ID = namespaceId + 'command-delayer'
 
 	private constructor(private readonly game: GameInstance,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private delay: number,
 	                    private delayedCommand?: PlayerCommand) {
 	}
@@ -180,7 +181,7 @@ class CommandDelayerState implements State {
 	}
 
 	public static create(game: GameInstance,
-	                     controller: StateController<UnitState>,
+	                     controller: StateController,
 	                     delay: number) {
 		return new CommandDelayerState(game, controller, delay)
 	}
@@ -218,14 +219,14 @@ class GoingAndFindingPathState implements State {
 	public static ID = namespaceId + 'walking-and-finding-path-exact'
 
 	private constructor(private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private readonly destinationX: number,
 	                    private readonly destinationY: number,
 	                    private attempts: number) {
 	}
 
 	public static create(entity: UnitPrototype,
-	                     controller: StateController<UnitState>,
+	                     controller: StateController,
 	                     game: GameInstance,
 	                     destinationX: number,
 	                     destinationY: number) {
@@ -279,14 +280,14 @@ class GoingAndFindingPathToEntityState implements State {
 	public static ID = namespaceId + 'walking-and-finding-path-to-entity'
 
 	private constructor(private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private readonly target: Entity & TilesIncumbentComponent & DamageableComponent,
 	                    private attempts: number) {
 	}
 
 
 	public static create(entity: UnitPrototype,
-	                     controller: StateController<UnitState>,
+	                     controller: StateController,
 	                     target: Entity & TilesIncumbentComponent & DamageableComponent) {
 		return new GoingAndFindingPathToEntityState(entity, controller, target, 0)
 	}
@@ -350,7 +351,7 @@ class GoingPathState implements State {
 
 	private constructor(private readonly path: FacingDirection[],
 	                    private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    current: number,
 	                    private delayedCommand?: PlayerCommand) {
 		this.debugObject = {
@@ -363,7 +364,7 @@ class GoingPathState implements State {
 
 	public static create(path: FacingDirection[],
 	                     entity: UnitPrototype,
-	                     controller: StateController<UnitState>) {
+	                     controller: StateController) {
 		return new GoingPathState(path, entity, controller, 0, undefined)
 	}
 
@@ -417,7 +418,7 @@ class GoingTileState implements State {
 	private constructor(private readonly direction: FacingDirection,
 	                    private readonly entity: UnitPrototype,
 	                    private readonly game: GameInstance,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private progress: number,
 	                    private readonly ticksToMoveThisField: number,
 	                    private delayedCommand?: PlayerCommand) {
@@ -426,7 +427,7 @@ class GoingTileState implements State {
 
 	public static tryToWalkThisWay(direction: FacingDirection,
 	                               entity: UnitPrototype,
-	                               controller: StateController<UnitState>,
+	                               controller: StateController,
 	                               game: GameInstance): State {
 		const [ox, oy] = facingDirectionToVector(direction)
 
@@ -462,8 +463,7 @@ class GoingTileState implements State {
 	}
 
 	onPop(): void {
-		const entity = this.entity
-		this.game.world.notifyEntityModified(entity, 'PredefinedDrawableComponent')
+		this.game.world.notifyEntityModified(this.entity, 'PredefinedDrawableComponent')
 	}
 
 	handleCommand(command: PlayerCommand, game: GameInstance): void {
@@ -507,7 +507,7 @@ class GoingTileFailed implements State {
 	public static ID = namespaceId + 'walking-failed'
 
 	constructor(private readonly entity: UnitPrototype,
-	            readonly controller: StateController<UnitState>) {
+	            readonly controller: StateController) {
 		entity.spriteVelocityX = entity.spriteVelocityY = 0
 	}
 
@@ -541,7 +541,7 @@ class AttackingState implements State {
 	public static ID = namespaceId + 'attacking'
 
 	private constructor(private readonly entity: UnitPrototype,
-	                    private readonly controller: StateController<UnitState>,
+	                    private readonly controller: StateController,
 	                    private readonly target: PossibleAttackTarget,
 	                    private reloading: number) {
 		entity.sourceDrawY = 0
@@ -550,7 +550,7 @@ class AttackingState implements State {
 	}
 
 	public static create(entity: UnitPrototype,
-	                     controller: StateController<UnitState>,
+	                     controller: StateController,
 	                     target: PossibleAttackTarget) {
 		return new AttackingState(entity, controller, target, entity.loadDuration)
 	}

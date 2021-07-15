@@ -12,7 +12,7 @@ import { Entity } from './ecs/world'
 import { GameInstanceImpl } from './game-instance'
 import { FacingDirection, facingDirectionToVector } from './misc/facing-direction'
 import GameSettings from './misc/game-settings'
-import { NullPreview, PointerPreview } from './renderer-pointers'
+import { NullPreview, PointerPreview } from './pointer-previews/previews'
 
 export interface DebugPath {
 	current: number
@@ -184,6 +184,9 @@ export class Renderer {
 					const scale = camera.scale
 					const viewPortWidth = this.width / scale
 					const viewPortHeight = this.height / scale
+					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
+					const viewPortTop = camera.centerY - viewPortHeight * 0.5
+
 					if (this.debugOptions.renderZoomedOut) {
 						const newScale = scale * 0.3
 						context.scale(newScale, newScale)
@@ -203,10 +206,6 @@ export class Renderer {
 						e.destinationDrawX += e.spriteVelocityX * delta
 						e.destinationDrawY += e.spriteVelocityY * delta
 					}
-
-
-					const viewPortLeft = camera.centerX - viewPortWidth * 0.5
-					const viewPortTop = camera.centerY - viewPortHeight * 0.5
 
 					game.terrain.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
 

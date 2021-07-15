@@ -1,5 +1,7 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react'
-import { NullPreview, SetVariantPreview, SpawnEntityPreview } from '../../game/renderer-pointers'
+import { NullPreview} from '../../game/pointer-previews/previews'
+import { SetVariantPreview } from '../../game/pointer-previews/set-variant-preview'
+import { SpawnEntityPreview } from '../../game/pointer-previews/spawn-entity-preview'
 import { NoneMode, PlaceEntitiesMode, PlaceTerrainMode } from './EditorModes'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
 
@@ -21,7 +23,7 @@ function Component() {
 				controller.renderer.currentlyShowingHoverPreview = new SpawnEntityPreview(controller.entityToSpawn.id, controller.game)
 				break
 		}
-	}, [checked])
+	}, [checked, controller])
 
 	useEffect(() => {
 		setModes([
