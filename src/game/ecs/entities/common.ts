@@ -10,6 +10,8 @@ import {
 	MovingUnitComponent,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
+	SelectableComponent,
+	SelectionStatus,
 	SerializableComponent,
 	SightComponent,
 	StateMachineHolderComponent,
@@ -85,6 +87,13 @@ const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => 
 			me.texture = entry.paintedImages[me.myColor]
 		})
 }
+
+const forceAddSelectableComponent = (req: EntityRegistrationRequest) => {
+	req.components.add('SelectableComponent')
+	const obj = req.entity as unknown as SelectableComponent
+	obj.selectionStatus = SelectionStatus.UnSelected
+}
+
 const forceAddTilesIncumbentComponent = (req: EntityRegistrationRequest, constantOccupySize?: number) => {
 	req.components.add('TilesIncumbentComponent')
 	const obj = req.entity as unknown as TilesIncumbentComponent & SerializableComponent
@@ -234,6 +243,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 	forceAddDamageableComponent(req, true)
 	forceAddPredefinedDrawableComponent(req)
 	forceAddTilesIncumbentComponent(req)
+	forceAddSelectableComponent(req)
 	forceAddIconComponent(req)
 	addSightComponent(req)
 	addAttackComponent(req)
@@ -257,6 +267,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	forceAddSerializableComponent(req)
 	forceAddDamageableComponent(req, false)
 	forceAddPredefinedDrawableComponent(req)
+	forceAddSelectableComponent(req)
 	forceAddTilesIncumbentComponent(req, 1)
 	forceAddIconComponent(req)
 	addSightComponent(req)

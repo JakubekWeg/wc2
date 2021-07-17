@@ -64,6 +64,11 @@ export interface TileSystem {
 	get(x: number, y: number): Tile
 
 	/**
+	 * Returns tile at that position, returns undefined if invalid coords
+	 */
+	getNoThrow(x: number, y: number): Tile | undefined
+
+	/**
 	 * Returns true if tile at this position is walkable
 	 * Returns false if tile is occupied or coords are invalid
 	 */
@@ -249,6 +254,12 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 		return this.getUnsafe(x, y)
 	}
 
+	public getNoThrow(x: number, y: number): Tile | undefined {
+		if (this.checkCoords(x, y))
+			return this.getUnsafe(x, y)
+		return undefined
+	}
+
 	public isTileWalkableNoThrow(x: number, y: number): boolean {
 		if (!this.checkCoords(x, y))
 			return false
@@ -343,7 +354,6 @@ class TileSystemImpl implements TileSystem, TileTerrainSystem {
 
 	private checkCoords(x: number, y: number) {
 		return !(x < 0 || x >= this.size || y < 0 || y >= this.size)
-
 	}
 }
 

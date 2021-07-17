@@ -1,7 +1,7 @@
 import { Camera } from './camera'
 import { DebugRendererOptions, getGlobalRendererDebugOptions } from './debug-renderer-options'
 import { CHUNK_REAL_PX_SIZE, CHUNK_TILE_SIZE } from './ecs/chunk-indexer'
-import { TilesIncumbentComponent } from './ecs/components'
+import { SelectableComponent, SelectionStatus, TilesIncumbentComponent } from './ecs/components'
 import { doNothingCallback } from './ecs/entities/common'
 import { TileImpl } from './ecs/systems/tiles-system'
 import { Entity } from './ecs/world'
@@ -205,8 +205,18 @@ export class Renderer {
 
 					game.terrain.render(context, viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)
 
+					context.lineWidth = 2
+					context.strokeStyle = '#FFFFFF'
 					for (const e of game.chunkEntityIndex
 						.getEntitiesWithinCoarse(viewPortLeft, viewPortTop, viewPortWidth, viewPortHeight)) {
+						if ((e as unknown as SelectableComponent).selectionStatus === SelectionStatus.SelectedEditor) {
+							const size = (e as unknown as SelectableComponent).tileOccupySize * 32
+							if (size !== 32) {
+								context.strokeRect(e.destinationDrawX | 0, e.destinationDrawY| 0, e.spriteSize, e.spriteSize)
+							} else {
+								context.strokeRect(e.destinationDrawX + (e.spriteSize - 32) / 2, e.destinationDrawY + (e.spriteSize - 32) / 2, 32, 32)
+							}
+						}
 						e.render(context)
 					}
 

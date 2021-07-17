@@ -25,6 +25,8 @@ export type ComponentNameType =
 	| 'MovingUnitComponent'
 	| 'SerializableComponent'
 	| 'IconComponent'
+	| 'SelectableComponent'
+
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
 
@@ -47,6 +49,18 @@ export interface PredefinedDrawableComponent extends DrawableBaseComponent {
 	sourceDrawY: number
 	spriteSize: number
 	assignedToChunkId: number
+}
+
+export enum SelectionStatus {
+	UnSelected,
+	SelectedEditor,
+}
+
+/**
+ * Component for entities that can be selected either in the game or in the map editor
+ */
+export interface SelectableComponent extends PredefinedDrawableComponent, TilesIncumbentComponent{
+	selectionStatus: SelectionStatus
 }
 
 /**
