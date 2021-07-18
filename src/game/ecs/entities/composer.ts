@@ -3,7 +3,7 @@ import { ComposedFunction, composeFunction } from '../../misc/functions-composer
 import { ResourcesManager } from '../../misc/resources-manager'
 import { ComponentNameType, DeserializationUnitContext } from '../components'
 import { Entity, EntityType } from '../world'
-import { createTypeForBuilding, createTypeForUnit, doNothingCallback } from './common'
+import { createTypeForBuilding, createTypeForEffect, createTypeForUnit, doNothingCallback } from './common'
 
 
 export interface EntityRegistrationRequest {
@@ -48,6 +48,9 @@ export const createEntityType = (id: string, description: Config, mgr: Resources
 			break
 		case 'building':
 			result = createTypeForBuilding(request)
+			break
+		case 'effect':
+			result = createTypeForEffect(request)
 			break
 	}
 

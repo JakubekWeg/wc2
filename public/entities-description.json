@@ -77,6 +77,13 @@
         "unitMovingSpeed": 8,
         "sightAmount": 4
       }
+    },
+    "cross": {
+      "prototype": "effect",
+      "prototypeData": {
+        "animation": "@animation/cross",
+        "texture": "green-cross"
+      }
     }
   },
   "textures": {
@@ -112,9 +119,23 @@
     "icons": {
       "name": "icons",
       "type": "icons"
+    },
+    "green-cross": {
+      "name": "green_cross",
+      "type": "effect",
+      "spriteSize": 32
     }
   },
   "animations": {
+    "cross": [
+      0,
+      32,
+      64,
+      96,
+      64,
+      32,
+      0
+    ],
     "stand-zero": [
       0
     ],

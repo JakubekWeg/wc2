@@ -15,9 +15,9 @@ import GameSettings from './misc/game-settings'
 import { ResourcesManager } from './misc/resources-manager'
 import SeededRandom from './misc/seeded-random'
 
-const TICKS_PER_SECOND = 5
+export const TICKS_PER_SECOND = 5
 export const MILLIS_BETWEEN_TICKS = 1000 / TICKS_PER_SECOND
-const ANIMATIONS_PER_TICK = 2
+export const ANIMATIONS_PER_TICK = 3
 
 export interface System {
 	onTick(tick: number): void

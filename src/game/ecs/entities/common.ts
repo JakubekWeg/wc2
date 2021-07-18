@@ -4,7 +4,7 @@ import { composeFunction } from '../../misc/functions-composer'
 import {
 	AnimatableDrawableComponent,
 	AttackComponent,
-	DamageableComponent,
+	DamageableComponent, DelayedHideComponent,
 	IconComponent,
 	MovingDrawableComponent,
 	MovingUnitComponent, PlayerCommandTakerComponent,
@@ -86,6 +86,11 @@ const forceAddPredefinedDrawableComponent = (req: EntityRegistrationRequest) => 
 			const me = (_e as unknown as DamageableComponent)
 			me.texture = entry.paintedImages[me.myColor]
 		})
+}
+const forceAddDelayedHideComponent = (req: EntityRegistrationRequest) => {
+	req.components.add('DelayedHideComponent')
+	const obj = req.entity as unknown as DelayedHideComponent
+	obj.hideMeAtMillis = 0
 }
 
 const forceAddSelectableComponent = (req: EntityRegistrationRequest) => {
@@ -244,6 +249,13 @@ export const forceAddPlayerCommandTakerComponent = (req: EntityRegistrationReque
 	entity.canAcceptCommands = true
 }
 
+export const forceAddAnimatableDrawableComponent = (req: EntityRegistrationRequest) => {
+	req.components.add('AnimatableDrawableComponent')
+	const entity = req.entity as unknown as AnimatableDrawableComponent
+	entity.currentAnimation = req.data.child('animation').getAsNotEmptyListOfNonNegativeIntegers()
+	entity.currentAnimationFrame = 0
+}
+
 export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
 	forceAddDamageableComponent(req, true)
@@ -283,6 +295,25 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	addAttackComponent(req)
 	forceAddPlayerCommandTakerComponent(req)
 	addStateMachineComponent(req)
+
+	const entity = req.entity
+	const fork = req.fork
+	return {
+		components: req.components,
+		spawn: () => {
+			const tmp = {...entity}
+			fork(tmp)
+			return tmp
+		},
+		getTemplate: () => entity,
+	} as EntityRegistrationResult
+}
+
+
+export const createTypeForEffect = (req: EntityRegistrationRequest): EntityRegistrationResult => {
+	forceAddPredefinedDrawableComponent(req)
+	forceAddDelayedHideComponent(req)
+	forceAddAnimatableDrawableComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork

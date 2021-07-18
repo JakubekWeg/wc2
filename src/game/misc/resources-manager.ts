@@ -1,7 +1,7 @@
 import { EntityColor, getColorPalette } from './colors-palette'
 import paintTextureAndGetDataUrl from './texture-painter'
 
-export type TextureType = 'unit' | 'tileset' | 'building' | 'icons'
+export type TextureType = 'unit' | 'tileset' | 'building' | 'icons' | 'effect'
 
 
 const loadImgAsync = (src: string): Promise<HTMLImageElement> => {
