@@ -7,7 +7,7 @@ import {
 	DamageableComponent,
 	IconComponent,
 	MovingDrawableComponent,
-	MovingUnitComponent,
+	MovingUnitComponent, PlayerCommandTakerComponent,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
 	SelectableComponent,
@@ -238,6 +238,12 @@ export const addAttackComponent = (req: EntityRegistrationRequest) => {
 	req.fork.then((e) => (e as unknown as TileListenerComponent).subscribedToTiles = new Set())
 }
 
+export const forceAddPlayerCommandTakerComponent = (req: EntityRegistrationRequest) => {
+	req.components.add('PlayerCommandTakerComponent')
+	const entity = req.entity as unknown as PlayerCommandTakerComponent
+	entity.canAcceptCommands = true
+}
+
 export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
 	forceAddDamageableComponent(req, true)
@@ -248,6 +254,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 	addSightComponent(req)
 	addAttackComponent(req)
 	addStateMachineComponent(req)
+	forceAddPlayerCommandTakerComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork
@@ -274,6 +281,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	addMovingComponent(req)
 	addUnitAnimationComponent(req)
 	addAttackComponent(req)
+	forceAddPlayerCommandTakerComponent(req)
 	addStateMachineComponent(req)
 
 	const entity = req.entity

@@ -1,6 +1,6 @@
 import { EditorFrontedController } from '../../ui/game/frontend-controller'
 import { CanvasMouseEvent } from '../../ui/game/GameCanvas'
-import { SelectableComponent, SelectionStatus } from '../ecs/components'
+import { SelectableComponent } from '../ecs/components'
 import { doNothingCallback } from '../ecs/entities/common'
 import { Entity } from '../ecs/world'
 
@@ -50,35 +50,31 @@ export class SelectEntitiesPreview implements PointerPreview {
 	}
 
 	handleMouse(e: CanvasMouseEvent) {
+		if (e.button === 0)
+			this.handleLeftMouse(e)
+		else if (e.button === 2) {
+			this.handleRightMouse(e)
+		}
+	}
+
+	private handleRightMouse(e: CanvasMouseEvent) {
+		if (e.type === 'up') {
+			this.controller.handleMouseAction(e.tileX, e.tileY)
+		}
+	}
+
+	private handleLeftMouse(e: CanvasMouseEvent) {
 		if (e.type === 'leave') {
 			this.isSelectingMode = false
 			return
 		}
+
 		if (e.button === undefined)
 			return
 
 		if (e.type === 'up') {
 			this.isSelectingMode = false
-			const [l, r] = this.startX < this.endX ? [this.startX / 32 | 0, (this.endX / 32 | 0) + 1] : [this.endX / 32 | 0, (this.startX / 32 | 0) + 1]
-			const [t, b] = this.startY < this.endY ? [this.startY / 32 | 0, (this.endY / 32 | 0) + 1] : [this.endY / 32 | 0, (this.startY / 32 | 0) + 1]
-
-			const entities: Set<Entity & SelectableComponent> = new Set()
-
-			for (let x = l; x < r; x++) {
-				for (let y = t; y < b; y++) {
-					const tile = this.controller.game.tiles.getNoThrow(x, y)
-					if (tile !== undefined && tile.occupiedBy !== undefined) {
-						const entity = tile.occupiedBy as unknown as Entity & SelectableComponent
-						if (entity.selectionStatus !== undefined) {
-							entities.add(entity)
-						}
-					}
-				}
-			}
-
-			for (const e of entities) {
-				e.selectionStatus = SelectionStatus.SelectedEditor
-			}
+			this.selectEntitiesWithinSelection()
 			return
 		}
 
@@ -90,6 +86,28 @@ export class SelectEntitiesPreview implements PointerPreview {
 		this.isSelectingMode = true
 		this.endX = e.x
 		this.endY = e.y
+	}
+
+	private selectEntitiesWithinSelection() {
+		const [l, r] = this.startX < this.endX ? [this.startX / 32 | 0, (this.endX / 32 | 0) + 1] : [this.endX / 32 | 0, (this.startX / 32 | 0) + 1]
+		const [t, b] = this.startY < this.endY ? [this.startY / 32 | 0, (this.endY / 32 | 0) + 1] : [this.endY / 32 | 0, (this.startY / 32 | 0) + 1]
+
+		const entities: Set<Entity & SelectableComponent> = new Set()
+
+		for (let x = l; x < r; x++) {
+			for (let y = t; y < b; y++) {
+				const tile = this.controller.game.tiles.getNoThrow(x, y)
+				if (tile !== undefined && tile.occupiedBy !== undefined) {
+					const entity = tile.occupiedBy as unknown as Entity & SelectableComponent
+					if (entity.selectionStatus !== undefined) {
+						entities.add(entity)
+					}
+				}
+			}
+		}
+
+		if (entities.size > 0)
+			this.controller.setSelectedEntities(entities)
 	}
 }
 
