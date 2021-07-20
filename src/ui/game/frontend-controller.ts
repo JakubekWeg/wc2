@@ -81,7 +81,6 @@ export class EditorFrontedController implements FrontendController {
 			entity.destinationDrawX = tileX * 32
 			entity.destinationDrawY = tileY * 32
 			entity.hideMeAtMillis = Date.now() + entity.currentAnimation.length * MILLIS_BETWEEN_TICKS / ANIMATIONS_PER_TICK
-			console.log(entity)
 		})
 	}
 }

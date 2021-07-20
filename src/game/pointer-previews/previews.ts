@@ -1,5 +1,5 @@
 import { EditorFrontedController } from '../../ui/game/frontend-controller'
-import { CanvasMouseEvent } from '../../ui/game/GameCanvas'
+import { CanvasMouseEvent, MouseActionType, MouseButtonType } from '../../ui/game/GameCanvas'
 import { SelectableComponent } from '../ecs/components'
 import { doNothingCallback } from '../ecs/entities/common'
 import { Entity } from '../ecs/world'
@@ -50,35 +50,35 @@ export class SelectEntitiesPreview implements PointerPreview {
 	}
 
 	handleMouse(e: CanvasMouseEvent) {
-		if (e.button === 0)
+		if (e.button === MouseButtonType.Left)
 			this.handleLeftMouse(e)
-		else if (e.button === 2) {
+		else if (e.button === MouseButtonType.Right) {
 			this.handleRightMouse(e)
 		}
 	}
 
 	private handleRightMouse(e: CanvasMouseEvent) {
-		if (e.type === 'up') {
+		if (e.type === MouseActionType.Up) {
 			this.controller.handleMouseAction(e.tileX, e.tileY)
 		}
 	}
 
 	private handleLeftMouse(e: CanvasMouseEvent) {
-		if (e.type === 'leave') {
+		if (e.type === MouseActionType.Leave) {
 			this.isSelectingMode = false
 			return
 		}
 
-		if (e.button === undefined)
+		if (e.button === MouseButtonType.None)
 			return
 
-		if (e.type === 'up') {
+		if (e.type === MouseActionType.Up) {
 			this.isSelectingMode = false
 			this.selectEntitiesWithinSelection()
 			return
 		}
 
-		if (e.type === 'down') {
+		if (e.type === MouseActionType.Down) {
 			this.startX = this.endX = e.x
 			this.startY = this.endY = e.y
 		}

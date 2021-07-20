@@ -1,4 +1,4 @@
-import { CanvasMouseEvent } from '../../ui/game/GameCanvas'
+import { CanvasMouseEvent, MouseActionType, MouseButtonType } from '../../ui/game/GameCanvas'
 import {
 	DamageableComponent,
 	MovingUnitComponent,
@@ -74,11 +74,11 @@ export class SpawnEntityPreview implements PointerPreview {
 
 
 	handleMouse(e: CanvasMouseEvent) {
-		if (e.type === 'leave') return
+		if (e.type === MouseActionType.Leave) return
 		this.tileX = e.tileX
 		this.tileY = e.tileY
 		this.shouldUpdateTileColors = true
-		if (e.button !== undefined) {
+		if (e.button !== MouseButtonType.None) {
 			this.game.dispatchNextTick(world => {
 				const template = this.buildingTemplate
 				const entityIsBuilding = template.unitMovingSpeed === undefined

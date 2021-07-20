@@ -1,5 +1,5 @@
 import { EditorFrontedController } from '../../ui/game/frontend-controller'
-import { CanvasMouseEvent } from '../../ui/game/GameCanvas'
+import { CanvasMouseEvent, MouseActionType, MouseButtonType } from '../../ui/game/GameCanvas'
 import { GameInstance } from '../game-instance'
 import { PointerPreview } from './previews'
 
@@ -21,12 +21,12 @@ export class SetVariantPreview implements PointerPreview {
 	}
 
 	handleMouse(e: CanvasMouseEvent) {
-		if (e.type === 'leave') return
+		if (e.type === MouseActionType.Leave) return
 		this.rectDestinationX = e.tileX * 32 - this.RECT_OUTLINE_SIZE
 		this.rectDestinationY = e.tileY * 32 - this.RECT_OUTLINE_SIZE
 
-		if (e.button !== undefined) {
-			const variant = this.controller.variantsToPlace[e.button]
+		if (e.button !== MouseButtonType.None) {
+			const variant = this.controller.variantsToPlace[e.button - 1]
 			this.game.terrain.setVariantForTile(e.tileX, e.tileY, variant)
 		}
 	}

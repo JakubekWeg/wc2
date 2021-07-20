@@ -9,16 +9,30 @@ interface Props {
 	mouseEvent?: (ev: CanvasMouseEvent) => void
 }
 
+export enum MouseActionType {
+	Down,
+	Move,
+	Up,
+	Leave,
+}
+
+export enum MouseButtonType {
+	None,
+	Left,
+	Middle,
+	Right
+}
+
 export interface CanvasMouseEvent {
-	type: 'down' | 'move' | 'up' | 'leave'
+	type: MouseActionType
 	x: number
 	y: number
 	tileX: number
 	tileY: number
-	button: number | undefined
+	button: MouseButtonType
 }
 
-const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, type: 'down' | 'up' | 'move'): CanvasMouseEvent => {
+const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, type: MouseActionType): CanvasMouseEvent => {
 	ev.preventDefault()
 
 	const offsetX = ev.offsetX
@@ -35,7 +49,7 @@ const produceMouseEvent = (camera: Camera, renderer: Renderer, ev: MouseEvent, t
 		y: y,
 		tileX: x / 32 | 0,
 		tileY: y / 32 | 0,
-		button: ev.button,
+		button: ev.button === undefined ? MouseButtonType.None : (ev.button + 1),
 	}
 }
 
@@ -91,25 +105,26 @@ function Component(props: Props) {
 	}, [props])
 
 
-	const [pressed, setPressed] = useState<number>()
+	const [pressed, setPressed] = useState<MouseButtonType>(MouseButtonType.None)
 
 	const onMouseEvent = useCallback((ev: React.MouseEvent<HTMLCanvasElement>) => {
 		let event: CanvasMouseEvent | undefined = undefined
 
+		const button: MouseButtonType = ev.button === undefined ? MouseButtonType.None : (ev.button + 1)
 		switch (ev.type) {
 			case 'mousedown':
-				setPressed(ev.button)
-				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'down')
+				setPressed(ev.button + 1)
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, MouseActionType.Down)
 				break
 			case 'mouseleave':
 			case 'mouseup':
-				if (pressed !== ev.button)
+				if (pressed !== button)
 					return
-				setPressed(undefined)
-				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'up')
+				setPressed(MouseButtonType.None)
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, MouseActionType.Up)
 				break
 			case 'mousemove':
-				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, 'move')
+				event = produceMouseEvent(props.game.camera, props.game.renderer, ev.nativeEvent, MouseActionType.Move)
 				event.button = pressed
 				break
 			default:
@@ -121,7 +136,7 @@ function Component(props: Props) {
 			.isValidTile(event.tileX, event.tileY))
 			props.mouseEvent?.(event)
 		else {
-			event.type = 'leave'
+			event.type = MouseActionType.Leave
 			props.mouseEvent?.(event)
 		}
 
