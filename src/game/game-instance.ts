@@ -6,6 +6,7 @@ import './ecs/entities/composer'
 import createEventProcessor from './ecs/game-event-processor'
 import { AdvanceAnimationsSystem } from './ecs/systems/advance-animations-system'
 import { LifecycleNotifierSystem } from './ecs/systems/lifecycle-notifier-system'
+import { TicksToLiveCleaner } from './ecs/systems/ticks-to-live-cleaner'
 import { createTileSystem, TileSystem } from './ecs/systems/tiles-system'
 import { UpdateStateMachineSystem } from './ecs/systems/update-state-machine-system'
 import { createNewTerrainSystem, deserializeTerrainSystem, TerrainSystem } from './ecs/terrain'
@@ -61,12 +62,10 @@ export interface GameInstance {
 }
 
 export class GameInstanceImpl implements GameInstance {
-	// public readonly tiles = new TileSystem(this.settings)
 	public readonly eventProcessor = createEventProcessor()
 	// public readonly entityLeftTileEvent = this.eventProcessor.registerNewEvent<EntityLeftTileEvent>()
 	public readonly resources: ResourcesManager = this.dataPack.resources
 	public readonly chunkEntityIndex = new ChunkIndexer(this.settings)
-	// public readonly tiles = createTileSystem(this.settings, this, this.ecs)
 	public readonly movingEntities = createSimpleListIndex<MovingDrawableComponent>(this.ecs, ['MovingDrawableComponent'])
 	public readonly delayedHideEntities = createSimpleListIndex<DelayedHideComponent>(this.ecs, ['DelayedHideComponent'])
 	// public readonly entityEnteredTileEvent = this.eventProcessor.registerNewEvent<EntityEnteredTileEvent>()
@@ -92,6 +91,12 @@ export class GameInstanceImpl implements GameInstance {
 		this.addSystem(new UpdateStateMachineSystem(this.ecs, this))
 		this.addSystem(this.advanceAnimationsSystem)
 		this.ecs.registerIndex(new LifecycleNotifierSystem(this))
+
+		{
+			const cleaner = new TicksToLiveCleaner(this)
+			this.ecs.registerIndex(cleaner);
+			this.addSystem(cleaner)
+		}
 
 		for (const entityType of this.dataPack.entityTypes) {
 			this.ecs.registerEntityType(entityType)
@@ -162,16 +167,12 @@ export class GameInstanceImpl implements GameInstance {
 		this.allSystems.push(s)
 	}
 
-	// lastTick: number = 0
 	tick(): void {
-		// const startTime = performance.now()
 		try {
 			if (--this.nextTickIsOnlyForAnimations > 0) {
 				this.advanceAnimationsSystem.onTick(0)
 				return
 			}
-			// console.log(Date.now() - this.lastTick)
-			// this.lastTick = Date.now()
 			this.nextTickIsOnlyForAnimations = ANIMATIONS_PER_TICK
 			this.ecs.executeTick((tick: number) => {
 				for (let s of this.allSystems) {
@@ -184,13 +185,9 @@ export class GameInstanceImpl implements GameInstance {
 			console.error('Critical error, stopping simulation', e)
 			this.stopGame()
 		}
-		//const delta = performance.now() - startTime
-		//if (delta > 10)
-		//	console.log('Took', delta, 'ms to execute update!, quite a lot')
 	}
 
 	dispatchNextTick(action: (world: World) => void) {
-		// this.executeNextTickList.push(action)
 		this.nextTickExecutionEvent.publish(action)
 	}
 

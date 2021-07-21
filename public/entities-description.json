@@ -82,7 +82,8 @@
       "prototype": "effect",
       "prototypeData": {
         "animation": "@animation/cross",
-        "texture": "green-cross"
+        "texture": "green-cross",
+        "ticksToLive": 3
       }
     }
   },

@@ -26,6 +26,7 @@ export type ComponentNameType =
 	| 'SerializableComponent'
 	| 'IconComponent'
 	| 'SelectableComponent'
+	| 'TicksToLiveComponent'
 
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
@@ -59,7 +60,7 @@ export enum SelectionStatus {
 /**
  * Component for entities that can be selected either in the game or in the map editor
  */
-export interface SelectableComponent extends PredefinedDrawableComponent, TilesIncumbentComponent{
+export interface SelectableComponent extends PredefinedDrawableComponent, TilesIncumbentComponent {
 	selectionStatus: SelectionStatus
 }
 
@@ -182,6 +183,20 @@ export interface PlayerCommand {
  */
 export interface PlayerCommandTakerComponent extends StateMachineHolderComponent {
 	canAcceptCommands: true
+}
+
+export interface DeserializationUnitContext {
+	game: GameInstanceImpl,
+	world: World,
+}
+
+
+/**
+ * Component for entities that gets removed from world after a while
+ */
+export interface TicksToLiveComponent {
+	ticksToLive: number
+	removeMeAtTick: number
 }
 
 export interface DeserializationUnitContext {

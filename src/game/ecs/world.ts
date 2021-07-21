@@ -47,7 +47,7 @@ export type EntityId = number
 export class Entity {
 	static components: Set<ComponentNameType> = new Set<ComponentNameType>()
 	public readonly id: EntityId = 0
-	// public removed: boolean = false
+	public readonly typeName: string = '<unset>'
 }
 
 /**
@@ -65,6 +65,14 @@ export class World {
 
 	private prototypesLocked: boolean = false
 	private executingTick: boolean = false
+
+	get publicNextEntityId() {
+		return this.nextEntityId
+	}
+
+	get lastExecutedTick() {
+		return this.currentTick
+	}
 
 	/**
 	 * Registers new entity prototype that contains components
@@ -153,6 +161,9 @@ export class World {
 		// @ts-ignore
 		// noinspection JSConstantReassignment
 		entity.id = this.nextEntityId++
+		// @ts-ignore
+		// noinspection JSConstantReassignment
+		entity.typeName = name
 		this.entitiesAboutToAdd.push([entity, type])
 		return entity
 	}
@@ -176,6 +187,9 @@ export class World {
 		// @ts-ignore
 		// noinspection JSConstantReassignment
 		entity.id = entityId
+		// @ts-ignore
+		// noinspection JSConstantReassignment
+		entity.typeName = name
 		this.entitiesAboutToAdd.push([entity, type])
 		return entity
 	}
@@ -235,10 +249,6 @@ export class World {
 		this.currentTick = tick
 	}
 
-	get publicNextEntityId() {
-		return this.nextEntityId
-	}
-
 	/**
 	 * Finds an entity using provided id
 	 * This will return undefined if the entity hasn't been published to indexes (at the end of the tick)
@@ -263,10 +273,6 @@ export class World {
 		this.entityIdsToRemove.push(id)
 	}
 
-	get lastExecutedTick() {
-		return this.currentTick
-	}
-
 	/**
 	 * Executes next tick in the simulation
 	 * After the function is called the pending entities are added and removed
@@ -280,13 +286,14 @@ export class World {
 			for (let i = 0; i < this.entityIdsToRemove.length; i++) {
 				const id = this.entityIdsToRemove[i]
 				const entity = this.allEntities.get(id)
-				if (entity != null) {
+				if (entity !== undefined) {
 					this.allEntities.delete(id)
-					const type = this.allEntityTypes.get(entity.constructor.name)
-					if (type != null) {
-						for (const trigger of type.triggers) {
-							trigger.entityRemoved(entity)
-						}
+					const type = this.allEntityTypes.get(entity.typeName)
+					if (type === undefined)
+						throw new Error(`Failed to remove entity ${id} since type doesn't exist`)
+
+					for (const trigger of type.triggers) {
+						trigger.entityRemoved(entity)
 					}
 				}
 			}

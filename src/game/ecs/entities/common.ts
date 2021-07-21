@@ -14,7 +14,7 @@ import {
 	SelectionStatus,
 	SerializableComponent,
 	SightComponent,
-	StateMachineHolderComponent,
+	StateMachineHolderComponent, TicksToLiveComponent,
 	TileListenerComponent,
 	TilesIncumbentComponent,
 	UnitAnimationsComponent,
@@ -256,6 +256,17 @@ export const forceAddAnimatableDrawableComponent = (req: EntityRegistrationReque
 	entity.currentAnimationFrame = 0
 }
 
+export const addTicksToLiveComponent = (req: EntityRegistrationRequest) => {
+	const ticks = req.data.child('ticksToLive').getRawObject()
+	if (ticks === undefined) return
+	if (typeof ticks !== 'number') throw new Error(`Invalid ticksToLive value ${ticks}`)
+
+	req.components.add('TicksToLiveComponent')
+	const entity = req.entity as unknown as TicksToLiveComponent
+	entity.removeMeAtTick = 0
+	entity.ticksToLive = ticks
+}
+
 export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
 	forceAddDamageableComponent(req, true)
@@ -267,6 +278,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 	addAttackComponent(req)
 	addStateMachineComponent(req)
 	forceAddPlayerCommandTakerComponent(req)
+	addTicksToLiveComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork
@@ -295,6 +307,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	addAttackComponent(req)
 	forceAddPlayerCommandTakerComponent(req)
 	addStateMachineComponent(req)
+	addTicksToLiveComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork
@@ -314,6 +327,7 @@ export const createTypeForEffect = (req: EntityRegistrationRequest): EntityRegis
 	forceAddPredefinedDrawableComponent(req)
 	forceAddDelayedHideComponent(req)
 	forceAddAnimatableDrawableComponent(req)
+	addTicksToLiveComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork
