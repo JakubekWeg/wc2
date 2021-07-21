@@ -158,6 +158,29 @@ export class World {
 	}
 
 	/**
+	 * Queues effect entity to be added, this method doesn't call indexes
+	 * Effect entity is an that is preset only in local game and shouldn't be broadcasted to other players
+	 * This method doesn't modify nextEntityId variable
+	 * This method can only be called after locking prototypes and only during game logic execution
+	 * @throws Error if world is not locked, game is not executing or prototype is not registered
+	 */
+	spawnEffectEntity(name: string): Entity {
+		if (!this.prototypesLocked) throw new Error('World is not locked')
+		if (!this.executingTick) throw new Error('Game logic is not executing now')
+
+		const type = this.allEntityTypes.get(name)
+		if (type == null)
+			throw new Error('Entity type ' + name + ' is not registered')
+		const entityId = -(this.nextEntityId + Math.random() * 100000 | 0)
+		const entity = type.spawn()
+		// @ts-ignore
+		// noinspection JSConstantReassignment
+		entity.id = entityId
+		this.entitiesAboutToAdd.push([entity, type])
+		return entity
+	}
+
+	/**
 	 * Gets an entity that gets cloned when spawning this entity type
 	 * Throws if entity name is not registered
 	 */

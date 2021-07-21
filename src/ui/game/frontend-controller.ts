@@ -77,7 +77,7 @@ export class EditorFrontedController implements FrontendController {
 			})
 		}
 		this.game.dispatchNextTick(world => {
-			const entity = world.spawnEntity('cross') as unknown as PredefinedDrawableComponent & DelayedHideComponent & AnimatableDrawableComponent
+			const entity = world.spawnEffectEntity('cross') as unknown as PredefinedDrawableComponent & DelayedHideComponent & AnimatableDrawableComponent
 			entity.destinationDrawX = tileX * 32
 			entity.destinationDrawY = tileY * 32
 			entity.hideMeAtMillis = Date.now() + entity.currentAnimation.length * MILLIS_BETWEEN_TICKS / ANIMATIONS_PER_TICK
