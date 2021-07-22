@@ -12,7 +12,7 @@ import { Variant } from '../../game/ecs/variant'
 import { Entity, EntityType } from '../../game/ecs/world'
 import { ANIMATIONS_PER_TICK, GameInstanceImpl, MILLIS_BETWEEN_TICKS } from '../../game/game-instance'
 import { Renderer } from '../../game/renderer'
-import { CanvasMouseEvent } from './GameCanvas'
+import { CanvasMouseEvent, MouseButtonType } from './GameCanvas'
 
 export interface FrontendController {
 	readonly game: GameInstanceImpl
@@ -24,6 +24,7 @@ export const FrontedControllerContext = React.createContext<FrontendController>(
 
 export class EditorFrontedController implements FrontendController {
 	public readonly variantsToPlace: [Variant, Variant, Variant]
+	public setTerrainSize: number = 2
 	public readonly entitiesToPickFrom: EntityType[]
 	public entityToSpawn: EntityType
 	public openedSelector: number = -1
@@ -41,6 +42,20 @@ export class EditorFrontedController implements FrontendController {
 			.dataPack.entityTypes
 			.filter(e => e.componentNames.has('IconComponent'))
 		this.entityToSpawn = this.entitiesToPickFrom[0]
+	}
+
+	getVariantByMouseButton(button: MouseButtonType): Variant {
+		switch (button) {
+			case MouseButtonType.None:
+				throw new Error('Provided none button')
+			case MouseButtonType.Middle:
+				return this.variantsToPlace[1]
+			case MouseButtonType.Right:
+				return this.variantsToPlace[2]
+			case MouseButtonType.Left:
+			default:
+				return this.variantsToPlace[0]
+		}
 	}
 
 	mouseEvent(e: CanvasMouseEvent) {

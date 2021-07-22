@@ -30,7 +30,12 @@ function TerrainPicker({onSelected}: { onSelected: (v: Variant) => void }): Reac
 export function PlaceTerrainMode(): ReactElement {
 	const controller = useContext(FrontedControllerContext) as EditorFrontedController
 	const [variants, setVariants] = useState(controller.variantsToPlace)
+	const [terrainSize, setTerrainSize] = useState(controller.setTerrainSize)
 	const [opened, setOpened] = useState(-1)
+
+	useEffect(() => {
+		controller.setTerrainSize = terrainSize
+	}, [terrainSize, controller])
 
 	useEffect(() => {
 		controller.openedSelector = opened
@@ -42,14 +47,31 @@ export function PlaceTerrainMode(): ReactElement {
 		setOpened(-1)
 	}
 
-	return <div className="EditorMode MouseActionsParent">
-		{variants.map((v, i) => <MouseActionIcon
-			iconIndex={v}
-			key={`${i}`}
-			image="tile-set"
-			onClicked={() => setOpened(i)}
-			children={opened === i ? <TerrainPicker onSelected={(v) => selected(i, v)}/> : undefined}
-		/>)}
+	return <div className="EditorMode">
+		<div className="MouseActionsParent">
+			{variants.map((v, i) => <MouseActionIcon
+				iconIndex={v}
+				key={`${i}`}
+				image="tile-set"
+				onClicked={() => setOpened(i)}
+				children={opened === i ? <TerrainPicker onSelected={(v) => selected(i, v)}/> : undefined}
+			/>)}
+		</div>
+
+		<div className="MouseActionsParent">
+			<label>
+				<input type="radio" name="terrain-size" checked={1 === terrainSize} onChange={() => setTerrainSize(1)}/>
+				1x1
+			</label>
+			<label>
+				<input type="radio" name="terrain-size" checked={2 === terrainSize} onChange={() => setTerrainSize(2)}/>
+				3x3
+			</label>
+			<label>
+				<input type="radio" name="terrain-size" checked={3 === terrainSize} onChange={() => setTerrainSize(3)}/>
+				5x5
+			</label>
+		</div>
 	</div>
 }
 
