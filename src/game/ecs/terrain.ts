@@ -25,7 +25,13 @@ export const TILE_SET_WIDTH = 512 / 32
 export interface TerrainSystem {
 	readonly layerDrawCallback: (ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) => void
 
-	setVariantForTile(tileX: number, tileY: number, v: Variant): void
+	/**
+	 * Sets terrain variant for this tile
+	 * This method is safe to call with invalid coordinates
+	 * @returns true if parameters are valid (tile is now set with this variant)
+	 * @returns false if coords are invalid
+	 */
+	setVariantForTile(tileX: number, tileY: number, v: Variant): boolean
 
 	isValidTile(x: number, y: number): boolean
 
@@ -74,7 +80,7 @@ class TerrainSystemImpl implements TerrainSystem {
 		}
 	}
 
-	public setVariantForPoint(pX: number, pY: number, v: Variant) {
+	private setVariantForPoint(pX: number, pY: number, v: Variant) {
 
 
 		const check = (x: number, y: number) => {
@@ -179,11 +185,15 @@ class TerrainSystemImpl implements TerrainSystem {
 		return !(x < 0 || x >= this.tilesSize || y < 0 || y >= this.tilesSize)
 	}
 
-	public setVariantForTile(tileX: number, tileY: number, v: Variant) {
+	public setVariantForTile(tileX: number, tileY: number, v: Variant): boolean {
+		if (!this.isValidTile(tileX, tileY)) return false
+
 		this.setVariantForPoint(tileX, tileY, v)
 		this.setVariantForPoint(tileX, tileY + 1, v)
 		this.setVariantForPoint(tileX + 1, tileY, v)
 		this.setVariantForPoint(tileX + 1, tileY + 1, v)
+
+		return true
 	}
 
 	public readonly layerDrawCallback = (ctx: CanvasRenderingContext2D, chunkX: number, chunkY: number) => {
