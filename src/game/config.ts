@@ -109,6 +109,13 @@ class Config {
 		return value
 	}
 
+	public asList(): Config[] {
+		const value: any[] = this.getRawObject() as any[]
+		if (!Array.isArray(value))
+			throw new Error(`Expected list in config, got value=${value}`)
+		return value.map(v => new Config(v, this.globalRegistry))
+	}
+
 
 	private getValueRaw(key: string): unknown {
 		let obj = this.obj

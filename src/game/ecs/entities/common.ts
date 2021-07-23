@@ -1,20 +1,25 @@
 import { neutralForce } from '../../forces-manager'
 import { EntityColor } from '../../misc/colors-palette'
 import { composeFunction } from '../../misc/functions-composer'
+import { parseEntityActionFromJson } from '../actions/entity-action'
 import {
+	ActionsComponent,
 	AnimatableDrawableComponent,
 	AttackComponent,
-	DamageableComponent, DelayedHideComponent,
+	DamageableComponent,
+	DelayedHideComponent,
 	IconComponent,
 	MovingDrawableComponent,
-	MovingUnitComponent, PlayerCommandTakerComponent,
+	MovingUnitComponent,
+	PlayerCommandTakerComponent,
 	PredefinedDrawableComponent,
 	PredefinedDrawableComponent_render,
 	SelectableComponent,
 	SelectionStatus,
 	SerializableComponent,
 	SightComponent,
-	StateMachineHolderComponent, TicksToLiveComponent,
+	StateMachineHolderComponent,
+	TicksToLiveComponent,
 	TileListenerComponent,
 	TilesIncumbentComponent,
 	UnitAnimationsComponent,
@@ -267,6 +272,23 @@ export const addTicksToLiveComponent = (req: EntityRegistrationRequest) => {
 	entity.ticksToLive = ticks
 }
 
+export const addActionsComponent = (req: EntityRegistrationRequest) => {
+	if (!req.components.has('SelectableComponent')
+		|| !req.components.has('PlayerCommandTakerComponent'))
+		return
+
+	if (req.data.child('actions').getRawObject() === undefined)
+		return
+
+	req.components.add('ActionsComponent')
+	const entity = req.entity as unknown as ActionsComponent
+
+	entity.availableActions = req.data
+		.child('actions')
+		.asList()
+		.map(v => parseEntityActionFromJson(v))
+}
+
 export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityRegistrationResult => {
 	forceAddSerializableComponent(req)
 	forceAddDamageableComponent(req, true)
@@ -279,6 +301,7 @@ export const createTypeForBuilding = (req: EntityRegistrationRequest): EntityReg
 	addStateMachineComponent(req)
 	forceAddPlayerCommandTakerComponent(req)
 	addTicksToLiveComponent(req)
+	addActionsComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork
@@ -308,6 +331,7 @@ export const createTypeForUnit = (req: EntityRegistrationRequest): EntityRegistr
 	forceAddPlayerCommandTakerComponent(req)
 	addStateMachineComponent(req)
 	addTicksToLiveComponent(req)
+	addActionsComponent(req)
 
 	const entity = req.entity
 	const fork = req.fork

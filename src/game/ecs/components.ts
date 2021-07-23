@@ -2,6 +2,7 @@ import Config from '../config'
 import { Force } from '../forces-manager'
 import { GameInstanceImpl } from '../game-instance'
 import { EntityColor } from '../misc/colors-palette'
+import { EntityAction } from './actions/entity-action'
 import { AnimationFrames } from './entities/common'
 import { StateController } from './states/state'
 import { Tile } from './systems/tiles-system'
@@ -27,6 +28,7 @@ export type ComponentNameType =
 	| 'IconComponent'
 	| 'SelectableComponent'
 	| 'TicksToLiveComponent'
+	| 'ActionsComponent'
 
 
 export type RenderFunction = (ctx: CanvasRenderingContext2D) => void
@@ -219,3 +221,6 @@ export interface IconComponent {
 	iconIndex: number
 }
 
+export interface ActionsComponent extends SelectableComponent, PlayerCommandTakerComponent {
+	availableActions: EntityAction[]
+}

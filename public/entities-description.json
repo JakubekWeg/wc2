@@ -35,7 +35,10 @@
           "range": 3
         },
         "unitMovingSpeed": 9,
-        "sightAmount": 5
+        "sightAmount": 5,
+        "actions": [
+          "walk"
+        ]
       }
     },
     "catapult": {

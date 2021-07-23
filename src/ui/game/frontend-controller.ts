@@ -1,9 +1,9 @@
 import React from 'react'
 import {
+	ActionsComponent,
 	AnimatableDrawableComponent,
 	DelayedHideComponent,
 	PlayerCommand,
-	PlayerCommandTakerComponent,
 	PredefinedDrawableComponent,
 	SelectableComponent,
 	SelectionStatus,
@@ -85,10 +85,16 @@ export class EditorFrontedController implements FrontendController {
 
 		for (const entity of this.selectedEntities) {
 			this.game.dispatchNextTick(() => {
-				const taker = (entity as unknown as PlayerCommandTakerComponent)
-				if (taker.canAcceptCommands) {
-					taker.myCurrentState?.get()?.handleCommand(command, this.game)
-				}
+				const taker = (entity as unknown as Entity & ActionsComponent)
+				taker.availableActions[0].execute({
+					game: this.game,
+					entity: taker,
+					targetTile: {x: tileX, y: tileY},
+				})
+				// const taker = (entity as unknown as PlayerCommandTakerComponent)
+				// if (taker.canAcceptCommands) {
+				// 	taker.myCurrentState?.get()?.handleCommand(command, this.game)
+				// }
 			})
 		}
 		this.game.dispatchNextTick(world => {
