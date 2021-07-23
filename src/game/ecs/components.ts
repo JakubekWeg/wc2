@@ -62,7 +62,7 @@ export enum SelectionStatus {
 /**
  * Component for entities that can be selected either in the game or in the map editor
  */
-export interface SelectableComponent extends PredefinedDrawableComponent, TilesIncumbentComponent {
+export interface SelectableComponent extends PredefinedDrawableComponent, TilesIncumbentComponent, IconComponent {
 	selectionStatus: SelectionStatus
 }
 
