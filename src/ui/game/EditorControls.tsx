@@ -2,7 +2,10 @@ import React, { ReactElement, useContext, useEffect, useState } from 'react'
 import { SelectEntitiesPreview } from '../../game/pointer-previews/previews'
 import { SetVariantPreview } from '../../game/pointer-previews/set-variant-preview'
 import { SpawnEntityPreview } from '../../game/pointer-previews/spawn-entity-preview'
-import { NoneMode, PlaceEntitiesMode, PlaceTerrainMode } from './EditorModes'
+import { EntityActionsMode } from './editor-modes/EntityActionsMode'
+import { NoneMode } from './editor-modes/NoneMode'
+import { PlaceEntitiesMode } from './editor-modes/PlaceEntitiesMode'
+import { PlaceTerrainMode } from './editor-modes/PlaceTerrainMode'
 import { EditorFrontedController, FrontedControllerContext } from './frontend-controller'
 
 
@@ -31,6 +34,7 @@ function Component() {
 				<input type="radio" name="method" checked={checked === 0} onChange={() => setChecked(0)}/>
 				<p>Select units and buildings</p>
 				<NoneMode/>
+				<EntityActionsMode/>
 			</label>,
 			<label key="1">
 				<input type="radio" name="method" checked={checked === 1} onChange={() => setChecked(1)}/>
