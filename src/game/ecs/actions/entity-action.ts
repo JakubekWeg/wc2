@@ -44,7 +44,7 @@ const createDefaultActions = () => {
 	const alwaysTrue = () => true
 
 	defaultActions.set('walk', {
-		iconIndex: 33,
+		iconIndex: 83,
 		isAvailable: alwaysTrue,
 		requiresSelector: alwaysTrue,
 		execute(context: EntityActionContext) {

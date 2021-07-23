@@ -222,6 +222,9 @@ export class World {
 		// @ts-ignore
 		// noinspection JSConstantReassignment
 		entity.id = id
+		// @ts-ignore
+		// noinspection JSConstantReassignment
+		entity.typeName = name
 		this.entitiesAboutToAdd.push([entity, type])
 		return entity
 	}
